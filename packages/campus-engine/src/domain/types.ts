@@ -1,9 +1,9 @@
 /**
- * Domain types for Agent Campus engine (v0.5).
+ * Domain types for Agent Campus engine (v0.7).
  * Pure TS — no Phaser imports.
  *
- * v0.5 adds campus Library: indexed docs → classifications → vector namespaces,
- * bound by oficio (skill.key) across buildings.
+ * Project = building. Agents may move between buildings and join the
+ * office matching their oficio (naturalDepartmentKey) in the destination.
  */
 
 export type Id = string;
@@ -231,46 +231,47 @@ export interface Workspace {
 
 /**
  * Resolved stack for the harness.
- * `department` is always the HOME dept specialization — never the visited room.
- * Agent always reasons as their oficio (craft), regardless of where the sprite stands.
+ *
+ * Always reasons as oficio (craft). Building context = CURRENT building.
+ * Department = corresponding office in the current building
+ * (workspace.key === naturalDepartmentKey), not a random room being visited.
  */
 export interface AgentEffectiveContext {
   craft: Skill;
   building: BuildingContext;
-  /** Home department specialization only; null if no home. */
+  /** Corresponding office in the current building; null if that dpto doesn't exist there. */
   department: DepartmentContext | null;
+  homeProjectId: Id;
   homeWorkspaceId: Id | null;
-  /** Positional only — does not drive reasoning. */
+  currentProjectId: Id;
+  /** Positional room — may differ from corresponding office while wandering. */
   currentWorkspaceId: Id | null;
   harness: HarnessParams;
   rank: Rank;
   supervisorId: Id | null;
-  /**
-   * Library classifications bound to this agent's oficio (skill.key),
-   * including those shared with same-craft agents in other buildings.
-   */
   libraryClassifications: DocClassification[];
 }
 
 export interface AgentInstance {
   id: Id;
   archetypeId: Id;
+  /** Building where the agent was hired / primarily belongs. */
+  homeProjectId: Id;
+  /** Building the sprite is in right now (may differ while visiting). */
   projectId: Id;
   workspaceId: Id | null;
+  /**
+   * Corresponding office in home building (naturalDepartmentKey there).
+   * When visiting another building, workspaceId targets that building's
+   * matching office; homeWorkspaceId stays the origin office.
+   */
   homeWorkspaceId: Id | null;
   name: string;
   spriteKey: string;
   skill: Skill;
   naturalDepartmentKey: string;
-  /** Rank key into Project.ranks. */
   rankKey: string;
-  /**
-   * Direct supervisor (usually dept head or a lead).
-   * Null only for campus lead / unassigned.
-   * Communication upward must go through this chain — no hierarchy skip.
-   */
   supervisorId: Id | null;
-  /** Per-instance LLM knobs. */
   harness: HarnessParams;
   role: string;
   mood: Mood;
@@ -395,6 +396,14 @@ export type CampusEvent =
       type: "agent.homing";
       agentId: Id;
       homeWorkspaceId: Id;
+    }
+  | {
+      /** Agent moved to another building; joins corresponding office if it exists. */
+      type: "agent.building.entered";
+      agentId: Id;
+      projectId: Id;
+      workspaceId: Id | null;
+      correspondingOfficeFound: boolean;
     }
   | {
       type: "agent.harness.updated";

@@ -1,5 +1,8 @@
 /**
- * Resolve home department and effective context for an instance.
+ * Resolve home department, cross-building moves, and effective context.
+ *
+ * Project = building. An agent may move between buildings and participate
+ * in the office matching naturalDepartmentKey in the destination.
  */
 
 import { getRank, suggestSupervisor } from "./org";
@@ -17,7 +20,7 @@ import type {
 } from "./types";
 import { DEFAULT_HARNESS_PARAMS } from "./types";
 
-/** Find workspace whose key matches the archetype's natural department. */
+/** Find workspace whose key matches the oficio's natural department. */
 export function resolveHomeWorkspace(
   workspaces: Workspace[],
   naturalDepartmentKey: string,
@@ -25,6 +28,22 @@ export function resolveHomeWorkspace(
   return (
     workspaces.find(
       (w) => w.key === naturalDepartmentKey && w.role !== "hallway",
+    ) ?? null
+  );
+}
+
+/** Corresponding office in a given building for this oficio. */
+export function resolveCorrespondingOffice(
+  workspaces: Workspace[],
+  projectId: Id,
+  naturalDepartmentKey: string,
+): Workspace | null {
+  return (
+    workspaces.find(
+      (w) =>
+        w.projectId === projectId &&
+        w.key === naturalDepartmentKey &&
+        w.role !== "hallway",
     ) ?? null
   );
 }
@@ -69,6 +88,7 @@ export function buildAgentInstance(input: {
   return {
     id: input.id,
     archetypeId: input.archetype.id,
+    homeProjectId: input.project.id,
     projectId: input.project.id,
     workspaceId,
     homeWorkspaceId,
@@ -89,22 +109,45 @@ export function buildAgentInstance(input: {
 }
 
 /**
- * craft ⊕ building ⊕ home dept ⊕ harness ⊕ rank ⊕ library (by oficio).
- *
- * Visiting another room does NOT change reasoning: always oficio + home + building.
- * Library access is by skill.key — shared across buildings with the same craft.
+ * Move agent into another building and seat them in the corresponding office
+ * (same naturalDepartmentKey) if that dpto exists there.
+ */
+export function enterBuilding(
+  agent: AgentInstance,
+  destination: Project,
+  destinationWorkspaces: Workspace[],
+): AgentInstance {
+  const office = resolveCorrespondingOffice(
+    destinationWorkspaces,
+    destination.id,
+    agent.naturalDepartmentKey,
+  );
+  return {
+    ...agent,
+    projectId: destination.id,
+    workspaceId: office?.id ?? null,
+  };
+}
+
+/**
+ * craft ⊕ current building ⊕ corresponding office in that building ⊕ …
+ * Always reasons as oficio; never adopts a random visited room's specialization.
  */
 export function resolveEffectiveContext(
   agent: AgentInstance,
-  project: Project,
+  currentProject: Project,
   workspaces: Workspace[],
   classifications: DocClassification[] = [],
 ): AgentEffectiveContext {
-  const home =
-    workspaces.find((w) => w.id === agent.homeWorkspaceId) ?? null;
-  const department: DepartmentContext | null = home?.context ?? null;
+  const corresponding = resolveCorrespondingOffice(
+    workspaces,
+    agent.projectId,
+    agent.naturalDepartmentKey,
+  );
+  const department: DepartmentContext | null =
+    corresponding?.context ?? null;
 
-  const rank = getRank(project, agent.rankKey) ?? {
+  const rank = getRank(currentProject, agent.rankKey) ?? {
     id: "rank-unknown",
     key: agent.rankKey,
     label: agent.rankKey,
@@ -113,9 +156,11 @@ export function resolveEffectiveContext(
 
   return {
     craft: agent.skill,
-    building: project.context,
+    building: currentProject.context,
     department,
+    homeProjectId: agent.homeProjectId,
     homeWorkspaceId: agent.homeWorkspaceId,
+    currentProjectId: agent.projectId,
     currentWorkspaceId: agent.workspaceId,
     harness: agent.harness,
     rank,
@@ -130,5 +175,6 @@ export function shouldHomeAfterIntro(
 ): boolean {
   if (stayInRoom) return false;
   if (!agent.homeWorkspaceId) return false;
+  if (agent.projectId !== agent.homeProjectId) return false;
   return agent.workspaceId !== agent.homeWorkspaceId;
 }

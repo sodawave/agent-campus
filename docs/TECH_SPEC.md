@@ -1,6 +1,6 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.6 — superficies UI: mapa gamificado (design later) vs ops = organigrama mindmap + inventario/órdenes.  
+**Estado:** v0.7 — movilidad entre edificios: proyecto = edificio; oficina correspondiente por oficio.  
 **Engine elegido:** Phaser 3 + TypeScript + Vite (web-first, pixel art 2D top-down).  
 **Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).
 
@@ -11,10 +11,10 @@
 Renderizar un **campus gamificado** donde:
 
 - un **campus** agrupa **edificios** (proyectos) y una **biblioteca** compartida
-- un **edificio** = un **proyecto** (+ contexto + organigrama)
-- una **habitación** = un **departamento** (+ especialización + jefe)
-- un **sprite** = una **instancia** (oficio + rangos + knobs LLM + supervisor + acceso a docs por oficio)
-- la **biblioteca** indexa código, leyes, manuales… → **clasificaciones** → **namespaces vectoriales**
+- un **edificio** = un **proyecto**
+- una **habitación** = un **departamento / oficina**
+- un **agente** puede **moverse entre edificios** y participar en su **oficina correspondiente** (mismo oficio / `naturalDepartmentKey`) si existe en el destino
+- ops = organigrama mindmap + inventario de tareas / órdenes
 
 ---
 
@@ -44,11 +44,30 @@ Campus
 | Knobs LLM | `harness` | model / temp / effort |
 | Corpus | `Library` + classifications | RAG por oficio |
 
-Stack: `craft ⊕ building ⊕ homeDepartment ⊕ harness ⊕ rank ⊕ libraryClassifications(skill.key)`.
+Stack: `craft ⊕ currentBuilding ⊕ correspondingOffice ⊕ harness ⊕ rank ⊕ libraryClassifications(skill.key)`.
 
-**Visitas:** solo posición; siempre razona como su oficio (+ home + edificio + docs de su oficio).
+**Siempre razona como su oficio.** No adopta la especialización de una sala ajena por la que pase.
 
-### Biblioteca y vectores
+### Movilidad entre edificios
+
+| Concepto | Campo | Notas |
+|---|---|---|
+| Edificio de origen | `homeProjectId` | Donde fue contratado / pertenece |
+| Edificio actual | `projectId` | Puede diferir al visitar otro proyecto |
+| Oficina en origen | `homeWorkspaceId` | Dpto con `key === naturalDepartmentKey` en home |
+| Oficina en destino | `workspaceId` vía `enterBuilding` | Misma key de oficio en el edificio visitado |
+| Sin oficina homologa | `workspaceId = null` | Entra al edificio pero no hay dpto equivalente |
+
+Evento: `agent.building.entered` `{ projectId, workspaceId, correspondingOfficeFound }`.
+
+Helper: `enterBuilding` / `resolveCorrespondingOffice` en [`context.ts`](../packages/campus-engine/src/domain/context.ts).
+
+**Visitas dentro del mismo edificio** a salas que no son su oficina: solo posición; el stack de razonamiento sigue usando la oficina correspondiente (no la sala visitada).
+
+### Departamento natural (homing en el edificio actual)
+
+- Tras intro en el edificio home: homing a `homeWorkspaceId`.
+- Al entrar en otro edificio: ir a la oficina correspondiente si existe.
 
 ```mermaid
 flowchart LR
@@ -96,8 +115,9 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Regla | Decisión |
 |---|---|
 | Salas | = departamentos (+ library room opcional) |
-| Homing | Dpto natural si existe |
-| Razonamiento en visitas | Siempre oficio (+ home + edificio + lib por oficio) |
+| Homing | Oficina correspondiente en el edificio actual |
+| Movilidad inter-edificio | Sí — `enterBuilding` → oficina homologa por oficio |
+| Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
 | Biblioteca | Campus-scoped; bind por `Skill.key` |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
