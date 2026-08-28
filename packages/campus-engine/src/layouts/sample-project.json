@@ -1,0 +1,70 @@
+{
+  "id": "proj-demo",
+  "name": "Demo Co",
+  "campusId": "campus-demo",
+  "buildingId": "reference-dual-room",
+  "campusLeadAgentId": null,
+  "ranks": [
+    { "id": "rank-ic", "key": "ic", "label": "Individual contributor", "level": 1 },
+    { "id": "rank-senior", "key": "senior", "label": "Senior", "level": 2 },
+    { "id": "rank-lead", "key": "lead", "label": "Lead", "level": 3 },
+    { "id": "rank-head", "key": "head", "label": "Jefe de departamento", "level": 4 },
+    { "id": "rank-director", "key": "director", "label": "Director", "level": 5 },
+    { "id": "rank-campus", "key": "campus_lead", "label": "Campus lead", "level": 6 }
+  ],
+  "context": {
+    "mission": "Ayudar a equipos a orquestar agentes de IA como si fueran un despacho real.",
+    "product": "Agent Campus",
+    "audience": "Founders y platform teams",
+    "brand": "Directo, técnico, sin hype vacío",
+    "brief": "Contexto general del edificio: todo agente aquí trabaja para Demo Co / Agent Campus."
+  },
+  "workspaces": [
+    {
+      "id": "ws-mkt",
+      "key": "mkt",
+      "name": "Marketing",
+      "roomId": "room-briefing",
+      "themeColor": "#c0392b",
+      "role": "briefing",
+      "headAgentId": null,
+      "context": {
+        "title": "Marketing",
+        "specialization": "Go-to-market y narrativa de producto",
+        "styleGuide": "Tonos claros, demos pixel, CTAs cortos",
+        "brief": "Especialización de sala: cómo hablamos en mkt para este edificio."
+      }
+    },
+    {
+      "id": "ws-dev",
+      "key": "dev",
+      "name": "Engineering",
+      "roomId": "room-ops",
+      "themeColor": "#2980b9",
+      "role": "ops",
+      "headAgentId": null,
+      "context": {
+        "title": "Engineering",
+        "specialization": "Phaser engine + harness TypeScript",
+        "styleGuide": "TS estricto, eventos idempotentes, sin lógica de negocio en escenas",
+        "tools": ["TypeScript", "Phaser 3", "Vite"],
+        "brief": "Especialización de sala: normas y stack de engineering."
+      }
+    },
+    {
+      "id": "ws-design",
+      "key": "design",
+      "name": "Design",
+      "roomId": "room-briefing",
+      "themeColor": "#8e44ad",
+      "role": "custom",
+      "headAgentId": null,
+      "context": {
+        "title": "Design",
+        "specialization": "Pixel-art UI + sistemas de interacción espacial",
+        "styleGuide": "16-bit clean, paleta limitada, sin purple-default AI slop",
+        "brief": "Especialización de sala: aquí se define el estilo de diseño del proyecto."
+      }
+    }
+  ]
+}

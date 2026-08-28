@@ -1,0 +1,89 @@
+{
+  "campus": {
+    "id": "campus-demo",
+    "name": "Demo Campus",
+    "libraryId": "lib-main",
+    "projectIds": ["proj-demo"]
+  },
+  "library": {
+    "id": "lib-main",
+    "campusId": "campus-demo",
+    "name": "Biblioteca central",
+    "roomId": "room-library"
+  },
+  "classifications": [
+    {
+      "id": "cls-ux-patterns",
+      "libraryId": "lib-main",
+      "key": "ux-patterns",
+      "label": "Patrones UX",
+      "vectorNamespace": "vec:ux-patterns",
+      "embeddingModel": "text-embedding-3-large",
+      "skillKeys": ["ux-design"],
+      "description": "Guías y patrones de interacción. Compartido por todos los diseñadores UX del campus, aunque vivan en edificios distintos."
+    },
+    {
+      "id": "cls-eng-codebase",
+      "libraryId": "lib-main",
+      "key": "eng-codebase",
+      "label": "Código y ADRs",
+      "vectorNamespace": "vec:eng-codebase",
+      "embeddingModel": "text-embedding-3-large",
+      "skillKeys": ["systems-engineering"],
+      "description": "Repos, ADRs, runbooks de engineering."
+    },
+    {
+      "id": "cls-legal-eu",
+      "libraryId": "lib-main",
+      "key": "legal-eu",
+      "label": "Marco legal UE",
+      "vectorNamespace": "vec:legal-eu",
+      "embeddingModel": "text-embedding-3-large",
+      "skillKeys": ["systems-engineering", "marketing", "department-management"],
+      "description": "Leyes y compliance; varios oficios pueden consultarlo."
+    },
+    {
+      "id": "cls-mkt-playbooks",
+      "libraryId": "lib-main",
+      "key": "mkt-playbooks",
+      "label": "Playbooks de marketing",
+      "vectorNamespace": "vec:mkt-playbooks",
+      "skillKeys": ["marketing"],
+      "description": "Manuales de campaña y messaging."
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-design-system",
+      "libraryId": "lib-main",
+      "title": "Design system pixel campus",
+      "kind": "manual",
+      "sourceUri": "docs/design-system.md",
+      "classificationIds": ["cls-ux-patterns"]
+    },
+    {
+      "id": "doc-repo-readme",
+      "libraryId": "lib-main",
+      "title": "Monorepo README + ADRs",
+      "kind": "code",
+      "sourceUri": "repo://campus-engine",
+      "classificationIds": ["cls-eng-codebase"]
+    },
+    {
+      "id": "doc-gdpr",
+      "libraryId": "lib-main",
+      "title": "GDPR handbook",
+      "kind": "law",
+      "sourceUri": "docs/legal/gdpr.pdf",
+      "classificationIds": ["cls-legal-eu"]
+    },
+    {
+      "id": "doc-launch-playbook",
+      "libraryId": "lib-main",
+      "title": "Launch playbook",
+      "kind": "manual",
+      "sourceUri": "docs/mkt/launch.md",
+      "classificationIds": ["cls-mkt-playbooks"]
+    }
+  ]
+}

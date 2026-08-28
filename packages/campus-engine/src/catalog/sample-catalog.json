@@ -1,0 +1,90 @@
+[
+  {
+    "id": "arch-ux-semi",
+    "title": "Diseñador UX",
+    "skill": {
+      "id": "skill-ux",
+      "key": "ux-design",
+      "label": "Diseño UX",
+      "level": "semi-senior",
+      "summary": "Oficio genérico: flujos, wireframes, critique de UI. Sin estilo de marca hasta recibir contexto de sala/edificio."
+    },
+    "spriteKey": "agent-ux",
+    "naturalDepartmentKey": "design",
+    "defaultRankKey": "senior",
+    "defaultHarness": {
+      "model": "claude-sonnet",
+      "temperature": 0.4,
+      "effort": 0.6
+    },
+    "defaultRole": "worker",
+    "tags": ["design", "product"],
+    "description": "Arquetipo de diseñador UX semi-senior."
+  },
+  {
+    "id": "arch-systems-eng",
+    "title": "Ingeniero de sistemas",
+    "skill": {
+      "id": "skill-systems",
+      "key": "systems-engineering",
+      "label": "Ingeniería de sistemas",
+      "level": "senior",
+      "summary": "Oficio genérico: arquitectura, integraciones, fiabilidad."
+    },
+    "spriteKey": "agent-systems",
+    "naturalDepartmentKey": "dev",
+    "defaultRankKey": "senior",
+    "defaultHarness": {
+      "model": "gpt-5",
+      "temperature": 0.2,
+      "effort": 0.7
+    },
+    "defaultRole": "operator",
+    "tags": ["eng", "infra"],
+    "description": "Arquetipo de ingeniero de sistemas."
+  },
+  {
+    "id": "arch-marketer",
+    "title": "Marketer",
+    "skill": {
+      "id": "skill-mkt",
+      "key": "marketing",
+      "label": "Marketing",
+      "level": "mid",
+      "summary": "Oficio genérico: messaging, campañas, posicionamiento."
+    },
+    "spriteKey": "agent-mkt",
+    "naturalDepartmentKey": "mkt",
+    "defaultRankKey": "ic",
+    "defaultHarness": {
+      "model": "claude-sonnet",
+      "temperature": 0.7,
+      "effort": 0.4
+    },
+    "defaultRole": "presenter",
+    "tags": ["mkt"],
+    "description": "Arquetipo de marketing."
+  },
+  {
+    "id": "arch-dept-head",
+    "title": "Jefe de departamento",
+    "skill": {
+      "id": "skill-mgmt",
+      "key": "department-management",
+      "label": "Gestión de departamento",
+      "level": "head",
+      "summary": "Oficio genérico: priorización, evaluación de tareas, alineación con el edificio."
+    },
+    "spriteKey": "agent-head",
+    "naturalDepartmentKey": "dev",
+    "defaultRankKey": "head",
+    "defaultHarness": {
+      "model": "gpt-5",
+      "temperature": 0.3,
+      "effort": 0.5
+    },
+    "defaultRole": "operator",
+    "tags": ["mgmt"],
+    "description": "Arquetipo de jefe de departamento (evaluador)."
+  }
+]

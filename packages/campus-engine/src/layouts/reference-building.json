@@ -1,0 +1,107 @@
+{
+  "id": "reference-dual-room",
+  "tilemapUrl": "assets/maps/reference-dual-room.json",
+  "tilesetUrl": "assets/maps/tileset-office.png",
+  "rooms": [
+    {
+      "id": "room-briefing",
+      "workspaceKey": "mkt",
+      "role": "briefing",
+      "carpetTint": "#c0392b",
+      "rect": { "x": 2, "y": 1, "w": 12, "h": 14 },
+      "entrances": [{ "x": 7, "y": 14 }]
+    },
+    {
+      "id": "room-ops",
+      "workspaceKey": "dev",
+      "role": "ops",
+      "carpetTint": "#2980b9",
+      "rect": { "x": 16, "y": 1, "w": 12, "h": 14 },
+      "entrances": [{ "x": 21, "y": 14 }]
+    },
+    {
+      "id": "room-hall",
+      "workspaceKey": null,
+      "role": "hallway",
+      "rect": { "x": 2, "y": 16, "w": 26, "h": 5 },
+      "entrances": []
+    },
+    {
+      "id": "room-infra",
+      "workspaceKey": "_infra",
+      "role": "utility",
+      "rect": { "x": 0, "y": 4, "w": 2, "h": 4 },
+      "entrances": [{ "x": 2, "y": 6 }]
+    }
+  ],
+  "anchors": [
+    {
+      "id": "briefing-podium",
+      "roomId": "room-briefing",
+      "kind": "podium",
+      "x": 7,
+      "y": 2,
+      "facing": "down"
+    },
+    {
+      "id": "briefing-seat-0",
+      "roomId": "room-briefing",
+      "kind": "seat",
+      "x": 5,
+      "y": 8,
+      "facing": "up"
+    },
+    {
+      "id": "briefing-seat-1",
+      "roomId": "room-briefing",
+      "kind": "seat",
+      "x": 7,
+      "y": 8,
+      "facing": "up"
+    },
+    {
+      "id": "briefing-seat-2",
+      "roomId": "room-briefing",
+      "kind": "seat",
+      "x": 9,
+      "y": 8,
+      "facing": "up"
+    },
+    {
+      "id": "ops-desk",
+      "roomId": "room-ops",
+      "kind": "desk",
+      "x": 21,
+      "y": 2,
+      "facing": "down"
+    },
+    {
+      "id": "ops-seat-0",
+      "roomId": "room-ops",
+      "kind": "seat",
+      "x": 19,
+      "y": 8,
+      "facing": "up"
+    },
+    {
+      "id": "infra-terminal",
+      "roomId": "room-infra",
+      "kind": "terminal",
+      "x": 0,
+      "y": 5,
+      "facing": "right"
+    },
+    {
+      "id": "hall-stand",
+      "roomId": "room-hall",
+      "kind": "stand",
+      "x": 20,
+      "y": 18,
+      "facing": "up"
+    }
+  ],
+  "portraits": [
+    { "id": "portrait-left", "x": 10, "y": 16, "bind": "run" },
+    { "id": "portrait-right", "x": 14, "y": 16, "bind": "run" }
+  ]
+}
