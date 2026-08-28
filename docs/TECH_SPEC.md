@@ -20,9 +20,11 @@ Producto con **tres ámbitos / pantallas** (en **web y mobile nativo**):
 
 Dominio compartido: campus → edificios → oficinas; `ProjectCall`; biblioteca; workers; MemPalace; Spec Kit; **hosts CLI** que hacen vivir agentes en máquinas remotas y los **representan** en su oficina.
 
-### CLI host distribuido (`campus`)
+### CLI host distribuido (`campus`) — prioridad baja
 
-El sistema permite **instalar un CLI** en cualquier máquina para:
+> **Prioridad baja.** El contrato existe (`domain/host.ts`) para no pintar una esquina, pero **no bloquea** scaffold de web/mobile, memoria, Spec Kit ni compose. Se implementa después del MVP de pantallas + API.
+
+El sistema permitirá **instalar un CLI** en cualquier máquina para:
 
 1. **Conectarse** al campus (`campus login` / `host join`).
 2. **Instanciar** agentes con rol/oficio/harness (`agent spawn`).
@@ -245,7 +247,7 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Memoria proyecto | Wing compartido del building (`memoryWingId`) |
 | Spec Kit | SDD por proyecto (`Project.specKit`) |
 | Clientes | `web` \| `ios` \| `android` \| `cli_host` |
-| CLI | `campus` instala hosts; spawn/stop; representación en mapa |
+| CLI | Contrato listo; **prioridad baja** — post-MVP |
 | Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
@@ -644,7 +646,9 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Nombre del paquete CLI (`@agent-campus/cli` vs `campus`).
-2. Auth del host: token de dispositivo vs OAuth usuario.
-3. Si un host cae: ¿sprite desaparece o queda “offline” en la silla?
-4. Scaffold: ¿cli stub primero o api+compose?
+1. Scaffold MVP: ¿web primero, api+compose, o pantallas mock?
+2. Mobile: Expo/RN vs otro.
+3. Memoria proyecto: ¿quién escribe en el wing compartido?
+4. Spec Kit: ¿opt-in o obligatorio?
+
+*(CLI host distribuido: diferido — prioridad baja.)*

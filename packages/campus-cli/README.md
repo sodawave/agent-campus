@@ -1,8 +1,8 @@
-# `@agent-campus/cli` (planned)
+# `@agent-campus/cli` (planned — **low priority**)
 
-Distributed **agent host**. Install on any machine to instantiate agents with
-roles, keep them alive, connect to a campus, and have them **represented** in
-the correct office on the map.
+Contract only for now. Implement **after** MVP (web/mobile screens + API + memory/comms).
+
+Distributed agent host: join campus, spawn role-bound agents, represent them on the map.
 
 ```bash
 # planned
