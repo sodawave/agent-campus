@@ -115,7 +115,7 @@ export const WORKER_SPAWNER_RANK_KEY = "ic";
 export type AppScreen = "gamification" | "org_tasks" | "chats";
 
 /** Delivery targets — same domain, different shells. */
-export type ClientPlatform = "web" | "ios" | "android";
+export type ClientPlatform = "web" | "ios" | "android" | "cli_host";
 
 export type AgentKind = "named" | "anonymous_worker";
 /**
@@ -439,6 +439,13 @@ export interface AgentInstance {
   runId: Id | null;
   anchorId?: string;
   introducing?: boolean;
+  /**
+   * Host machine currently running this agent's live process.
+   * Null = catalog-only / suspended (not represented as "alive" on map).
+   */
+  hostId?: Id | null;
+  /** Active runtime id on that host (CLI process). */
+  runtimeId?: Id | null;
 }
 
 /**
@@ -708,6 +715,30 @@ export type CampusEvent =
   | {
       type: "speckit.artifact.upserted";
       artifact: SpecKitArtifact;
+    }
+  | {
+      type: "host.joined";
+      host: import("./host").AgentHost;
+    }
+  | {
+      type: "host.left";
+      hostId: Id;
+    }
+  | {
+      type: "host.heartbeat";
+      hostId: Id;
+      at: string;
+    }
+  | {
+      /** Runtime started on a host — map should place/keep agent in office. */
+      type: "runtime.started";
+      runtime: import("./host").AgentRuntime;
+    }
+  | {
+      type: "runtime.stopped";
+      runtimeId: Id;
+      agentId: Id;
+      hostId: Id;
     }
   | {
       type: "library.loaded";

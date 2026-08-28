@@ -1,12 +1,12 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.12 — bus de comunicación entre agentes + compose (patrón block/buzz).  
+**Estado:** v0.13 — CLI host distribuido: agentes vivos en N máquinas, representados en el campus.  
 **Engine mapa (web):** Phaser 3 + TypeScript + Vite.  
-**Clientes:** web + apps nativas iOS/Android (mismo dominio/API).  
-**Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (agente + proyecto).  
-**Specs:** [Spec Kit](https://github.com/github/spec-kit).  
-**Comms / deploy:** bus interno WS+Redis; ops Compose inspirado en [block/buzz deploy/compose](https://github.com/block/buzz/tree/main/deploy/compose); opcional `COMMS_BACKEND=buzz`.  
-**Referencia visual (no definitiva):** ver §9 / `assets/refs/`.
+**Clientes:** web + iOS/Android + **`campus` CLI host**.  
+**Memoria:** MemPalace (agente + proyecto).  
+**Specs:** Spec Kit.  
+**Comms / deploy:** bus WS+Redis; Compose estilo Buzz; opcional Buzz relay.  
+**Referencia visual:** ver §9 / `assets/refs/`.
 
 ---
 
@@ -18,7 +18,50 @@ Producto con **tres ámbitos / pantallas** (en **web y mobile nativo**):
 2. **Organigrama / tareas** — mindmap; inventario; órdenes.
 3. **Chats con agentes** — hilos con instancias nombradas.
 
-Dominio compartido: campus → edificios (proyectos) → oficinas; `ProjectCall`; biblioteca por oficio; workers (`ic`); **MemPalace** (agente + proyecto); **Spec Kit** por edificio.
+Dominio compartido: campus → edificios → oficinas; `ProjectCall`; biblioteca; workers; MemPalace; Spec Kit; **hosts CLI** que hacen vivir agentes en máquinas remotas y los **representan** en su oficina.
+
+### CLI host distribuido (`campus`)
+
+El sistema permite **instalar un CLI** en cualquier máquina para:
+
+1. **Conectarse** al campus (`campus login` / `host join`).
+2. **Instanciar** agentes con rol/oficio/harness (`agent spawn`).
+3. **Mantenerlos vivos** (proceso runtime en esa máquina).
+4. **Representarlos** en el mapa/org en su lugar justo (oficina natural / building).
+
+```mermaid
+flowchart LR
+  CLI1[campus CLI host A]
+  CLI2[campus CLI host B]
+  API[Campus API / bus]
+  Map[Gamification UI]
+  Org[Org / chats]
+
+  CLI1 -->|runtime.started| API
+  CLI2 -->|runtime.started| API
+  API --> Map
+  API --> Org
+  Map -->|sprite in office| Agents[AgentInstances]
+```
+
+| Concepto | Tipo | Notas |
+|---|---|---|
+| Host | `AgentHost` | Máquina/proceso unido al campus |
+| Runtime | `AgentRuntime` | Proceso vivo de un `AgentInstance` en un host |
+| Representación | `hostId` + `runtimeId` en la instancia | Mapa coloca el sprite en la oficina del rol |
+| Plataforma | `ClientPlatform = "cli_host"` | Junto a web/ios/android |
+
+Comandos (contrato): ver `CAMPUS_CLI_COMMANDS` en [`domain/host.ts`](../packages/campus-engine/src/domain/host.ts).
+
+Eventos: `host.joined` / `host.left` / `host.heartbeat` / `runtime.started` / `runtime.stopped`.
+
+Reglas:
+
+- Un agente **vivo** tiene `runtimeId` + `hostId`; sin runtime aparece offline / no “habita” la oficina.
+- Spawn respeta catálogo, rank, homing y `ProjectCall` igual que desde la UI.
+- Varios hosts pueden correr roles distintos (p. ej. GPU box = systems eng; laptop = UX).
+- Al caer el host: `runtime.stopped` → sprites salen o pasan a idle offline (TBD visual).
+- Workers anónimos también pueden spawnearse desde un host `ic` y verse entrar/salir.
 
 ### Clientes: web + iOS + Android
 
@@ -201,8 +244,9 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Memoria agente | MemPalace drawers (episódica) |
 | Memoria proyecto | Wing compartido del building (`memoryWingId`) |
 | Spec Kit | SDD por proyecto (`Project.specKit`) |
-| Clientes | `web` \| `ios` \| `android` — mismo dominio/API |
-| Pantallas | `gamification` \| `org_tasks` \| `chats` en todos los clientes |
+| Clientes | `web` \| `ios` \| `android` \| `cli_host` |
+| CLI | `campus` instala hosts; spawn/stop; representación en mapa |
+| Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
 
@@ -537,8 +581,9 @@ Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthe
 ```
 /
   docs/TECH_SPEC.md
-  deploy/compose/             # Buzz-inspired stack (api, pg, redis, minio, caddy)
-  packages/campus-engine/     # domain compartido (web + mobile)
+  deploy/compose/
+  packages/campus-engine/
+  packages/campus-cli/        # bin `campus` — hosts distribuidos
   apps/web/
   apps/mobile/
 ```
@@ -579,26 +624,27 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ## 12. Criterios de aceptación v0
 
-1. Dominio tipado: org, library, workers, memory (agent+project), specKit.
-2. `ClientPlatform` documentado; mismas tres pantallas en web/ios/android.
-3. `projectMemoryAddress` + `recallScopesForAgent`.
-4. `Project.specKit` con fases Spec Kit.
-5. Domain testable sin canvas (Vitest).
+1. Dominio: org, library, workers, memory, specKit, comms, **host/runtime**.
+2. `campus host join` + `agent spawn` emiten eventos y asignan `hostId`/`runtimeId`.
+3. UI mapa representa el agente en su oficina al `runtime.started`.
+4. Host down → `runtime.stopped`.
+5. Mismo contrato en web/ios/android/cli_host.
+6. Domain testable (Vitest) sin canvas.
 
 ---
 
 ## 13. Fuera de alcance v0
 
-- Builds store-ready iOS/Android (solo contrato de cliente).
-- Wire runtime MemPalace MCP / specify-cli completo.
-- Polish Stardew; mindmap avanzado.
-- Mapa Phaser nativo sin WebView en mobile.
+- Binario CLI publicado en npm (solo contrato + package path).
+- Orquestación k8s multi-host.
+- Wire runtime MemPalace/Buzz completo.
+- Art final.
 
 ---
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Mobile: ¿confirmas **Expo/RN** o preferís Flutter/nativo puro?
-2. Memoria proyecto: ¿quién puede escribir en el wing compartido (todos / solo head+)?
-3. Spec Kit: ¿obligatorio en todo building o opt-in (`enabled`)?
-4. Scaffold: ¿web primero o monorepo web+mobile vacío?
+1. Nombre del paquete CLI (`@agent-campus/cli` vs `campus`).
+2. Auth del host: token de dispositivo vs OAuth usuario.
+3. Si un host cae: ¿sprite desaparece o queda “offline” en la silla?
+4. Scaffold: ¿cli stub primero o api+compose?

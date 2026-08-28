@@ -17,9 +17,10 @@ Domain / tech spec **v0.11**.
 | Agent + project memory | [MemPalace](https://github.com/MemPalace/mempalace) |
 | Project specs (SDD) | [Spec Kit](https://github.com/github/spec-kit) |
 | Documentary RAG | Campus Library (by craft) |
-| Agent comms / deploy | Internal bus; Compose pattern from [block/buzz](https://github.com/block/buzz/tree/main/deploy/compose) |
+| Agent comms / deploy | Internal bus; Compose from [block/buzz](https://github.com/block/buzz/tree/main/deploy/compose) |
+| Distributed runtimes | `campus` CLI host (`packages/campus-cli`) |
 
-Clients share one TypeScript domain (`packages/campus-engine`) over API/WS. Default mobile: **Expo / React Native**.
+Clients: web, iOS, Android, and **CLI hosts** on arbitrary machines.
 
 Deploy sketch: [`deploy/compose/`](deploy/compose/).
 
