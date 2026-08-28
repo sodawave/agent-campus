@@ -205,18 +205,15 @@ Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
 
 | Capa | Tecnología | Motivo |
 |---|---|---|
-| Runtime 2D | **Phaser 3** | Tilemaps, sprites, cámaras, depth sorting, web nativo |
-| Lenguaje | **TypeScript** | Tipado del modelo de dominio ↔ escena |
-| Bundler | **Vite** | HMR rápido para iterar tiles/sprites |
-| Mapas | **Tiled** → JSON (`tilemap`) + manifest propio de habitaciones | Edición visual de salas sin redeploy de lógica |
-| Estado remoto | WebSocket (o SSE) → `CampusStore` | Actualización live de agentes/runs |
-| Host UI | Embed en página web (canvas fullscreen o panel) | Producto web, no binario desktop |
+| Domain | **TypeScript** puro | Compartido web + iOS + Android |
+| Mapa web | **Phaser 3** + Vite | Tilemaps pixel |
+| Mobile nativo | **React Native / Expo** (default) | Mismo TS; store builds iOS/Android |
+| Mapa en mobile | WebView del campus engine o canvas nativo más adelante | Paridad de pantallas sin duplicar reglas |
+| Memoria | **MemPalace** | Agente + proyecto |
+| Specs | **Spec Kit** (`specify-cli`) | SDD por building |
+| Sync | WebSocket / SSE + push (mobile) | Store live |
 
-**Alternativas descartadas (por ahora):**
-
-- Godot: peor DX para embed en dashboard web.
-- React-only DOM: no encaja con tilemaps/pixel depth.
-- Pixi solo: más trabajo manual de cámara/colisiones/tilemap que Phaser ya resuelve.
+**Alternativas descartadas (por ahora):** Godot; DOM-only para el mapa; apps mobile con dominio forkeado.
 
 ---
 
@@ -433,31 +430,36 @@ El adapter traduce WS/API del harness a este set. Reglas en dominio (`org.ts`, `
 
 ---
 
-## 9. Tres pantallas (ámbitos de trabajo)
+## 9. Tres pantallas × tres clientes
 
 ```mermaid
 flowchart TB
-  subgraph screens [AppShell]
-    G[1 gamification]
-    O[2 org_tasks]
-    C[3 chats]
+  subgraph clients [Clients]
+    Web[web]
+    iOS[ios native]
+    And[android native]
   end
-  Store[CampusStore]
-  G --> Store
-  O --> Store
-  C --> Store
-  Store --> G
-  Store --> O
-  Store --> C
+  subgraph screens [AppShell]
+    G[gamification]
+    O[org_tasks]
+    C[chats]
+  end
+  API[Campus API / WS]
+  Store[CampusStore / domain]
+  Web --> screens
+  iOS --> screens
+  And --> screens
+  screens --> API
+  API --> Store
 ```
 
-| # | Pantalla | `AppScreen` | Responsabilidad |
-|---|---|---|---|
-| 1 | Gamificación | `gamification` | Mapa campus; presencia; **workers anónimos entrando/saliendo** |
-| 2 | Organigrama / tareas | `org_tasks` | Mindmap; inventario; órdenes |
-| 3 | Chats | `chats` | Conversación con agentes nombrados |
+| # | Pantalla | Mobile notes |
+|---|---|---|
+| 1 | Gamificación | Tab/full-screen; touch pan/zoom; workers enter/leave |
+| 2 | Organigrama / tareas | Primaria en phone; mindmap simplificado + listas |
+| 3 | Chats | Primaria en phone; push al recibir mensajes/órdenes |
 
-Comparten `CampusStore`; no duplican reglas de negocio.
+`ClientPlatform` no cambia reglas de org/memoria/spec — solo shell y notificaciones.
 
 ### 9.1 Gamificación
 
@@ -492,31 +494,11 @@ Comparten `CampusStore`; no duplican reglas de negocio.
 
 ```
 /
-  docs/TECH_SPEC.md          ← este documento
-  packages/campus-engine/
-    package.json
-    src/
-      domain/                # types, context, org, library, tasks, workers, memory
-      catalog/sample-catalog.json
-      catalog/sample-library.json
-      layouts/sample-project.json
-      store/CampusStore.ts
-      adapter/types.ts
-      game/                  # pantalla gamification
-      ui/
-        AppShell.tsx         # switch gamification | org_tasks | chats
-        OrgMindmap.tsx
-        TaskInventoryPanel.ts
-        OrderComposer.ts
-        ChatView.tsx
-        HarnessParamsForm.ts
-        LibraryPanel.ts
-        CatalogModal.ts
-    public/assets/
-      maps/
-      sprites/
-      ui/
-  apps/playground/           # Vite app que embebe el engine con mock events
+  docs/TECH_SPEC.md
+  packages/campus-engine/     # domain compartido (web + mobile)
+  apps/web/                   # Vite + Phaser
+  apps/mobile/                # Expo iOS/Android
+  packages/campus-api/        # WS/HTTP (futuro)
 ```
 
 ---
@@ -555,29 +537,26 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ## 12. Criterios de aceptación v0
 
-1. Tres pantallas navegables: `gamification` | `org_tasks` | `chats`.
-2. Dominio: contexto, org, library, calls, tasks/orders.
-3. Solo `rankKey === ic` puede `spawnAnonymousWorker`; otros → `worker.spawn.rejected`.
-4. Spawn/destroy emiten `worker.entered` / `worker.exited` (mapa representa entrar/salir).
-5. Named agents stationed at home salvo `ProjectCall`.
-6. `AgentMemoryPort` + `memoryAddress` en effective context (MemPalace mapping).
-7. Domain testable con Vitest.
+1. Dominio tipado: org, library, workers, memory (agent+project), specKit.
+2. `ClientPlatform` documentado; mismas tres pantallas en web/ios/android.
+3. `projectMemoryAddress` + `recallScopesForAgent`.
+4. `Project.specKit` con fases Spec Kit.
+5. Domain testable sin canvas (Vitest).
 
 ---
 
 ## 13. Fuera de alcance v0
 
-- Polish Stardew (globos/panel).
-- Mindmap avanzado / protocolo rico de chat.
-- Wire completo MemPalace MCP en runtime (solo contrato + mapping; adapter después).
-- Embeddings custom fuera de MemPalace / Library.
-- Workers con identidad de catálogo o chat propio (TBD).
+- Builds store-ready iOS/Android (solo contrato de cliente).
+- Wire runtime MemPalace MCP / specify-cli completo.
+- Polish Stardew; mindmap avanzado.
+- Mapa Phaser nativo sin WebView en mobile.
 
 ---
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Memoria: ¿wing **por proyecto** (default) o **privado por agente**?
-2. Confirmación: último rango = `ic` ¿o el más alto?
-3. ¿Workers en mindmap/chat?
-4. Scaffold: ¿por cuál pantalla empezamos?
+1. Mobile: ¿confirmas **Expo/RN** o preferís Flutter/nativo puro?
+2. Memoria proyecto: ¿quién puede escribir en el wing compartido (todos / solo head+)?
+3. Spec Kit: ¿obligatorio en todo building o opt-in (`enabled`)?
+4. Scaffold: ¿web primero o monorepo web+mobile vacío?
