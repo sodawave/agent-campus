@@ -1,0 +1,11 @@
+{
+  "name": "Agent Campus",
+  "install": "npm install",
+  "terminals": [
+    {
+      "name": "playground",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [5173]
+}
