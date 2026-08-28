@@ -1,8 +1,9 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.9 — 3 pantallas (gamificación / org-tareas / chats) + workers anónimos (último rango).  
+**Estado:** v0.10 — memoria de agentes con MemPalace (palace/wing/room/drawer).  
 **Engine elegido:** Phaser 3 + TypeScript + Vite (web-first, pixel art 2D top-down).  
-**Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).
+**Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).  
+**Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (local-first, verbatim, Chroma pluggable).
 
 ---
 
@@ -14,7 +15,29 @@ Producto con **tres ámbitos / pantallas** de trabajo:
 2. **Organigrama / tareas** — mindmap operativo; inventario; órdenes.
 3. **Chats con agentes** — conversación 1:1 (o hilos) con instancias nombradas.
 
-Dominio: campus → edificios (proyectos) → oficinas; agentes en oficina salvo `ProjectCall`; biblioteca por oficio; último rango (`ic`) instancia/destruye workers anónimos.
+Dominio: campus → edificios (proyectos) → oficinas; agentes en oficina salvo `ProjectCall`; biblioteca por oficio; último rango (`ic`) instancia/destruye workers anónimos; **memoria episódica vía MemPalace**.
+
+### Memoria de agentes (MemPalace)
+
+Cada agente tiene gestión de memoria. Base: [MemPalace](https://github.com/MemPalace/mempalace) — local-first, almacenamiento **verbatim**, retrieval semántico, backend pluggable (Chroma por defecto), MCP/CLI.
+
+| MemPalace | Agent Campus |
+|---|---|
+| Palace | Campus (`Campus.memoryPalaceRef`) |
+| Wing | Proyecto home del agente (o wing privado = `agent.id`) |
+| Room | `naturalDepartmentKey` / topic |
+| Drawer | Entrada verbatim (`MemoryDrawer`) |
+
+Separación de corpora:
+
+| Sistema | Qué guarda |
+|---|---|
+| **Library** | Docs (código, leyes, manuales) → classifications → namespaces RAG por **oficio** |
+| **MemPalace** | Memoria episódica/conversacional del **agente** (chats, decisiones, handoffs) |
+
+Puerto: `AgentMemoryPort` (`remember` / `recall`) en [`domain/memory.ts`](../packages/campus-engine/src/domain/memory.ts).  
+Eventos: `memory.remembered`, `memory.recalled`.  
+El harness hace **recall antes de actuar** (patrón mempalace-recall) y **remember** al cerrar tareas/chats.
 
 ---
 
@@ -437,7 +460,7 @@ Comparten `CampusStore`; no duplican reglas de negocio.
   packages/campus-engine/
     package.json
     src/
-      domain/                # types, context, org, library, tasks, workers
+      domain/                # types, context, org, library, tasks, workers, memory
       catalog/sample-catalog.json
       catalog/sample-library.json
       layouts/sample-project.json
@@ -501,7 +524,8 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 3. Solo `rankKey === ic` puede `spawnAnonymousWorker`; otros → `worker.spawn.rejected`.
 4. Spawn/destroy emiten `worker.entered` / `worker.exited` (mapa representa entrar/salir).
 5. Named agents stationed at home salvo `ProjectCall`.
-6. Domain testable con Vitest.
+6. `AgentMemoryPort` + `memoryAddress` en effective context (MemPalace mapping).
+7. Domain testable con Vitest.
 
 ---
 
@@ -509,14 +533,15 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 - Polish Stardew (globos/panel).
 - Mindmap avanzado / protocolo rico de chat.
-- Embeddings reales / LLM provider.
+- Wire completo MemPalace MCP en runtime (solo contrato + mapping; adapter después).
+- Embeddings custom fuera de MemPalace / Library.
 - Workers con identidad de catálogo o chat propio (TBD).
 
 ---
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Confirmación: **último rango = `ic` (menor level)** — ¿o era el rango más alto?
-2. ¿Los workers anónimos aparecen en el mindmap / tienen chat?
-3. Órdenes humanas vs jerarquía.
+1. Memoria: ¿wing **por proyecto** (default) o **privado por agente**?
+2. Confirmación: último rango = `ic` ¿o el más alto?
+3. ¿Workers en mindmap/chat?
 4. Scaffold: ¿por cuál pantalla empezamos?

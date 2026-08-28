@@ -1,16 +1,18 @@
 # Agent Campus
 
-Gamified campus for AI agent harnesses: buildings (= projects), offices (= departments), org chart, task inventory, and agent chats.
+Gamified campus for AI agent harnesses: buildings (= projects), offices (= departments), org chart, task inventory, agent chats, and **agent memory**.
 
 ## Status
 
-Domain / tech spec **v0.9** (engine not scaffolded yet).
+Domain / tech spec **v0.10** (engine not scaffolded yet).
 
 | Screen | Role |
 |--------|------|
 | Gamification | Pixel campus map; anonymous workers enter/leave |
 | Org / tasks | Mindmap organigram + task inventory + orders |
 | Chats | Conversations with named agents |
+
+**Memory:** [MemPalace](https://github.com/MemPalace/mempalace) — local-first verbatim memory (palace → wing → room → drawer). Documentary RAG stays in the campus Library (by craft); MemPalace holds episodic/conversational memory per agent.
 
 Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
 
@@ -19,26 +21,22 @@ Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
 ```
 docs/TECH_SPEC.md
 packages/campus-engine/src/
-  domain/     # types, context, org, library, tasks, workers
+  domain/     # types, context, org, library, tasks, workers, memory
   catalog/    # sample catalog + library
   layouts/    # sample project + building layout
 assets/       # reference UI capture
 ```
 
-## Continue from the portable bundle
-
-If you do not have GitHub access from the cloud agent yet:
+## MemPalace
 
 ```bash
-git clone agent-campus-latest.bundle agent-campus
-cd agent-campus
+# optional local palace for agents
+uv tool install mempalace
+mempalace init ~/.mempalace/agent-campus
 ```
 
-## Publish to GitHub (when `GH_TOKEN` is set)
+Agent Campus talks to MemPalace through `AgentMemoryPort` (`remember` / `recall`). See `packages/campus-engine/src/domain/memory.ts`.
 
-```bash
-export GH_TOKEN=…   # repo scope
-./scripts/publish-github.sh
-```
+## GitHub
 
-Creates public repo `agent-campus` (display name **Agent Campus**) under the authenticated user and pushes `main`.
+Repo: https://github.com/sodawave/agent-campus
