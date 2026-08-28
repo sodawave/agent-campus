@@ -4,20 +4,17 @@ Gamified campus for AI agents — **Godot-first**.
 
 ## Status
 
-**v0.15** — Godot 4 is the **main app** (Stardew-like), exported to **iOS, Android, and Web**.
+**v0.16** — One Godot 4 app (Stardew-like) exports to **iOS, Android, Desktop, and Web**.
 
 | Layer | Choice |
 |-------|--------|
-| Mobile + map + org/chats UI | **Godot 4** (`apps/campus-godot`) |
-| Backend domain/API | TypeScript `campus-engine` + Hono + Postgres/Redis |
+| Client app | **Godot 4** (`apps/campus-godot`) — mobile + **desktop** + web |
+| Backend | TypeScript API + Postgres/Redis |
 | Memory | [MemPalace](https://github.com/MemPalace/mempalace) |
 | Specs | [Spec Kit](https://github.com/github/spec-kit) |
-| Deploy | [`deploy/compose`](deploy/compose/) (Buzz-inspired) |
+| Deploy | [`deploy/compose`](deploy/compose/) |
 | CLI hosts | Low priority |
-| React admin | Optional |
 
 Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
-
-## Repo
 
 https://github.com/sodawave/agent-campus

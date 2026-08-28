@@ -1,9 +1,8 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.15 — **Godot 4 = app mobile nativa** (iOS/Android) + mapa Stardew; web vía export Godot (y/o shell React admin).  
-**Cliente principal:** **Godot 4** (2D Stardew-like + UI de org/chats).  
-**Mobile:** export nativo Godot → App Store / Play (no Expo como shell del mapa).  
-**Web:** export HTML5/WASM del mismo proyecto Godot; React opcional para consola/admin.  
+**Estado:** v0.16 — **Godot 4 = cliente principal**: mobile (iOS/Android) + **desktop** (Windows/macOS/Linux) + web.  
+**Cliente principal:** **Godot 4** (Stardew-like + UI org/chats).  
+**Targets:** iOS · Android · **Desktop** · Web — un solo proyecto `.godot`.  
 **Backend:** dominio TS + API Hono + MemPalace + Spec Kit + Compose.  
 **CLI host:** diferido (prioridad baja).  
 **Referencia visual:** Stardew-like; refs en `assets/refs/`.
@@ -65,17 +64,17 @@ Reglas:
 - Al caer el host: `runtime.stopped` → sprites salen o pasan a idle offline (TBD visual).
 - Workers anónimos también pueden spawnearse desde un host `ic` y verse entrar/salir.
 
-### Clientes: Godot-first (mobile nativo + web)
+### Clientes: Godot-first (mobile + desktop + web)
 
 | Plataforma | Cómo |
 |---|---|
-| **iOS / Android** | Mismo proyecto Godot → export nativo. Es la **app mobile**. |
-| **Web** | Mismo proyecto → export HTML5/WASM (jugable/usable en browser). |
-| Admin / plugins pesados (opc.) | React en web si hace falta; no bloquea mobile. |
+| **iOS / Android** | Export nativo Godot → stores |
+| **Desktop** | Export nativo Godot → **Windows / macOS / Linux** |
+| **Web** | Export HTML5/WASM del mismo proyecto |
+| Admin React (opc.) | Consola web si hace falta |
 | CLI host | Prioridad baja |
 
-Las **tres pantallas** (mapa, org/tareas, chats) viven en Godot (escenas + Control UI).  
-Look: **Stardew Valley**. Estado de negocio sigue en API/TS (`campus-engine`); Godot es cliente del bus.
+Las **tres pantallas** viven en Godot. Look **Stardew**. Estado en API/TS.
 
 ### Memoria (MemPalace) — agente y proyecto
 
@@ -265,7 +264,7 @@ Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
 
 | Capa | Tecnología | Motivo |
 |---|---|---|
-| **App mobile + mapa + UI** | **Godot 4 (2D)** | Stardew-like; **una app** exportada a iOS/Android/Web |
+| **App (mapa + org + chats)** | **Godot 4 (2D)** | Stardew-like; export **iOS · Android · Desktop · Web** |
 | Domain / API | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia |
 | Memoria | **MemPalace** | Agente + proyecto |
 | Specs | **Spec Kit** | SDD por building |
@@ -291,11 +290,13 @@ flowchart TB
   end
   API[Campus API / WS]
   godotApp -->|HTTP WS| API
-  iOS[iOS export]
-  And[Android export]
-  Web[Web export]
+  iOS[iOS]
+  And[Android]
+  Desk[Desktop Win/macOS/Linux]
+  Web[Web]
   godotApp --> iOS
   godotApp --> And
+  godotApp --> Desk
   godotApp --> Web
 ```
 
