@@ -6,8 +6,9 @@
 **Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (agente + **proyecto**).  
 **Specs de proyecto:** [Spec Kit](https://github.com/github/spec-kit) (SDD).  
 **Referencia visual (no definitiva):**
-- Pixel RPG top-down (captura inicial): [`assets/01a049df-6363-7e65-bf46-3fb937940658.jpg`](../assets/01a049df-6363-7e65-bf46-3fb937940658.jpg)
-- Isométrico clay/miniature campus: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png)
+- Pixel RPG top-down (layout): [`assets/01a049df-6363-7e65-bf46-3fb937940658.jpg`](../assets/01a049df-6363-7e65-bf46-3fb937940658.jpg)
+- Campus clay diorama: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png)
+- **Edificio / dptos (preferido):** [`assets/refs/building-departments-schematic-isometric.png`](../assets/refs/building-departments-schematic-isometric.png)
 
 ---
 
@@ -469,22 +470,28 @@ flowchart TB
 - `worker.entered` / `worker.exited`: anónimos cruzando la entrada.
 - Agentes nombrados en oficinas; movimiento solo por `ProjectCall`.
 
-#### Referente estético (orientativo, no definitivo)
+#### Referente: esquematización de departamentos en un edificio (fuerte)
 
-Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png)
+Asset: [`assets/refs/building-departments-schematic-isometric.png`](../assets/refs/building-departments-schematic-isometric.png)
 
-Dirección visual tentativa (puede cambiar en fase diseño):
+**Preferido** para la vista de un **edificio (= proyecto)** y sus oficinas:
 
-| Rasgo | Lectura |
+| Elemento visual | Lectura Agent Campus |
 |---|---|
-| Vista | Isométrico / diorama “toy” o clay low-poly |
-| Paleta | Beige/gris cálido monocromo; acentos azules puntuales |
-| Edificios | Torre, cúpula (biblioteca), bloques, café, pista — campus como objeto |
-| Figuras | Agentes pequeños con ropa de color sobre fondo neutro |
-| Markers | Interrogantes azules = nodos de indagación / memoria / quest (TBD) |
-| Luz | Difusa, sombras suaves |
+| Plataformas flotantes isométricas | Departamentos / workspaces (smart classroom, study, ops…) |
+| Hub central con racks | Memoria de proyecto (MemPalace wing) + / o biblioteca del building |
+| Líneas teal de red | Flujos: `ProjectCall`, shared memory, datos entre dptos |
+| Pantallas / dashboards en salas | Runs, tasks, Spec Kit status del dpto |
+| Figuras en mesas | AgentInstances en su oficina |
+| Iconos periféricos (cloud, collab, materials) | Integraciones / library / chats — no bloquean el layout |
 
-Convive con la captura pixel top-down inicial como **segundo** referente de layout espacial. Ninguno fija el art final.
+Estilo: tech-modern, azules/teals, grid limpio, modular. Encaja web y mobile (plataformas → cards en phone).
+
+Convive con el diorama clay (campus entero) y el pixel top-down (layout de salas). Art final sigue abierto.
+
+#### Referente estético campus (orientativo)
+
+Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png) — diorama beige monocromo; útil para sensación de “campus objeto”, no para el esquema interno de dptos.
 
 ### 9.2 Organigrama / tareas
 

@@ -22,7 +22,10 @@ Clients share one TypeScript domain (`packages/campus-engine`) over API/WS. Defa
 
 Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
 
-Aesthetic refs (non-final): `assets/refs/` + original pixel capture under `assets/`.
+Aesthetic refs (non-final):
+- Building departments schematic (preferred): `assets/refs/building-departments-schematic-isometric.png`
+- Campus clay diorama: `assets/refs/aesthetic-campus-isometric-clay.png`
+- Pixel layout capture: `assets/`
 
 ## Repo
 
