@@ -363,70 +363,69 @@ type CampusEvent =
   | { type: "task.submitted_for_review"; runId; assigneeId; reviewerId }
   | { type: "task.evaluated"; evaluation: TaskEvaluation }
   | { type: "hierarchy.violation"; fromAgentId; toAgentId; action; reason }
+  | { type: "worker.entered" | "worker.exited" | "worker.spawn.rejected"; /* … */ }
   | { type: "library.loaded" | "library.document.upserted" | "library.classification.upserted" | "library.reindexed"; /* … */ }
   | { type: "building.context.updated" | "department.context.updated"; /* … */ }
   | { type: "run.upserted" | "run.removed"; /* … */ }
-  // + introduction.*, agent.moved, agent.mood, agent.despawned, catalog.loaded, debate.*, task.*, hierarchy.*
+  // + introduction.*, agent.moved, agent.mood, agent.despawned, catalog.loaded, debate.*, task.*, hierarchy.*, project.call.*
 ```
 
-El adapter traduce WS/API del harness a este set. Reglas de org y library en dominio (`org.ts`, `library.ts`), no en Phaser.
+El adapter traduce WS/API del harness a este set. Reglas en dominio (`org.ts`, `library.ts`, `workers.ts`), no en Phaser.
 
 ---
 
-## 9. Superficies de interfaz (dos capas)
-
-Hay **dos UIs**; no se mezclan responsabilidades:
+## 9. Tres pantallas (ámbitos de trabajo)
 
 ```mermaid
-flowchart LR
-  Map[CampusScene mapa Stardew-like]
-  Ops[OrgMindmap grafo operativo]
+flowchart TB
+  subgraph screens [AppShell]
+    G[1 gamification]
+    O[2 org_tasks]
+    C[3 chats]
+  end
   Store[CampusStore]
-
-  Map -->|observar posición mood| Store
-  Ops -->|inventario órdenes organigrama| Store
-  Store --> Map
-  Store --> Ops
+  G --> Store
+  O --> Store
+  C --> Store
+  Store --> G
+  Store --> O
+  Store --> C
 ```
 
-### 9.1 Mapa gamificado (fase diseño — no bloquear v0)
+| # | Pantalla | `AppScreen` | Responsabilidad |
+|---|---|---|---|
+| 1 | Gamificación | `gamification` | Mapa campus; presencia; **workers anónimos entrando/saliendo** |
+| 2 | Organigrama / tareas | `org_tasks` | Mindmap; inventario; órdenes |
+| 3 | Chats | `chats` | Conversación con agentes nombrados |
 
-Vista espacial tipo Stardew: globos, panel inferior, distinguir rango/oficio visualmente, etc.
+Comparten `CampusStore`; no duplican reglas de negocio.
 
-- **Ahora:** no es prioritario detallar look&feel.
-- El engine deja hooks (`mood`, labels, selección); el polish visual viene en fase de diseño.
+### 9.1 Gamificación
 
-### 9.2 Interfaz operativa = organigrama mindmap (primaria)
+- Mapa Stardew-like (polish de globos/panel → fase diseño).
+- `worker.entered` / `worker.exited`: animación de agentes **anónimos** cruzando la entrada del campus.
+- Agentes nombrados en sus oficinas; movimiento solo por `ProjectCall`.
 
-La UI **operativa** es un **grafo de organigrama** (mindmap):
+### 9.2 Organigrama / tareas
 
-- Nodos = agentes (rango, oficio, dpto).
-- Aristas = reporting (`supervisorId`).
-- En cada nodo: **inventario de tareas** (`AgentTask[]`).
-- Acciones: **dar órdenes** (`AgentOrder`) al agente (sujeto a reglas de jerarquía si el emisor es otro agente; el humano puede ordenar según política TBD).
+- Grafo mindmap (`supervisorId`).
+- Inventario `AgentTask[]`, órdenes `AgentOrder`.
+- Spawn/destroy de workers también puede dispararse desde aquí (si el actor es `ic`); el mapa solo lo representa.
 
-Profundización del mindmap: más adelante (layout, filtros, drag de tareas, etc.).
+### 9.3 Chats con agentes
 
-### 9.3 Inventario y órdenes (dominio ya tipado)
+- Hilos por `AgentInstance` nombrado (workers anónimos: TBD si tienen chat propio o solo via spawner).
+- Tipado de mensajes: pendiente de profundizar; evento mínimo futuro `chat.message` (no bloquea v0).
 
-| Concepto | Tipo | Uso |
-|---|---|---|
-| Inventario de tareas | `AgentTask` | Lista por agente en el mindmap / ficha |
-| Ejecución | `Run` | Progreso/estado ligado a una task |
-| Orden | `AgentOrder` | Instrucción humana o de supervisor → agente |
-| Eventos | `task.inventory.updated`, `order.issued`, `order.updated` | Sync store ↔ UIs |
+### 9.4 Inventario / órdenes / workers
 
-### 9.4 Hooks visuales (mapa) — diferidos
-
-| Superficie | Hook | Notas |
-|---|---|---|
-| Globos rango/oficio | sprite / bubble | Fase diseño |
-| Panel inferior | HudScene | Fase diseño |
-| Click agente en mapa | SelectionBus | Puede abrir ficha o saltar al nodo en mindmap |
-| Biblioteca / RAG badge | libraryClassifications | Ops o ficha |
-| Debate / review | debate.*, task.evaluated | Staging mínimo |
-
-Hasta la fase de diseño: mapa = pan/zoom + sprites; ops = mindmap + inventario + órdenes.
+| Concepto | Tipo / evento |
+|---|---|
+| Task inventory | `AgentTask`, `task.inventory.updated` |
+| Orden | `AgentOrder`, `order.issued` |
+| Worker in | `worker.entered` |
+| Worker out | `worker.exited` |
+| Reject spawn | `worker.spawn.rejected` |
 
 ---
 
@@ -438,29 +437,22 @@ Hasta la fase de diseño: mapa = pan/zoom + sprites; ops = mindmap + inventario 
   packages/campus-engine/
     package.json
     src/
-      domain/                # types, context.ts, org.ts, library.ts, tasks.ts
+      domain/                # types, context, org, library, tasks, workers
       catalog/sample-catalog.json
       catalog/sample-library.json
       layouts/sample-project.json
       store/CampusStore.ts
       adapter/types.ts
-      game/
-        main.ts
-        scenes/BootScene.ts
-        scenes/CampusScene.ts
-        scenes/HudScene.ts
-        objects/AgentSprite.ts
-        systems/Pathfinding.ts
-        systems/IntroductionDirector.ts
-        systems/HomingSystem.ts
-        systems/DebateDirector.ts
-      layouts/reference-building.json
-      ui/CatalogModal.ts
-      ui/OrgMindmap.tsx          # interfaz operativa primaria
-      ui/TaskInventoryPanel.ts
-      ui/OrderComposer.ts
-      ui/HarnessParamsForm.ts
-      ui/LibraryPanel.ts
+      game/                  # pantalla gamification
+      ui/
+        AppShell.tsx         # switch gamification | org_tasks | chats
+        OrgMindmap.tsx
+        TaskInventoryPanel.ts
+        OrderComposer.ts
+        ChatView.tsx
+        HarnessParamsForm.ts
+        LibraryPanel.ts
+        CatalogModal.ts
     public/assets/
       maps/
       sprites/
@@ -504,26 +496,27 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ## 12. Criterios de aceptación v0
 
-1. Dominio v0.5 (contexto, org, library, harness) estable.
-2. `AgentTask` inventario por agente; `AgentOrder` emitible vía eventos.
-3. `OrgMindmap` (aunque sea wireframe) lista nodos por `supervisorId` + tasks del nodo.
-4. Mapa Phaser: spawn/homing básico; **sin** requisito de polish Stardew.
-5. Domain testable con Vitest.
+1. Tres pantallas navegables: `gamification` | `org_tasks` | `chats`.
+2. Dominio: contexto, org, library, calls, tasks/orders.
+3. Solo `rankKey === ic` puede `spawnAnonymousWorker`; otros → `worker.spawn.rejected`.
+4. Spawn/destroy emiten `worker.entered` / `worker.exited` (mapa representa entrar/salir).
+5. Named agents stationed at home salvo `ProjectCall`.
+6. Domain testable con Vitest.
 
 ---
 
 ## 13. Fuera de alcance v0
 
-- Diseño visual de globos/panel inferior (fase diseño).
-- Mindmap avanzado (auto-layout rico, drag-drop de tasks) — se profundiza después.
-- Provider real de embeddings / LLM.
-- Multiplayer humano, combate, economía.
+- Polish Stardew (globos/panel).
+- Mindmap avanzado / protocolo rico de chat.
+- Embeddings reales / LLM provider.
+- Workers con identidad de catálogo o chat propio (TBD).
 
 ---
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. **Órdenes humanas** — ¿el humano salta jerarquía o debe “hablar” como campus lead?
-2. **Ingestión biblioteca** — ¿humano, CI, agentes?
-3. **Catálogo** — ¿global o filtrado por dpto/rank?
-4. **Scaffold** — ¿empezamos por domain+mindmap wireframe o por mapa Phaser?
+1. Confirmación: **último rango = `ic` (menor level)** — ¿o era el rango más alto?
+2. ¿Los workers anónimos aparecen en el mindmap / tienen chat?
+3. Órdenes humanas vs jerarquía.
+4. Scaffold: ¿por cuál pantalla empezamos?
