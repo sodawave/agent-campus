@@ -22,6 +22,8 @@ Clients share one TypeScript domain (`packages/campus-engine`) over API/WS. Defa
 
 Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
 
+Aesthetic refs (non-final): `assets/refs/` + original pixel capture under `assets/`.
+
 ## Repo
 
 https://github.com/sodawave/agent-campus

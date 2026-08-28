@@ -5,7 +5,9 @@
 **Clientes:** web + **apps nativas iOS/Android** (mismo dominio/API).  
 **Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (agente + **proyecto**).  
 **Specs de proyecto:** [Spec Kit](https://github.com/github/spec-kit) (SDD).  
-**Referencia visual:** captura pixel-RPG.
+**Referencia visual (no definitiva):**
+- Pixel RPG top-down (captura inicial): [`assets/01a049df-6363-7e65-bf46-3fb937940658.jpg`](../assets/01a049df-6363-7e65-bf46-3fb937940658.jpg)
+- Isométrico clay/miniature campus: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png)
 
 ---
 
@@ -463,9 +465,26 @@ flowchart TB
 
 ### 9.1 Gamificación
 
-- Mapa Stardew-like (polish de globos/panel → fase diseño).
-- `worker.entered` / `worker.exited`: animación de agentes **anónimos** cruzando la entrada del campus.
-- Agentes nombrados en sus oficinas; movimiento solo por `ProjectCall`.
+- Mapa del campus; polish de globos/panel → fase diseño.
+- `worker.entered` / `worker.exited`: anónimos cruzando la entrada.
+- Agentes nombrados en oficinas; movimiento solo por `ProjectCall`.
+
+#### Referente estético (orientativo, no definitivo)
+
+Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png)
+
+Dirección visual tentativa (puede cambiar en fase diseño):
+
+| Rasgo | Lectura |
+|---|---|
+| Vista | Isométrico / diorama “toy” o clay low-poly |
+| Paleta | Beige/gris cálido monocromo; acentos azules puntuales |
+| Edificios | Torre, cúpula (biblioteca), bloques, café, pista — campus como objeto |
+| Figuras | Agentes pequeños con ropa de color sobre fondo neutro |
+| Markers | Interrogantes azules = nodos de indagación / memoria / quest (TBD) |
+| Luz | Difusa, sombras suaves |
+
+Convive con la captura pixel top-down inicial como **segundo** referente de layout espacial. Ninguno fija el art final.
 
 ### 9.2 Organigrama / tareas
 
