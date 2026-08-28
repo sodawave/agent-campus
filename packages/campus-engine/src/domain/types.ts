@@ -115,7 +115,7 @@ export const WORKER_SPAWNER_RANK_KEY = "ic";
 export type AppScreen = "gamification" | "org_tasks" | "chats";
 
 /** Delivery targets — same domain, different shells. */
-export type ClientPlatform = "web" | "ios" | "android" | "cli_host";
+export type ClientPlatform = "web" | "ios" | "android" | "godot" | "cli_host";
 
 export type AgentKind = "named" | "anonymous_worker";
 /**

@@ -1,11 +1,12 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.14 — mapa en **Godot 4** (look Stardew); shell producto React/Expo.  
-**Engine gamificado:** **Godot 4** (2D top-down pixel, estilo Stardew Valley).  
-**Shell producto:** web Vite+React + mobile Expo (org / chats / settings / plugins).  
-**Memoria:** MemPalace · **Specs:** Spec Kit · **Comms/deploy:** bus + Compose (Buzz-pattern).  
+**Estado:** v0.15 — **Godot 4 = app mobile nativa** (iOS/Android) + mapa Stardew; web vía export Godot (y/o shell React admin).  
+**Cliente principal:** **Godot 4** (2D Stardew-like + UI de org/chats).  
+**Mobile:** export nativo Godot → App Store / Play (no Expo como shell del mapa).  
+**Web:** export HTML5/WASM del mismo proyecto Godot; React opcional para consola/admin.  
+**Backend:** dominio TS + API Hono + MemPalace + Spec Kit + Compose.  
 **CLI host:** diferido (prioridad baja).  
-**Referencia visual:** Stardew-like + refs en `assets/refs/` (esquema dptos / clay = orientativos).
+**Referencia visual:** Stardew-like; refs en `assets/refs/`.
 
 ---
 
@@ -64,21 +65,17 @@ Reglas:
 - Al caer el host: `runtime.stopped` → sprites salen o pasan a idle offline (TBD visual).
 - Workers anónimos también pueden spawnearse desde un host `ic` y verse entrar/salir.
 
-### Clientes: web + iOS + Android (+ Godot map)
+### Clientes: Godot-first (mobile nativo + web)
 
-| Plataforma | `ClientPlatform` | Notas |
-|---|---|---|
-| Web | `web` | Shell React; **viewport Godot** (export HTML5/WASM) para el mapa |
-| iOS nativo | `ios` | Expo shell; mapa = export Godot iOS embebido o WebView del build web |
-| Android nativo | `android` | Igual que iOS |
-| CLI host | `cli_host` | Prioridad baja |
+| Plataforma | Cómo |
+|---|---|
+| **iOS / Android** | Mismo proyecto Godot → export nativo. Es la **app mobile**. |
+| **Web** | Mismo proyecto → export HTML5/WASM (jugable/usable en browser). |
+| Admin / plugins pesados (opc.) | React en web si hace falta; no bloquea mobile. |
+| CLI host | Prioridad baja |
 
-Reglas:
-
-- **Un solo dominio** (`packages/campus-engine`) y contrato API/WS — Godot **no** duplica reglas de negocio; solo proyecta estado.
-- Godot habla con el host vía **bridge** (JS ↔ GDScript en web; channels/native bridge en mobile): selección de agente, spawn visual, moods, paths.
-- Org / chats / plugins / MCP viven en el **shell** (React/Expo), no dentro de Godot.
-- Look objetivo del mapa: **Stardew Valley** (top-down pixel, tiles, personajes, interiores de oficinas).
+Las **tres pantallas** (mapa, org/tareas, chats) viven en Godot (escenas + Control UI).  
+Look: **Stardew Valley**. Estado de negocio sigue en API/TS (`campus-engine`); Godot es cliente del bus.
 
 ### Memoria (MemPalace) — agente y proyecto
 
@@ -264,51 +261,43 @@ Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
 
 ---
 
-## 3. Stack (cerrado v1)
+## 3. Stack (cerrado v1 — Godot-first)
 
 | Capa | Tecnología | Motivo |
 |---|---|---|
-| Domain | **TypeScript** (`campus-engine`) | Compartido; sin lógica en el engine |
-| API | **Hono** + Postgres + Redis | Compose actual; WS para bus |
-| Web shell | **Vite + React** | Org, chats, plugins, settings |
-| Mobile shell | **Expo (RN)** | iOS/Android nativos |
-| **Mapa gamificado** | **Godot 4 (2D)** | Look **Stardew**; tiles, pathing, interiores |
-| Bridge | JS ↔ Godot (web); embed nativo/WebView (mobile) | Eventos `CampusEvent` → sprites |
+| **App mobile + mapa + UI** | **Godot 4 (2D)** | Stardew-like; **una app** exportada a iOS/Android/Web |
+| Domain / API | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia |
 | Memoria | **MemPalace** | Agente + proyecto |
 | Specs | **Spec Kit** | SDD por building |
-| Comms | WS + Redis (`AgentCommsPort`) | Opcional Buzz después |
-| Plugins | Manifest app + **MCP** servers | Shell, no Godot |
+| Comms | WS + Redis (`AgentCommsPort`) | Chats, orders, calls |
+| Plugins / MCP | Host en API + UI Godot (paneles) | Tools externos sin fork del juego |
 | Deploy | `deploy/compose` | api, pg, redis, minio, caddy |
-| CLI host | `campus` CLI | **Prioridad baja** |
+| CLI host | diferido | Prioridad baja |
+| React/Expo | **opcional** (admin web) | No requerido para mobile |
 
-### Por qué Godot (y no Phaser/Unity)
+### Por qué Godot como app mobile
 
-- Encaje natural con **Stardew-like** (2D pixel, TileMap, Y-sort, NPCs).
-- Editor visual de edificios/oficinas (alineado a tu flujo de diseño).
-- Export **web + iOS + Android** desde el mismo proyecto `.godot`.
-- Unity sobra (peso/licencia); Phaser también vale, pero priorizamos Godot a tu gusto.
-
-### Cómo se embebe
+- Export **nativo** iOS/Android (y web) desde el mismo `.godot`.
+- Ideal para sensación **Stardew** end-to-end en el teléfono.
+- Menos fricción que Expo+WebView+bridge solo para el mapa.
+- Org/chats = escenas Godot (Control/Scroll) sobre el mismo cliente del bus.
 
 ```mermaid
 flowchart TB
-  subgraph shell [React / Expo shell]
-    Org[org_tasks]
-    Chat[chats]
-    Plug[plugins / MCP UI]
-  end
-  subgraph godot [Godot 4 campus]
-    Map[TileMap oficinas]
-    Sprites[Agent sprites]
+  subgraph godotApp [Godot 4 app]
+    Map[Gamification Stardew]
+    Org[Org / tasks]
+    Chat[Chats]
   end
   API[Campus API / WS]
-  shell --> API
-  godot -->|bridge sync| API
-  Org -->|focus agent| godot
-  godot -->|select agent| Chat
+  godotApp -->|HTTP WS| API
+  iOS[iOS export]
+  And[Android export]
+  Web[Web export]
+  godotApp --> iOS
+  godotApp --> And
+  godotApp --> Web
 ```
-
-Godot **no** es el dueño del estado: recibe snapshots/eventos y renderiza. El shell abre chats/órdenes sobre el agente seleccionado.
 
 ---
 
@@ -556,12 +545,12 @@ flowchart TB
 
 `ClientPlatform` no cambia reglas de org/memoria/spec — solo shell y notificaciones.
 
-### 9.1 Gamificación (Godot · Stardew-like)
+### 9.1 Gamificación + app Godot
 
-- Proyecto Godot 4 2D: tilemaps de edificios/oficinas, agentes con pathing, workers entrar/salir.
-- Look objetivo: **Stardew Valley** (pixel top-down, interiores, Y-sort).
-- Refs `assets/refs/*` (esquema isométrico / clay) = inspiración de **layout/modularidad**, no el art final.
-- Bridge: click agente → shell abre chat/ficha; eventos `runtime.*` / `worker.*` / `agent.moved` animan sprites.
+- Un solo proyecto Godot: mapa Stardew + UI org/chats (mobile-first).
+- Exports: iOS, Android, Web.
+- `worker.entered` / `runtime.started` / pathing en TileMap.
+- Refs isométricas = layout modular, no art final.
 
 #### Referente: esquematización de departamentos en un edificio (fuerte)
 
@@ -615,11 +604,10 @@ Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthe
 /
   docs/TECH_SPEC.md
   deploy/compose/
-  packages/campus-engine/     # domain TS
+  packages/campus-engine/     # domain TS (API + clients)
   packages/campus-cli/        # low priority
-  apps/web/                   # React shell
-  apps/mobile/                # Expo shell
-  apps/campus-godot/          # Godot 4 Stardew-like map
+  apps/campus-godot/          # app principal: mobile + web + mapa Stardew
+  apps/web-admin/             # opcional React admin
 ```
 
 ---
@@ -678,7 +666,7 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Scaffold: ¿empezamos por `apps/campus-godot` vacío + bridge mock, o por API+compose?
-2. Art: tileset Stardew-like propio vs asset pack temporal.
-3. Mobile mapa: ¿export Godot nativo embebido o WebView del build web al inicio?
-4. Memoria proyecto / Spec Kit opt-in (sin cambios).
+1. Scaffold: ¿creamos el proyecto Godot 4 vacío en `apps/campus-godot` ya?
+2. Art: tileset Stardew temporal (asset pack) vs placeholders.
+3. ¿Org/chats 100% en Godot desde el día 1, o mapa primero y UI después?
+4. Plugins MCP: ¿panel in-Godot o solo vía API al inicio?

@@ -1,9 +1,10 @@
 # campus-godot
 
-Godot 4 **2D** project — Stardew-like campus map for Agent Campus.
+**Main Agent Campus client** — Godot 4 2D.
 
-- Owns: tilemaps, agent sprites, pathing, worker enter/exit VFX.
-- Does not own: org rules, chats, plugins, MCP (shell + API).
-- Sync: bridge to web/Expo host ↔ Campus API / `CampusEvent` stream.
+- Look: Stardew Valley–like campus (tilemaps, agents, offices).
+- Screens: gamification, org/tasks, chats (Godot UI).
+- Targets: **iOS**, **Android**, **Web** from one project.
+- Does not own business rules — talks to Campus API / WS (`CampusEvent`).
 
 Scaffold the Godot project here when implementation starts.

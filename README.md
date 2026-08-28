@@ -1,22 +1,20 @@
 # Agent Campus
 
-Gamified campus for AI agent harnesses — **web + native iOS/Android**.
+Gamified campus for AI agents — **Godot-first**.
 
 ## Status
 
-Domain / tech spec **v0.14**.
+**v0.15** — Godot 4 is the **main app** (Stardew-like), exported to **iOS, Android, and Web**.
 
 | Layer | Choice |
 |-------|--------|
-| Map (Stardew-like) | **Godot 4** (`apps/campus-godot`) |
-| Product shell | React (web) + Expo (mobile) — org / chats / plugins |
-| Domain | TypeScript `packages/campus-engine` |
+| Mobile + map + org/chats UI | **Godot 4** (`apps/campus-godot`) |
+| Backend domain/API | TypeScript `campus-engine` + Hono + Postgres/Redis |
 | Memory | [MemPalace](https://github.com/MemPalace/mempalace) |
 | Specs | [Spec Kit](https://github.com/github/spec-kit) |
-| Deploy / comms | Compose + WS/Redis ([Buzz-inspired](https://github.com/block/buzz/tree/main/deploy/compose)) |
-| CLI hosts | Planned, **low priority** |
-
-Godot renders the campus; it does **not** own business rules (bridge ↔ API).
+| Deploy | [`deploy/compose`](deploy/compose/) (Buzz-inspired) |
+| CLI hosts | Low priority |
+| React admin | Optional |
 
 Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
 
