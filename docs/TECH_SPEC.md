@@ -1,14 +1,12 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.11 — memoria proyecto + Spec Kit SDD + clientes web/iOS/Android nativos.  
+**Estado:** v0.12 — bus de comunicación entre agentes + compose (patrón block/buzz).  
 **Engine mapa (web):** Phaser 3 + TypeScript + Vite.  
-**Clientes:** web + **apps nativas iOS/Android** (mismo dominio/API).  
-**Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (agente + **proyecto**).  
-**Specs de proyecto:** [Spec Kit](https://github.com/github/spec-kit) (SDD).  
-**Referencia visual (no definitiva):**
-- Pixel RPG top-down (layout): [`assets/01a049df-6363-7e65-bf46-3fb937940658.jpg`](../assets/01a049df-6363-7e65-bf46-3fb937940658.jpg)
-- Campus clay diorama: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png)
-- **Edificio / dptos (preferido):** [`assets/refs/building-departments-schematic-isometric.png`](../assets/refs/building-departments-schematic-isometric.png)
+**Clientes:** web + apps nativas iOS/Android (mismo dominio/API).  
+**Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (agente + proyecto).  
+**Specs:** [Spec Kit](https://github.com/github/spec-kit).  
+**Comms / deploy:** bus interno WS+Redis; ops Compose inspirado en [block/buzz deploy/compose](https://github.com/block/buzz/tree/main/deploy/compose); opcional `COMMS_BACKEND=buzz`.  
+**Referencia visual (no definitiva):** ver §9 / `assets/refs/`.
 
 ---
 
@@ -76,6 +74,22 @@ Cada **proyecto/edificio** puede activar Spec-Driven Development:
 
 Eventos: `speckit.phase.changed`, `speckit.artifact.upserted`.  
 Helpers: [`domain/speckit.ts`](../packages/campus-engine/src/domain/speckit.ts).
+
+### Comunicación entre agentes + despliegue
+
+Tomamos del [Buzz compose](https://github.com/block/buzz/tree/main/deploy/compose) (hive mind / relay):
+
+| De Buzz | En Agent Campus |
+|---|---|
+| `relay` + WS event log | `api` + **bus de eventos** (`CampusEvent`) |
+| Postgres + Redis + MinIO | Igual (estado, pub/sub, library blobs) |
+| `run.sh` + `.env` + Caddy TLS | [`deploy/compose/`](../deploy/compose/) |
+| Agentes como miembros de rooms | Chats / debates / orders / calls en canales scoped |
+| Opción futura Nostr/Buzz | `CAMPUS_COMMS_BACKEND=buzz` + `CAMPUS_BUZZ_RELAY_URL` |
+
+Puerto: [`domain/comms.ts`](../packages/campus-engine/src/domain/comms.ts) — `AgentCommsPort.publish/subscribe` por `campus|project|workspace|agent|thread`.
+
+No vendemos Buzz entero en v0; reutilizamos el **patrón de ops** y dejamos el relay Buzz como backend opcional de comms.
 
 ---
 
@@ -214,7 +228,9 @@ Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
 | Mapa en mobile | WebView del campus engine o canvas nativo más adelante | Paridad de pantallas sin duplicar reglas |
 | Memoria | **MemPalace** | Agente + proyecto |
 | Specs | **Spec Kit** (`specify-cli`) | SDD por building |
-| Sync | WebSocket / SSE + push (mobile) | Store live |
+| Sync | WebSocket / SSE + Redis pub/sub + push (mobile) | Bus entre agentes y UIs |
+| Deploy | `deploy/compose` (Buzz-style) | VPS single-node |
+| Comms | `internal` (default) \| `buzz` | Ver `domain/comms.ts` |
 
 **Alternativas descartadas (por ahora):** Godot; DOM-only para el mapa; apps mobile con dominio forkeado.
 
@@ -521,10 +537,10 @@ Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthe
 ```
 /
   docs/TECH_SPEC.md
+  deploy/compose/             # Buzz-inspired stack (api, pg, redis, minio, caddy)
   packages/campus-engine/     # domain compartido (web + mobile)
-  apps/web/                   # Vite + Phaser
-  apps/mobile/                # Expo iOS/Android
-  packages/campus-api/        # WS/HTTP (futuro)
+  apps/web/
+  apps/mobile/
 ```
 
 ---

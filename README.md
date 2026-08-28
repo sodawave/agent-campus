@@ -14,11 +14,14 @@ Domain / tech spec **v0.11**.
 
 | Concern | Base |
 |---------|------|
-| Agent + **project** memory | [MemPalace](https://github.com/MemPalace/mempalace) |
+| Agent + project memory | [MemPalace](https://github.com/MemPalace/mempalace) |
 | Project specs (SDD) | [Spec Kit](https://github.com/github/spec-kit) |
 | Documentary RAG | Campus Library (by craft) |
+| Agent comms / deploy | Internal bus; Compose pattern from [block/buzz](https://github.com/block/buzz/tree/main/deploy/compose) |
 
-Clients share one TypeScript domain (`packages/campus-engine`) over API/WS. Default mobile stack: **Expo / React Native**.
+Clients share one TypeScript domain (`packages/campus-engine`) over API/WS. Default mobile: **Expo / React Native**.
+
+Deploy sketch: [`deploy/compose/`](deploy/compose/).
 
 Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md)
 
