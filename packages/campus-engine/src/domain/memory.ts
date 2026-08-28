@@ -1,14 +1,14 @@
 /**
- * Agent memory — MemPalace as the default local-first backend.
+ * Memory scopes — MemPalace as default local-first backend.
  *
  * Mapping (MemPalace → Agent Campus):
  *   Palace  → Campus memory root
- *   Wing    → Project (building) and/or AgentInstance
+ *   Wing    → Project (shared building memory) AND/OR AgentInstance (private)
  *   Room    → Department / topic
  *   Drawer  → Verbatim memory entry
  *
  * Library = documentary RAG by oficio.
- * MemPalace = episodic / conversational memory for agents.
+ * MemPalace = episodic memory at **agent** and **project** level.
  *
  * Base: https://github.com/MemPalace/mempalace
  */
@@ -22,6 +22,7 @@ import type {
   MemoryHit,
   MemoryQuery,
   Project,
+  Workspace,
 } from "./types";
 import { DEFAULT_MEMORY_CONFIG } from "./types";
 
@@ -34,6 +35,8 @@ export type {
 };
 export { DEFAULT_MEMORY_CONFIG };
 
+export type MemoryScope = "agent" | "project" | "department";
+
 /** Port — MemPalace MCP/CLI is the reference implementation. */
 export interface AgentMemoryPort {
   remember(
@@ -41,9 +44,15 @@ export interface AgentMemoryPort {
   ): Promise<MemoryDrawer>;
   recall(query: MemoryQuery): Promise<MemoryHit[]>;
   describeAddress(agentId: Id): Promise<MemoryAddress>;
+  rememberForProject?(
+    drawer: Omit<MemoryDrawer, "id" | "createdAt"> & { id?: Id },
+  ): Promise<MemoryDrawer>;
+  recallForProject?(
+    query: MemoryQuery & { projectId: Id },
+  ): Promise<MemoryHit[]>;
 }
 
-/** Default: wing = home project, room = natural department. */
+/** Agent episodic default: wing = home project, room = natural department. */
 export function defaultMemoryAddress(
   agent: AgentInstance,
   campusPalaceId: Id,
@@ -67,19 +76,67 @@ export function privateAgentWingAddress(
   };
 }
 
+/**
+ * Project-level shared wing — building memory for all agents in the project.
+ * Room `_general` = whole building; department key = scoped room.
+ */
+export function projectMemoryAddress(
+  project: Project,
+  campusPalaceId: Id,
+  roomId = "_general",
+): MemoryAddress {
+  const wingId = project.memoryWingId ?? project.id;
+  return {
+    palaceId: campusPalaceId,
+    wingId,
+    roomId,
+  };
+}
+
+export function departmentMemoryAddress(
+  project: Project,
+  department: Workspace,
+  campusPalaceId: Id,
+): MemoryAddress {
+  return projectMemoryAddress(project, campusPalaceId, department.key);
+}
+
+/** @deprecated Prefer projectMemoryAddress */
 export function memoryAddressForProject(
   project: Project,
   campusPalaceId: Id,
   roomId = "_general",
 ): MemoryAddress {
-  return {
-    palaceId: campusPalaceId,
-    wingId: project.id,
-    roomId,
-  };
+  return projectMemoryAddress(project, campusPalaceId, roomId);
 }
 
 export function resolveMemoryConfig(campusPalaceRef?: string): MemoryConfig {
   if (!campusPalaceRef) return { ...DEFAULT_MEMORY_CONFIG };
   return { ...DEFAULT_MEMORY_CONFIG, palaceRef: campusPalaceRef };
+}
+
+/** Recall targets: agent room + project wing + department room. */
+export function recallScopesForAgent(
+  agent: AgentInstance,
+  project: Project,
+  campusPalaceId: Id,
+): { scope: MemoryScope; address: MemoryAddress }[] {
+  return [
+    {
+      scope: "agent",
+      address: defaultMemoryAddress(agent, campusPalaceId),
+    },
+    {
+      scope: "project",
+      address: projectMemoryAddress(project, campusPalaceId, "_general"),
+    },
+    {
+      scope: "department",
+      address: projectMemoryAddress(
+        project,
+        campusPalaceId,
+        agent.naturalDepartmentKey,
+      ),
+    },
+  ];
 }

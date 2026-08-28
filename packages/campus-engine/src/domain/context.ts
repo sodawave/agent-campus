@@ -8,7 +8,7 @@
 
 import { getRank, suggestSupervisor } from "./org";
 import { classificationsForAgent } from "./library";
-import { defaultMemoryAddress } from "./memory";
+import { defaultMemoryAddress, projectMemoryAddress } from "./memory";
 import type {
   AgentArchetype,
   AgentEffectiveContext,
@@ -235,6 +235,14 @@ export function resolveEffectiveContext(
     supervisorId: agent.supervisorId,
     libraryClassifications: classificationsForAgent(classifications, agent),
     memoryAddress: defaultMemoryAddress(agent, campusPalaceId),
+    projectMemoryAddress: projectMemoryAddress(
+      currentProject,
+      campusPalaceId,
+      "_general",
+    ),
+    specKitPhase: currentProject.specKit?.enabled
+      ? currentProject.specKit.phase
+      : undefined,
   };
 }
 

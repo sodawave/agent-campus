@@ -1,43 +1,78 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.10 — memoria de agentes con MemPalace (palace/wing/room/drawer).  
-**Engine elegido:** Phaser 3 + TypeScript + Vite (web-first, pixel art 2D top-down).  
-**Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).  
-**Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (local-first, verbatim, Chroma pluggable).
+**Estado:** v0.11 — memoria proyecto + Spec Kit SDD + clientes web/iOS/Android nativos.  
+**Engine mapa (web):** Phaser 3 + TypeScript + Vite.  
+**Clientes:** web + **apps nativas iOS/Android** (mismo dominio/API).  
+**Memoria:** [MemPalace](https://github.com/MemPalace/mempalace) (agente + **proyecto**).  
+**Specs de proyecto:** [Spec Kit](https://github.com/github/spec-kit) (SDD).  
+**Referencia visual:** captura pixel-RPG.
 
 ---
 
 ## 1. Objetivo
 
-Producto con **tres ámbitos / pantallas** de trabajo:
+Producto con **tres ámbitos / pantallas** (en **web y mobile nativo**):
 
-1. **Gamificación** — mapa campus (Stardew-like); observación espacial; entrada/salida de workers anónimos.
-2. **Organigrama / tareas** — mindmap operativo; inventario; órdenes.
-3. **Chats con agentes** — conversación 1:1 (o hilos) con instancias nombradas.
+1. **Gamificación** — mapa campus; workers anónimos entrar/salir.
+2. **Organigrama / tareas** — mindmap; inventario; órdenes.
+3. **Chats con agentes** — hilos con instancias nombradas.
 
-Dominio: campus → edificios (proyectos) → oficinas; agentes en oficina salvo `ProjectCall`; biblioteca por oficio; último rango (`ic`) instancia/destruye workers anónimos; **memoria episódica vía MemPalace**.
+Dominio compartido: campus → edificios (proyectos) → oficinas; `ProjectCall`; biblioteca por oficio; workers (`ic`); **MemPalace** (agente + proyecto); **Spec Kit** por edificio.
 
-### Memoria de agentes (MemPalace)
+### Clientes: web + iOS + Android
 
-Cada agente tiene gestión de memoria. Base: [MemPalace](https://github.com/MemPalace/mempalace) — local-first, almacenamiento **verbatim**, retrieval semántico, backend pluggable (Chroma por defecto), MCP/CLI.
+| Plataforma | `ClientPlatform` | Notas |
+|---|---|---|
+| Web | `web` | Vite shell; Phaser para mapa |
+| iOS nativo | `ios` | App store; UI nativa org/chats; mapa vía motor embebido o WebView del campus engine |
+| Android nativo | `android` | Play store; misma partición UI / engine |
+
+Reglas:
+
+- **Un solo dominio** (`packages/campus-engine`) y **un contrato de eventos/API** — no fork de reglas por plataforma.
+- Las tres pantallas existen en los tres clientes; el layout mobile prioriza **chats** y **org/tareas**; gamificación es full-screen o tab dedicada.
+- Auth, sync WS/SSE y push notifications (mobile) son del host app, no del tilemap.
+- Default de implementación mobile: **React Native / Expo** consumiendo el mismo TS domain + API (decisión revisable en scaffold).
+
+### Memoria (MemPalace) — agente y proyecto
+
+Base: [MemPalace](https://github.com/MemPalace/mempalace).
 
 | MemPalace | Agent Campus |
 |---|---|
-| Palace | Campus (`Campus.memoryPalaceRef`) |
-| Wing | Proyecto home del agente (o wing privado = `agent.id`) |
-| Room | `naturalDepartmentKey` / topic |
-| Drawer | Entrada verbatim (`MemoryDrawer`) |
+| Palace | Campus (`memoryPalaceRef`) |
+| Wing (proyecto) | `Project.memoryWingId` ?? `project.id` — **memoria compartida del edificio** |
+| Wing (agente) | opcional privado = `agent.id` |
+| Room | `_general` \| `naturalDepartmentKey` \| topic |
+| Drawer | `MemoryDrawer` verbatim |
 
-Separación de corpora:
+| Corpus | Ámbito | Uso |
+|---|---|---|
+| Library | Oficio / campus | Docs RAG |
+| MemPalace agent | Instancia | Chat, handoffs personales |
+| MemPalace project | Edificio | Decisiones, contexto compartido del proyecto |
 
-| Sistema | Qué guarda |
+Recall efectivo: `recallScopesForAgent` → agent + project + department rooms.  
+Eventos: `memory.remembered`, `memory.project.remembered`, `memory.recalled`.
+
+### Spec Kit (SDD por proyecto)
+
+Base: [github/spec-kit](https://github.com/github/spec-kit).
+
+Cada **proyecto/edificio** puede activar Spec-Driven Development:
+
+`constitution → specify → plan → tasks → implement → converge`  
+(+ extensions `bug`, `assess`).
+
+| Spec Kit | Agent Campus |
 |---|---|
-| **Library** | Docs (código, leyes, manuales) → classifications → namespaces RAG por **oficio** |
-| **MemPalace** | Memoria episódica/conversacional del **agente** (chats, decisiones, handoffs) |
+| `specify init` | `Project.specKit` en el building |
+| Phases `/speckit-*` | `ProjectSpecKit.phase` + `SpecKitArtifact` |
+| Convergence | `convergence: diverged \| in_progress \| converged` |
+| Agents implementan tasks | Órdenes / runs ligados a artifacts |
 
-Puerto: `AgentMemoryPort` (`remember` / `recall`) en [`domain/memory.ts`](../packages/campus-engine/src/domain/memory.ts).  
-Eventos: `memory.remembered`, `memory.recalled`.  
-El harness hace **recall antes de actuar** (patrón mempalace-recall) y **remember** al cerrar tareas/chats.
+Eventos: `speckit.phase.changed`, `speckit.artifact.upserted`.  
+Helpers: [`domain/speckit.ts`](../packages/campus-engine/src/domain/speckit.ts).
 
 ---
 
@@ -45,16 +80,12 @@ El harness hace **recall antes de actuar** (patrón mempalace-recall) y **rememb
 
 ```
 Campus
-  ├── Library
-  │     ├── LibraryDocument (code | law | manual | …)
-  │     └── DocClassification
-  │           ├── vectorNamespace          categorización vectorial
-  │           └── skillKeys[]              bind por OFICIO (cross-building)
+  ├── Library + MemPalace palace
   └── Project (= Building)
         ├── context, ranks
-        └── Workspace (= Department)
-              └── AgentInstance
-                    └── skill.key ──────────┘ (resuelve clasificaciones)
+        ├── memoryWingId          memoria compartida del proyecto
+        ├── specKit               Spec-Driven Development
+        └── Workspace → AgentInstance
 ```
 
 ### Capas de conocimiento
@@ -150,7 +181,11 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
 | Biblioteca | Campus-scoped; bind por `Skill.key` |
-| Memoria agente | **MemPalace** (palace/wing/room/drawer); distinta de Library |
+| Memoria agente | MemPalace drawers (episódica) |
+| Memoria proyecto | Wing compartido del building (`memoryWingId`) |
+| Spec Kit | SDD por proyecto (`Project.specKit`) |
+| Clientes | `web` \| `ios` \| `android` — mismo dominio/API |
+| Pantallas | `gamification` \| `org_tasks` \| `chats` en todos los clientes |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
 

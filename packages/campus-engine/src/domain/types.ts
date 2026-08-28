@@ -1,9 +1,10 @@
 /**
- * Domain types for Agent Campus engine (v0.10).
+ * Domain types for Agent Campus engine (v0.11).
  * Pure TS — no Phaser imports.
  *
- * Memory: MemPalace-backed (wings/rooms/drawers) per agent.
- * Base: https://github.com/MemPalace/mempalace
+ * Clients: web + native iOS/Android sharing this domain over API/WS.
+ * Memory: MemPalace at agent + project scope.
+ * Specs: Spec Kit SDD per project.
  */
 
 export type Id = string;
@@ -110,8 +111,11 @@ export const DEFAULT_RANKS: Rank[] = [
 /** Rank key allowed to instantiate/destroy ephemeral workers. */
 export const WORKER_SPAWNER_RANK_KEY = "ic";
 
-/** Three primary app surfaces. */
+/** Three primary app surfaces (all clients). */
 export type AppScreen = "gamification" | "org_tasks" | "chats";
+
+/** Delivery targets — same domain, different shells. */
+export type ClientPlatform = "web" | "ios" | "android";
 
 export type AgentKind = "named" | "anonymous_worker";
 /**
@@ -208,6 +212,68 @@ export interface MemoryHit {
   score: number;
 }
 
+/** Spec Kit SDD phases — https://github.com/github/spec-kit */
+export type SpecKitPhase =
+  | "constitution"
+  | "specify"
+  | "plan"
+  | "tasks"
+  | "implement"
+  | "converge";
+
+export type SpecKitExtension = "bug" | "assess";
+
+export type SpecKitArtifactKind =
+  | "constitution"
+  | "spec"
+  | "plan"
+  | "tasks"
+  | "convergence_report"
+  | "bug_assessment"
+  | "bug_fix"
+  | "bug_test"
+  | "idea_intake"
+  | "idea_research"
+  | "idea_define"
+  | "idea_shape"
+  | "idea_decide";
+
+export type SpecKitConvergenceStatus =
+  | "diverged"
+  | "in_progress"
+  | "converged";
+
+/** Spec-Driven Development binding on a project/building. */
+export interface ProjectSpecKit {
+  enabled: boolean;
+  integration?: string;
+  phase: SpecKitPhase;
+  extensions: SpecKitExtension[];
+  specRoot?: string;
+  convergence: SpecKitConvergenceStatus;
+  toolkitVersion?: string;
+}
+
+export const DEFAULT_PROJECT_SPEC_KIT: ProjectSpecKit = {
+  enabled: true,
+  phase: "constitution",
+  extensions: [],
+  convergence: "diverged",
+  toolkitVersion: "v1.0.0",
+};
+
+export interface SpecKitArtifact {
+  id: Id;
+  projectId: Id;
+  kind: SpecKitArtifactKind;
+  title: string;
+  slug?: string;
+  uri: string;
+  status: "draft" | "active" | "archived";
+  updatedAt: string;
+  authorAgentId?: Id;
+}
+
 /**
  * Campus library — indexes documentation (code, law books, manuals, …).
  * Physically may map to a room with role "library"; logically campus-scoped.
@@ -274,13 +340,22 @@ export interface AgentArchetype {
 export interface Project {
   id: Id;
   name: string;
-  /** Campus this building belongs to (shared library). */
+  /** Campus this building belongs to (shared library + palace). */
   campusId: Id;
   buildingId: string;
   workspaceIds: Id[];
   context: BuildingContext;
   ranks: Rank[];
   campusLeadAgentId?: Id;
+  /**
+   * MemPalace wing id for **project-level** shared memory.
+   * Defaults to `project.id` when omitted.
+   */
+  memoryWingId?: Id;
+  /**
+   * Spec-Driven Development binding ([Spec Kit](https://github.com/github/spec-kit)).
+   */
+  specKit?: ProjectSpecKit;
 }
 
 /** Room = department. */
@@ -318,8 +393,12 @@ export interface AgentEffectiveContext {
   rank: Rank;
   supervisorId: Id | null;
   libraryClassifications: DocClassification[];
-  /** MemPalace wing/room address for recall/remember. */
+  /** Agent-scoped MemPalace address (default wing=home project). */
   memoryAddress: MemoryAddress;
+  /** Shared project-wing address for building-level memory. */
+  projectMemoryAddress: MemoryAddress;
+  /** Active Spec Kit phase if SDD enabled on the current project. */
+  specKitPhase?: SpecKitPhase;
 }
 
 export interface AgentInstance {
@@ -614,6 +693,21 @@ export type CampusEvent =
       agentId: Id;
       query: string;
       hitIds: Id[];
+    }
+  | {
+      type: "memory.project.remembered";
+      projectId: Id;
+      drawer: MemoryDrawer;
+    }
+  | {
+      type: "speckit.phase.changed";
+      projectId: Id;
+      phase: SpecKitPhase;
+      convergence: SpecKitConvergenceStatus;
+    }
+  | {
+      type: "speckit.artifact.upserted";
+      artifact: SpecKitArtifact;
     }
   | {
       type: "library.loaded";
