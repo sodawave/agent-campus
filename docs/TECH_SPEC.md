@@ -1,6 +1,6 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.7 — movilidad entre edificios: proyecto = edificio; oficina correspondiente por oficio.  
+**Estado:** v0.8 — agentes permanecen en su oficina salvo llamada (`ProjectCall`) de otro proyecto.  
 **Engine elegido:** Phaser 3 + TypeScript + Vite (web-first, pixel art 2D top-down).  
 **Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).
 
@@ -13,7 +13,7 @@ Renderizar un **campus gamificado** donde:
 - un **campus** agrupa **edificios** (proyectos) y una **biblioteca** compartida
 - un **edificio** = un **proyecto**
 - una **habitación** = un **departamento / oficina**
-- un **agente** puede **moverse entre edificios** y participar en su **oficina correspondiente** (mismo oficio / `naturalDepartmentKey`) si existe en el destino
+- un **agente** **no suele salir de su oficina**; solo se desplaza a otro edificio si **otro proyecto le llama**, y entonces participa en su oficina correspondiente allí
 - ops = organigrama mindmap + inventario de tareas / órdenes
 
 ---
@@ -48,26 +48,32 @@ Stack: `craft ⊕ currentBuilding ⊕ correspondingOffice ⊕ harness ⊕ rank �
 
 **Siempre razona como su oficio.** No adopta la especialización de una sala ajena por la que pase.
 
-### Movilidad entre edificios
+### Movilidad entre edificios (solo por llamada)
 
-| Concepto | Campo | Notas |
-|---|---|---|
-| Edificio de origen | `homeProjectId` | Donde fue contratado / pertenece |
-| Edificio actual | `projectId` | Puede diferir al visitar otro proyecto |
-| Oficina en origen | `homeWorkspaceId` | Dpto con `key === naturalDepartmentKey` en home |
-| Oficina en destino | `workspaceId` vía `enterBuilding` | Misma key de oficio en el edificio visitado |
-| Sin oficina homologa | `workspaceId = null` | Entra al edificio pero no hay dpto equivalente |
+**Default:** el agente permanece en su oficina (`homeWorkspaceId` / `isStationedAtHome`).
 
-Evento: `agent.building.entered` `{ projectId, workspaceId, correspondingOfficeFound }`.
+**Excepción:** un `ProjectCall` de otro proyecto autoriza salir. Al aceptar:
 
-Helper: `enterBuilding` / `resolveCorrespondingOffice` en [`context.ts`](../packages/campus-engine/src/domain/context.ts).
+1. `activeCallId` se setea.
+2. Va al edificio llamante (`projectId = fromProjectId`).
+3. Se sienta en la **oficina correspondiente** (`naturalDepartmentKey`) si existe.
+4. Al cerrar la llamada → `returnHomeFromCall` (vuelve a home building + home office).
 
-**Visitas dentro del mismo edificio** a salas que no son su oficina: solo posición; el stack de razonamiento sigue usando la oficina correspondiente (no la sala visitada).
+Sin `activeCallId` **no** hay roaming libre entre edificios ni entre salas.
 
-### Departamento natural (homing en el edificio actual)
+| Concepto | Campo / API |
+|---|---|
+| Estación normal | `homeProjectId` + `homeWorkspaceId`, `activeCallId = null` |
+| Llamada | `ProjectCall` + `project.call.issued` / `accepted` |
+| En destino | `agent.building.entered` (requiere `callId`) |
+| Fin | `agent.returned_home` |
 
-- Tras intro en el edificio home: homing a `homeWorkspaceId`.
-- Al entrar en otro edificio: ir a la oficina correspondiente si existe.
+Helpers: `issueProjectCall`, `acceptProjectCall`, `returnHomeFromCall`, `canLeaveHomeOffice` en [`context.ts`](../packages/campus-engine/src/domain/context.ts).
+
+### Departamento natural (homing)
+
+- Tras intro: homing a la oficina home.
+- Tras llamada: oficina correspondiente en el proyecto llamante; al terminar, vuelta a home.
 
 ```mermaid
 flowchart LR
@@ -115,8 +121,8 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Regla | Decisión |
 |---|---|
 | Salas | = departamentos (+ library room opcional) |
-| Homing | Oficina correspondiente en el edificio actual |
-| Movilidad inter-edificio | Sí — `enterBuilding` → oficina homologa por oficio |
+| Homing | Oficina home; tras llamada, oficina homologa en destino |
+| Movilidad inter-edificio | **Solo** vía `ProjectCall` — no salen de oficina por defecto |
 | Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
 | Biblioteca | Campus-scoped; bind por `Skill.key` |
 | Harness / org / debate / eval | Como v0.4 |

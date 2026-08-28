@@ -1,9 +1,9 @@
 /**
- * Domain types for Agent Campus engine (v0.7).
+ * Domain types for Agent Campus engine (v0.8).
  * Pure TS — no Phaser imports.
  *
- * Project = building. Agents may move between buildings and join the
- * office matching their oficio (naturalDepartmentKey) in the destination.
+ * Project = building. Agents stay in their office unless called by
+ * another project (summons); then they join the corresponding office there.
  */
 
 export type Id = string;
@@ -257,15 +257,19 @@ export interface AgentInstance {
   archetypeId: Id;
   /** Building where the agent was hired / primarily belongs. */
   homeProjectId: Id;
-  /** Building the sprite is in right now (may differ while visiting). */
+  /** Building the sprite is in right now (home, or destination of an active call). */
   projectId: Id;
   workspaceId: Id | null;
   /**
    * Corresponding office in home building (naturalDepartmentKey there).
-   * When visiting another building, workspaceId targets that building's
-   * matching office; homeWorkspaceId stays the origin office.
+   * Agents normally stay here; they leave only when called by another project.
    */
   homeWorkspaceId: Id | null;
+  /**
+   * Active inter-project summons, if any.
+   * Null ⇒ agent should be in home office (default behaviour).
+   */
+  activeCallId: Id | null;
   name: string;
   spriteKey: string;
   skill: Skill;
@@ -278,6 +282,23 @@ export interface AgentInstance {
   runId: Id | null;
   anchorId?: string;
   introducing?: boolean;
+}
+
+/**
+ * Call from another project that authorizes leaving the home office.
+ * Without an active call, agents do not roam between buildings.
+ */
+export interface ProjectCall {
+  id: Id;
+  /** Project that requests the agent. */
+  fromProjectId: Id;
+  /** Agent's home project. */
+  homeProjectId: Id;
+  agentId: Id;
+  reason?: string;
+  taskId?: Id;
+  status: "pending" | "accepted" | "active" | "completed" | "cancelled";
+  createdAt: string;
 }
 
 export type Agent = AgentInstance;
@@ -398,12 +419,30 @@ export type CampusEvent =
       homeWorkspaceId: Id;
     }
   | {
-      /** Agent moved to another building; joins corresponding office if it exists. */
+      type: "project.call.issued";
+      call: ProjectCall;
+    }
+  | {
+      type: "project.call.accepted";
+      callId: Id;
+      agentId: Id;
+    }
+  | {
+      /** Agent left home office because another project called them. */
       type: "agent.building.entered";
       agentId: Id;
       projectId: Id;
       workspaceId: Id | null;
+      callId: Id;
       correspondingOfficeFound: boolean;
+    }
+  | {
+      /** Call finished — agent returns to home office. */
+      type: "agent.returned_home";
+      agentId: Id;
+      homeProjectId: Id;
+      homeWorkspaceId: Id | null;
+      callId: Id;
     }
   | {
       type: "agent.harness.updated";

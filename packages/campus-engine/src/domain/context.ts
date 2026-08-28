@@ -1,8 +1,9 @@
 /**
- * Resolve home department, cross-building moves, and effective context.
+ * Resolve home department, project calls, and effective context.
  *
- * Project = building. An agent may move between buildings and participate
- * in the office matching naturalDepartmentKey in the destination.
+ * Agents stay in their office unless called by another project.
+ * On a call they join the corresponding office (naturalDepartmentKey)
+ * in the destination building, then return home when the call ends.
  */
 
 import { getRank, suggestSupervisor } from "./org";
@@ -16,11 +17,11 @@ import type {
   HarnessParams,
   Id,
   Project,
+  ProjectCall,
   Workspace,
 } from "./types";
 import { DEFAULT_HARNESS_PARAMS } from "./types";
 
-/** Find workspace whose key matches the oficio's natural department. */
 export function resolveHomeWorkspace(
   workspaces: Workspace[],
   naturalDepartmentKey: string,
@@ -32,7 +33,6 @@ export function resolveHomeWorkspace(
   );
 }
 
-/** Corresponding office in a given building for this oficio. */
 export function resolveCorrespondingOffice(
   workspaces: Workspace[],
   projectId: Id,
@@ -92,6 +92,7 @@ export function buildAgentInstance(input: {
     projectId: input.project.id,
     workspaceId,
     homeWorkspaceId,
+    activeCallId: null,
     name: input.name,
     spriteKey: input.archetype.spriteKey,
     skill: { ...input.archetype.skill },
@@ -108,15 +109,59 @@ export function buildAgentInstance(input: {
   };
 }
 
+/** Default: agent has no active call and should sit in home office. */
+export function isStationedAtHome(agent: AgentInstance): boolean {
+  return (
+    agent.activeCallId === null &&
+    agent.projectId === agent.homeProjectId &&
+    agent.workspaceId === agent.homeWorkspaceId
+  );
+}
+
 /**
- * Move agent into another building and seat them in the corresponding office
- * (same naturalDepartmentKey) if that dpto exists there.
+ * Free roaming between buildings is not allowed.
+ * Only a ProjectCall authorizes leaving the home office.
  */
-export function enterBuilding(
+export function canLeaveHomeOffice(agent: AgentInstance): boolean {
+  return agent.activeCallId !== null;
+}
+
+export function issueProjectCall(input: {
+  id: Id;
+  fromProjectId: Id;
+  agent: AgentInstance;
+  reason?: string;
+  taskId?: Id;
+  now?: string;
+}): ProjectCall {
+  return {
+    id: input.id,
+    fromProjectId: input.fromProjectId,
+    homeProjectId: input.agent.homeProjectId,
+    agentId: input.agent.id,
+    reason: input.reason,
+    taskId: input.taskId,
+    status: "pending",
+    createdAt: input.now ?? new Date().toISOString(),
+  };
+}
+
+/**
+ * Accept a call and move into the calling project’s corresponding office.
+ * No-op path if already barred (call must be for this agent).
+ */
+export function acceptProjectCall(
   agent: AgentInstance,
+  call: ProjectCall,
   destination: Project,
   destinationWorkspaces: Workspace[],
 ): AgentInstance {
+  if (call.agentId !== agent.id) {
+    throw new Error("call_agent_mismatch");
+  }
+  if (call.fromProjectId === agent.homeProjectId) {
+    throw new Error("call_same_as_home");
+  }
   const office = resolveCorrespondingOffice(
     destinationWorkspaces,
     destination.id,
@@ -124,15 +169,34 @@ export function enterBuilding(
   );
   return {
     ...agent,
+    activeCallId: call.id,
     projectId: destination.id,
     workspaceId: office?.id ?? null,
   };
 }
 
+/** End call — return to home building and home office. */
+export function returnHomeFromCall(agent: AgentInstance): AgentInstance {
+  return {
+    ...agent,
+    activeCallId: null,
+    projectId: agent.homeProjectId,
+    workspaceId: agent.homeWorkspaceId,
+  };
+}
+
 /**
- * craft ⊕ current building ⊕ corresponding office in that building ⊕ …
- * Always reasons as oficio; never adopts a random visited room's specialization.
+ * @deprecated Use acceptProjectCall — agents do not enter buildings without a call.
  */
+export function enterBuilding(
+  agent: AgentInstance,
+  destination: Project,
+  destinationWorkspaces: Workspace[],
+  call: ProjectCall,
+): AgentInstance {
+  return acceptProjectCall(agent, call, destination, destinationWorkspaces);
+}
+
 export function resolveEffectiveContext(
   agent: AgentInstance,
   currentProject: Project,
@@ -174,6 +238,7 @@ export function shouldHomeAfterIntro(
   stayInRoom: boolean,
 ): boolean {
   if (stayInRoom) return false;
+  if (agent.activeCallId) return false;
   if (!agent.homeWorkspaceId) return false;
   if (agent.projectId !== agent.homeProjectId) return false;
   return agent.workspaceId !== agent.homeWorkspaceId;
