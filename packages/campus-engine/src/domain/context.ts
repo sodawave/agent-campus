@@ -8,6 +8,7 @@
 
 import { getRank, suggestSupervisor } from "./org";
 import { classificationsForAgent } from "./library";
+import { defaultMemoryAddress } from "./memory";
 import type {
   AgentArchetype,
   AgentEffectiveContext,
@@ -204,6 +205,7 @@ export function resolveEffectiveContext(
   currentProject: Project,
   workspaces: Workspace[],
   classifications: DocClassification[] = [],
+  campusPalaceId: Id = "palace-campus",
 ): AgentEffectiveContext {
   const corresponding = resolveCorrespondingOffice(
     workspaces,
@@ -232,6 +234,7 @@ export function resolveEffectiveContext(
     rank,
     supervisorId: agent.supervisorId,
     libraryClassifications: classificationsForAgent(classifications, agent),
+    memoryAddress: defaultMemoryAddress(agent, campusPalaceId),
   };
 }
 

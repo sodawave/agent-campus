@@ -1,10 +1,9 @@
 /**
- * Domain types for Agent Campus engine (v0.9).
+ * Domain types for Agent Campus engine (v0.10).
  * Pure TS — no Phaser imports.
  *
- * Three app screens: gamification | org/tasks | agent chats.
- * Lowest-rank agents may spawn/destroy anonymous workers
- * (enter/leave campus as visual events).
+ * Memory: MemPalace-backed (wings/rooms/drawers) per agent.
+ * Base: https://github.com/MemPalace/mempalace
  */
 
 export type Id = string;
@@ -148,6 +147,65 @@ export interface Campus {
   name: string;
   libraryId: Id;
   projectIds: Id[];
+  /**
+   * MemPalace palace ref for this campus (local path or hub id).
+   * @see https://github.com/MemPalace/mempalace
+   */
+  memoryPalaceRef?: string;
+}
+
+/** MemPalace-aligned address for an agent's memory scope. */
+export interface MemoryAddress {
+  palaceId: Id;
+  wingId: Id;
+  roomId: string;
+}
+
+export type MemoryBackendKind = "mempalace" | "custom";
+
+export interface MemoryConfig {
+  backend: MemoryBackendKind;
+  palaceRef: string;
+  verbatimOnly?: boolean;
+}
+
+export const DEFAULT_MEMORY_CONFIG: MemoryConfig = {
+  backend: "mempalace",
+  palaceRef: "~/.mempalace/agent-campus",
+  verbatimOnly: true,
+};
+
+export type MemoryEntryKind =
+  | "chat"
+  | "task"
+  | "decision"
+  | "observation"
+  | "handoff"
+  | "other";
+
+/** One MemPalace drawer — stored verbatim. */
+export interface MemoryDrawer {
+  id: Id;
+  address: MemoryAddress;
+  kind: MemoryEntryKind;
+  content: string;
+  agentId: Id;
+  projectId: Id;
+  createdAt: string;
+  metadata?: Record<string, string>;
+}
+
+export interface MemoryQuery {
+  agentId: Id;
+  text: string;
+  wingId?: Id;
+  roomId?: string;
+  topK?: number;
+}
+
+export interface MemoryHit {
+  drawer: MemoryDrawer;
+  score: number;
 }
 
 /**
@@ -260,6 +318,8 @@ export interface AgentEffectiveContext {
   rank: Rank;
   supervisorId: Id | null;
   libraryClassifications: DocClassification[];
+  /** MemPalace wing/room address for recall/remember. */
+  memoryAddress: MemoryAddress;
 }
 
 export interface AgentInstance {
@@ -544,6 +604,16 @@ export type CampusEvent =
       type: "worker.spawn.rejected";
       actorId: Id;
       reason: "rank_not_allowed" | "other";
+    }
+  | {
+      type: "memory.remembered";
+      drawer: MemoryDrawer;
+    }
+  | {
+      type: "memory.recalled";
+      agentId: Id;
+      query: string;
+      hitIds: Id[];
     }
   | {
       type: "library.loaded";
