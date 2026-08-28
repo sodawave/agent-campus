@@ -150,6 +150,7 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
 | Biblioteca | Campus-scoped; bind por `Skill.key` |
+| Memoria agente | **MemPalace** (palace/wing/room/drawer); distinta de Library |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
 
