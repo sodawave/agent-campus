@@ -93,6 +93,8 @@ export function buildAgentInstance(input: {
     workspaceId,
     homeWorkspaceId,
     activeCallId: null,
+    kind: "named",
+    spawnedById: null,
     name: input.name,
     spriteKey: input.archetype.spriteKey,
     skill: { ...input.archetype.skill },

@@ -1,6 +1,6 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.8 — agentes permanecen en su oficina salvo llamada (`ProjectCall`) de otro proyecto.  
+**Estado:** v0.9 — 3 pantallas (gamificación / org-tareas / chats) + workers anónimos (último rango).  
 **Engine elegido:** Phaser 3 + TypeScript + Vite (web-first, pixel art 2D top-down).  
 **Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).
 
@@ -8,13 +8,13 @@
 
 ## 1. Objetivo
 
-Renderizar un **campus gamificado** donde:
+Producto con **tres ámbitos / pantallas** de trabajo:
 
-- un **campus** agrupa **edificios** (proyectos) y una **biblioteca** compartida
-- un **edificio** = un **proyecto**
-- una **habitación** = un **departamento / oficina**
-- un **agente** **no suele salir de su oficina**; solo se desplaza a otro edificio si **otro proyecto le llama**, y entonces participa en su oficina correspondiente allí
-- ops = organigrama mindmap + inventario de tareas / órdenes
+1. **Gamificación** — mapa campus (Stardew-like); observación espacial; entrada/salida de workers anónimos.
+2. **Organigrama / tareas** — mindmap operativo; inventario; órdenes.
+3. **Chats con agentes** — conversación 1:1 (o hilos) con instancias nombradas.
+
+Dominio: campus → edificios (proyectos) → oficinas; agentes en oficina salvo `ProjectCall`; biblioteca por oficio; último rango (`ic`) instancia/destruye workers anónimos.
 
 ---
 
@@ -123,10 +123,22 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Salas | = departamentos (+ library room opcional) |
 | Homing | Oficina home; tras llamada, oficina homologa en destino |
 | Movilidad inter-edificio | **Solo** vía `ProjectCall` — no salen de oficina por defecto |
+| Workers anónimos | Solo **último rango** (`ic`) puede instanciar/destruir; mapa = entrar/salir del campus |
+| Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
 | Biblioteca | Campus-scoped; bind por `Skill.key` |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
+
+### Workers anónimos (spawn / destroy)
+
+- Quién: agentes de **último rango** = menor `Rank.level` → key `ic` (`WORKER_SPAWNER_RANK_KEY`).
+- Qué: `AgentInstance` con `kind: "anonymous_worker"`, `spawnedById`, nombre genérico (sin ficha de catálogo propia).
+- Crear → evento `worker.entered` → en el mapa: figura anónima **entra** al campus (puerta/acceso).
+- Destruir → evento `worker.exited` → figura anónima **sale** del campus.
+- Solo el spawner puede destruir a sus workers (`canDestroyWorker`).
+
+Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
 
 ---
 

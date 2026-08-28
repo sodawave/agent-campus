@@ -1,9 +1,10 @@
 /**
- * Domain types for Agent Campus engine (v0.8).
+ * Domain types for Agent Campus engine (v0.9).
  * Pure TS — no Phaser imports.
  *
- * Project = building. Agents stay in their office unless called by
- * another project (summons); then they join the corresponding office there.
+ * Three app screens: gamification | org/tasks | agent chats.
+ * Lowest-rank agents may spawn/destroy anonymous workers
+ * (enter/leave campus as visual events).
  */
 
 export type Id = string;
@@ -95,7 +96,9 @@ export interface Rank {
   level: number;
 }
 
-/** Default campus rank ladder (override per project if needed). */
+/** Default campus rank ladder (override per project if needed).
+ * "Último rango" = lowest `level` (ic) — may spawn/destroy anonymous workers.
+ */
 export const DEFAULT_RANKS: Rank[] = [
   { id: "rank-ic", key: "ic", label: "Individual contributor", level: 1 },
   { id: "rank-senior", key: "senior", label: "Senior", level: 2 },
@@ -105,6 +108,13 @@ export const DEFAULT_RANKS: Rank[] = [
   { id: "rank-campus", key: "campus_lead", label: "Campus lead", level: 6 },
 ];
 
+/** Rank key allowed to instantiate/destroy ephemeral workers. */
+export const WORKER_SPAWNER_RANK_KEY = "ic";
+
+/** Three primary app surfaces. */
+export type AppScreen = "gamification" | "org_tasks" | "chats";
+
+export type AgentKind = "named" | "anonymous_worker";
 /**
  * Project / building-level context — “quiénes somos”.
  */
@@ -255,6 +265,8 @@ export interface AgentEffectiveContext {
 export interface AgentInstance {
   id: Id;
   archetypeId: Id;
+  /** "named" from catalog vs ephemeral anonymous worker. */
+  kind: AgentKind;
   /** Building where the agent was hired / primarily belongs. */
   homeProjectId: Id;
   /** Building the sprite is in right now (home, or destination of an active call). */
@@ -262,7 +274,7 @@ export interface AgentInstance {
   workspaceId: Id | null;
   /**
    * Corresponding office in home building (naturalDepartmentKey there).
-   * Agents normally stay here; they leave only when called by another project.
+   * Named agents normally stay here; they leave only when called by another project.
    */
   homeWorkspaceId: Id | null;
   /**
@@ -270,6 +282,12 @@ export interface AgentInstance {
    * Null ⇒ agent should be in home office (default behaviour).
    */
   activeCallId: Id | null;
+  /**
+   * Spawner of an anonymous worker (must be último rango / ic).
+   * Null for named catalog instances.
+   */
+  spawnedById: Id | null;
+  /** Display name; anonymous workers use a generic label (e.g. "Worker"). */
   name: string;
   spriteKey: string;
   skill: Skill;
@@ -509,6 +527,23 @@ export type CampusEvent =
   | {
       type: "order.updated";
       order: AgentOrder;
+    }
+  | {
+      /** Anonymous worker enters campus (spawn). Map: gate/entrance animation. */
+      type: "worker.entered";
+      worker: AgentInstance;
+      spawnedById: Id;
+    }
+  | {
+      /** Anonymous worker leaves campus (destroy). Map: exit animation. */
+      type: "worker.exited";
+      workerId: Id;
+      spawnedById: Id;
+    }
+  | {
+      type: "worker.spawn.rejected";
+      actorId: Id;
+      reason: "rank_not_allowed" | "other";
     }
   | {
       type: "library.loaded";
