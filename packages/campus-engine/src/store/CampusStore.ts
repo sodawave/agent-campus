@@ -138,6 +138,9 @@ export class CampusStore {
         agentId: input.agentId,
         supervisorId: input.supervisorId,
       }),
+    /** Rankear: the direct supervisor or building leader adjusts an agent's rank. */
+    rank: (input: { agentId: Id; rankKey: string; byId: Id }): CommandResult =>
+      this.dispatch({ type: "agent.rank", agentId: input.agentId, rankKey: input.rankKey, byId: input.byId }),
     setHarness: (input: { agentId: Id; providerId: Id; model: string; temperature?: number; effort?: number; maxTokens?: number }): CommandResult =>
       this.dispatch({
         type: "agent.setHarness",
