@@ -896,3 +896,33 @@ Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 - **Aislamiento**: cada tenant = uno o varios campus; identidad y facturación por cuenta.
 - **No v0**: se documenta como norte de producto; no bloquea el MVP (pantallas + API + host/runtime).
 
+### 15.1 CLI como "elemento" conectable al campus (norte)
+
+El **CLI** (base [opencode](https://github.com/opencode-ai/opencode)) es un **elemento del plano
+de ejecución** que el usuario **conecta al campus** (host) y, una vez dentro, opera de tres formas:
+
+- **Chat**: conversar con el/los agentes vivos en ese host.
+- **Crons**: programar tareas recurrentes que el agente ejecuta solo (el scheduler vive en el
+  host/CLI y emite comandos al core; la ejecución respeta el test-gate).
+- **Indexar documentos**: leer ficheros locales del host y volcarlos a la biblioteca/memoria del
+  campus (RAG por oficio).
+
+El **core sigue siendo la autoridad**; el CLI aporta cómputo local (runtime del agente), acceso a
+ficheros (indexado) y UI de terminal (chat/crons). Encaja en los tres planos y reutiliza el dominio:
+
+| Capacidad CLI | Pieza del dominio |
+|---|---|
+| Conectar/mantener vivo | `host.join` + `runtime.start` (§host/runtime) |
+| Chat agente↔usuario | **añadido de dominio pendiente**: `chat.message` (comando/evento) |
+| Crons → tareas | scheduler local → `task.assign/start/submit/evaluate` (test-gate) |
+| Indexar docs | `library.addClassification/addDocument` + `memory.remember` |
+
+**Orden sugerido cuando se retome**: (1) capa de dominio `chat`; (2) extender el CLI (base
+opencode) con chat interactivo; (3) crons e indexado de documentos. **No v0.**
+
+### 15.2 Control Panel / admin (futuro)
+
+App de configuración del campus/servidor: **idioma**, **zona horaria del servidor**, **token de
+conexión** (auth de hosts/CLI/MCP — hoy diferida) y otros ajustes. Consumirá la capa de conexión
+(GraphQL para config/queries; MCP para tools). **No v0.**
+
