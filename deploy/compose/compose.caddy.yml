@@ -1,0 +1,25 @@
+services:
+  api:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      CAMPUS_DOMAIN: ${CAMPUS_DOMAIN:?set CAMPUS_DOMAIN}
+    ports:
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - campus-caddy-data:/data
+      - campus-caddy-config:/config
+    restart: unless-stopped
+    networks:
+      - campus-net
+
+volumes:
+  campus-caddy-data:
+  campus-caddy-config:

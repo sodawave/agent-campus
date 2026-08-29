@@ -4,6 +4,16 @@
   "campusId": "campus-demo",
   "buildingId": "reference-dual-room",
   "campusLeadAgentId": null,
+  "memoryWingId": "proj-demo",
+  "specKit": {
+    "enabled": true,
+    "integration": "cursor",
+    "phase": "constitution",
+    "extensions": [],
+    "specRoot": ".specify",
+    "convergence": "diverged",
+    "toolkitVersion": "v1.0.0"
+  },
   "ranks": [
     { "id": "rank-ic", "key": "ic", "label": "Individual contributor", "level": 1 },
     { "id": "rank-senior", "key": "senior", "label": "Senior", "level": 2 },

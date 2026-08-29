@@ -1,20 +1,136 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.9 — 3 pantallas (gamificación / org-tareas / chats) + workers anónimos (último rango).  
-**Engine elegido:** Phaser 3 + TypeScript + Vite (web-first, pixel art 2D top-down).  
-**Referencia visual:** captura pixel-RPG (edificio flotante, 2 salas + pasillo + utility).
+**Estado:** v0.16 — **Godot 4 = cliente principal**: mobile (iOS/Android) + **desktop** (Windows/macOS/Linux) + web.  
+**Cliente principal:** **Godot 4** (Stardew-like + UI org/chats).  
+**Targets:** iOS · Android · **Desktop** · Web — un solo proyecto `.godot`.  
+**Backend:** dominio TS + API Hono + MemPalace + Spec Kit + Compose.  
+**CLI host:** diferido (prioridad baja).  
+**Referencia visual:** Stardew-like; refs en `assets/refs/`.
 
 ---
 
 ## 1. Objetivo
 
-Producto con **tres ámbitos / pantallas** de trabajo:
+Producto con **tres ámbitos / pantallas** (en **web y mobile nativo**):
 
-1. **Gamificación** — mapa campus (Stardew-like); observación espacial; entrada/salida de workers anónimos.
-2. **Organigrama / tareas** — mindmap operativo; inventario; órdenes.
-3. **Chats con agentes** — conversación 1:1 (o hilos) con instancias nombradas.
+1. **Gamificación** — mapa campus; workers anónimos entrar/salir.
+2. **Organigrama / tareas** — mindmap; inventario; órdenes.
+3. **Chats con agentes** — hilos con instancias nombradas.
 
-Dominio: campus → edificios (proyectos) → oficinas; agentes en oficina salvo `ProjectCall`; biblioteca por oficio; último rango (`ic`) instancia/destruye workers anónimos.
+Dominio compartido: campus → edificios → oficinas; `ProjectCall`; biblioteca; workers; MemPalace; Spec Kit; **hosts CLI** que hacen vivir agentes en máquinas remotas y los **representan** en su oficina.
+
+### CLI host distribuido (`campus`) — prioridad baja
+
+> **Prioridad baja.** El contrato existe (`domain/host.ts`) para no pintar una esquina, pero **no bloquea** scaffold de web/mobile, memoria, Spec Kit ni compose. Se implementa después del MVP de pantallas + API.
+
+El sistema permitirá **instalar un CLI** en cualquier máquina para:
+
+1. **Conectarse** al campus (`campus login` / `host join`).
+2. **Instanciar** agentes con rol/oficio/harness (`agent spawn`).
+3. **Mantenerlos vivos** (proceso runtime en esa máquina).
+4. **Representarlos** en el mapa/org en su lugar justo (oficina natural / building).
+
+```mermaid
+flowchart LR
+  CLI1[campus CLI host A]
+  CLI2[campus CLI host B]
+  API[Campus API / bus]
+  Map[Gamification UI]
+  Org[Org / chats]
+
+  CLI1 -->|runtime.started| API
+  CLI2 -->|runtime.started| API
+  API --> Map
+  API --> Org
+  Map -->|sprite in office| Agents[AgentInstances]
+```
+
+| Concepto | Tipo | Notas |
+|---|---|---|
+| Host | `AgentHost` | Máquina/proceso unido al campus |
+| Runtime | `AgentRuntime` | Proceso vivo de un `AgentInstance` en un host |
+| Representación | `hostId` + `runtimeId` en la instancia | Mapa coloca el sprite en la oficina del rol |
+| Plataforma | `ClientPlatform = "cli_host"` | Junto a web/ios/android |
+
+Comandos (contrato): ver `CAMPUS_CLI_COMMANDS` en [`domain/host.ts`](../packages/campus-engine/src/domain/host.ts).
+
+Eventos: `host.joined` / `host.left` / `host.heartbeat` / `runtime.started` / `runtime.stopped`.
+
+Reglas:
+
+- Un agente **vivo** tiene `runtimeId` + `hostId`; sin runtime aparece offline / no “habita” la oficina.
+- Spawn respeta catálogo, rank, homing y `ProjectCall` igual que desde la UI.
+- Varios hosts pueden correr roles distintos (p. ej. GPU box = systems eng; laptop = UX).
+- Al caer el host: `runtime.stopped` → sprites salen o pasan a idle offline (TBD visual).
+- Workers anónimos también pueden spawnearse desde un host `ic` y verse entrar/salir.
+
+### Clientes: Godot-first (mobile + desktop + web)
+
+| Plataforma | Cómo |
+|---|---|
+| **iOS / Android** | Export nativo Godot → stores |
+| **Desktop** | Export nativo Godot → **Windows / macOS / Linux** |
+| **Web** | Export HTML5/WASM del mismo proyecto |
+| Admin React (opc.) | Consola web si hace falta |
+| CLI host | Prioridad baja |
+
+Las **tres pantallas** viven en Godot. Look **Stardew**. Estado en API/TS.
+
+### Memoria (MemPalace) — agente y proyecto
+
+Base: [MemPalace](https://github.com/MemPalace/mempalace).
+
+| MemPalace | Agent Campus |
+|---|---|
+| Palace | Campus (`memoryPalaceRef`) |
+| Wing (proyecto) | `Project.memoryWingId` ?? `project.id` — **memoria compartida del edificio** |
+| Wing (agente) | opcional privado = `agent.id` |
+| Room | `_general` \| `naturalDepartmentKey` \| topic |
+| Drawer | `MemoryDrawer` verbatim |
+
+| Corpus | Ámbito | Uso |
+|---|---|---|
+| Library | Oficio / campus | Docs RAG |
+| MemPalace agent | Instancia | Chat, handoffs personales |
+| MemPalace project | Edificio | Decisiones, contexto compartido del proyecto |
+
+Recall efectivo: `recallScopesForAgent` → agent + project + department rooms.  
+Eventos: `memory.remembered`, `memory.project.remembered`, `memory.recalled`.
+
+### Spec Kit (SDD por proyecto)
+
+Base: [github/spec-kit](https://github.com/github/spec-kit).
+
+Cada **proyecto/edificio** puede activar Spec-Driven Development:
+
+`constitution → specify → plan → tasks → implement → converge`  
+(+ extensions `bug`, `assess`).
+
+| Spec Kit | Agent Campus |
+|---|---|
+| `specify init` | `Project.specKit` en el building |
+| Phases `/speckit-*` | `ProjectSpecKit.phase` + `SpecKitArtifact` |
+| Convergence | `convergence: diverged \| in_progress \| converged` |
+| Agents implementan tasks | Órdenes / runs ligados a artifacts |
+
+Eventos: `speckit.phase.changed`, `speckit.artifact.upserted`.  
+Helpers: [`domain/speckit.ts`](../packages/campus-engine/src/domain/speckit.ts).
+
+### Comunicación entre agentes + despliegue
+
+Tomamos del [Buzz compose](https://github.com/block/buzz/tree/main/deploy/compose) (hive mind / relay):
+
+| De Buzz | En Agent Campus |
+|---|---|
+| `relay` + WS event log | `api` + **bus de eventos** (`CampusEvent`) |
+| Postgres + Redis + MinIO | Igual (estado, pub/sub, library blobs) |
+| `run.sh` + `.env` + Caddy TLS | [`deploy/compose/`](../deploy/compose/) |
+| Agentes como miembros de rooms | Chats / debates / orders / calls en canales scoped |
+| Opción futura Nostr/Buzz | `CAMPUS_COMMS_BACKEND=buzz` + `CAMPUS_BUZZ_RELAY_URL` |
+
+Puerto: [`domain/comms.ts`](../packages/campus-engine/src/domain/comms.ts) — `AgentCommsPort.publish/subscribe` por `campus|project|workspace|agent|thread`.
+
+No vendemos Buzz entero en v0; reutilizamos el **patrón de ops** y dejamos el relay Buzz como backend opcional de comms.
 
 ---
 
@@ -22,16 +138,12 @@ Dominio: campus → edificios (proyectos) → oficinas; agentes en oficina salvo
 
 ```
 Campus
-  ├── Library
-  │     ├── LibraryDocument (code | law | manual | …)
-  │     └── DocClassification
-  │           ├── vectorNamespace          categorización vectorial
-  │           └── skillKeys[]              bind por OFICIO (cross-building)
+  ├── Library + MemPalace palace
   └── Project (= Building)
         ├── context, ranks
-        └── Workspace (= Department)
-              └── AgentInstance
-                    └── skill.key ──────────┘ (resuelve clasificaciones)
+        ├── memoryWingId          memoria compartida del proyecto
+        ├── specKit               Spec-Driven Development
+        └── Workspace → AgentInstance
 ```
 
 ### Capas de conocimiento
@@ -127,6 +239,12 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 | Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
 | Biblioteca | Campus-scoped; bind por `Skill.key` |
+| Memoria agente | MemPalace drawers (episódica) |
+| Memoria proyecto | Wing compartido del building (`memoryWingId`) |
+| Spec Kit | SDD por proyecto (`Project.specKit`) |
+| Clientes | `web` \| `ios` \| `android` \| `cli_host` |
+| CLI | Contrato listo; **prioridad baja** — post-MVP |
+| Pantallas | `gamification` \| `org_tasks` \| `chats` |
 | Harness / org / debate / eval | Como v0.4 |
 | Persistencia | Data-driven |
 
@@ -142,22 +260,45 @@ Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
 
 ---
 
-## 3. Stack
+## 3. Stack (cerrado v1 — Godot-first)
 
 | Capa | Tecnología | Motivo |
 |---|---|---|
-| Runtime 2D | **Phaser 3** | Tilemaps, sprites, cámaras, depth sorting, web nativo |
-| Lenguaje | **TypeScript** | Tipado del modelo de dominio ↔ escena |
-| Bundler | **Vite** | HMR rápido para iterar tiles/sprites |
-| Mapas | **Tiled** → JSON (`tilemap`) + manifest propio de habitaciones | Edición visual de salas sin redeploy de lógica |
-| Estado remoto | WebSocket (o SSE) → `CampusStore` | Actualización live de agentes/runs |
-| Host UI | Embed en página web (canvas fullscreen o panel) | Producto web, no binario desktop |
+| **App (mapa + org + chats)** | **Godot 4 (2D)** | Stardew-like; export **iOS · Android · Desktop · Web** |
+| Domain / API | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia |
+| Memoria | **MemPalace** | Agente + proyecto |
+| Specs | **Spec Kit** | SDD por building |
+| Comms | WS + Redis (`AgentCommsPort`) | Chats, orders, calls |
+| Plugins / MCP | Host en API + UI Godot (paneles) | Tools externos sin fork del juego |
+| Deploy | `deploy/compose` | api, pg, redis, minio, caddy |
+| CLI host | diferido | Prioridad baja |
+| React/Expo | **opcional** (admin web) | No requerido para mobile |
 
-**Alternativas descartadas (por ahora):**
+### Por qué Godot como app mobile
 
-- Godot: peor DX para embed en dashboard web.
-- React-only DOM: no encaja con tilemaps/pixel depth.
-- Pixi solo: más trabajo manual de cámara/colisiones/tilemap que Phaser ya resuelve.
+- Export **nativo** iOS/Android (y web) desde el mismo `.godot`.
+- Ideal para sensación **Stardew** end-to-end en el teléfono.
+- Menos fricción que Expo+WebView+bridge solo para el mapa.
+- Org/chats = escenas Godot (Control/Scroll) sobre el mismo cliente del bus.
+
+```mermaid
+flowchart TB
+  subgraph godotApp [Godot 4 app]
+    Map[Gamification Stardew]
+    Org[Org / tasks]
+    Chat[Chats]
+  end
+  API[Campus API / WS]
+  godotApp -->|HTTP WS| API
+  iOS[iOS]
+  And[Android]
+  Desk[Desktop Win/macOS/Linux]
+  Web[Web]
+  godotApp --> iOS
+  godotApp --> And
+  godotApp --> Desk
+  godotApp --> Web
+```
 
 ---
 
@@ -374,37 +515,66 @@ El adapter traduce WS/API del harness a este set. Reglas en dominio (`org.ts`, `
 
 ---
 
-## 9. Tres pantallas (ámbitos de trabajo)
+## 9. Tres pantallas × tres clientes
 
 ```mermaid
 flowchart TB
-  subgraph screens [AppShell]
-    G[1 gamification]
-    O[2 org_tasks]
-    C[3 chats]
+  subgraph clients [Clients]
+    Web[web]
+    iOS[ios native]
+    And[android native]
   end
-  Store[CampusStore]
-  G --> Store
-  O --> Store
-  C --> Store
-  Store --> G
-  Store --> O
-  Store --> C
+  subgraph screens [AppShell]
+    G[gamification]
+    O[org_tasks]
+    C[chats]
+  end
+  API[Campus API / WS]
+  Store[CampusStore / domain]
+  Web --> screens
+  iOS --> screens
+  And --> screens
+  screens --> API
+  API --> Store
 ```
 
-| # | Pantalla | `AppScreen` | Responsabilidad |
-|---|---|---|---|
-| 1 | Gamificación | `gamification` | Mapa campus; presencia; **workers anónimos entrando/saliendo** |
-| 2 | Organigrama / tareas | `org_tasks` | Mindmap; inventario; órdenes |
-| 3 | Chats | `chats` | Conversación con agentes nombrados |
+| # | Pantalla | Mobile notes |
+|---|---|---|
+| 1 | Gamificación | Tab/full-screen; touch pan/zoom; workers enter/leave |
+| 2 | Organigrama / tareas | Primaria en phone; mindmap simplificado + listas |
+| 3 | Chats | Primaria en phone; push al recibir mensajes/órdenes |
 
-Comparten `CampusStore`; no duplican reglas de negocio.
+`ClientPlatform` no cambia reglas de org/memoria/spec — solo shell y notificaciones.
 
-### 9.1 Gamificación
+### 9.1 Gamificación + app Godot
 
-- Mapa Stardew-like (polish de globos/panel → fase diseño).
-- `worker.entered` / `worker.exited`: animación de agentes **anónimos** cruzando la entrada del campus.
-- Agentes nombrados en sus oficinas; movimiento solo por `ProjectCall`.
+- Un solo proyecto Godot: mapa Stardew + UI org/chats (mobile-first).
+- Exports: iOS, Android, Web.
+- `worker.entered` / `runtime.started` / pathing en TileMap.
+- Refs isométricas = layout modular, no art final.
+
+#### Referente: esquematización de departamentos en un edificio (fuerte)
+
+Asset: [`assets/refs/building-departments-schematic-isometric.png`](../assets/refs/building-departments-schematic-isometric.png)
+
+**Preferido** para la vista de un **edificio (= proyecto)** y sus oficinas:
+
+| Elemento visual | Lectura Agent Campus |
+|---|---|
+| Plataformas flotantes isométricas | Departamentos / workspaces (smart classroom, study, ops…) |
+| Hub central con racks | Memoria de proyecto (MemPalace wing) + / o biblioteca del building |
+| Líneas teal de red | Flujos: `ProjectCall`, shared memory, datos entre dptos |
+| Pantallas / dashboards en salas | Runs, tasks, Spec Kit status del dpto |
+| Figuras en mesas | AgentInstances en su oficina |
+| Iconos periféricos (cloud, collab, materials) | Integraciones / library / chats — no bloquean el layout |
+
+Estilo: tech-modern, azules/teals, grid limpio, modular. Encaja web y mobile (plataformas → cards en phone).
+
+Convive con el diorama clay (campus entero) y el pixel top-down (layout de salas). Art final sigue abierto.
+
+#### Referente estético campus (orientativo)
+
+Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png) — diorama beige monocromo; útil para sensación de “campus objeto”, no para el esquema interno de dptos.
 
 ### 9.2 Organigrama / tareas
 
@@ -433,31 +603,12 @@ Comparten `CampusStore`; no duplican reglas de negocio.
 
 ```
 /
-  docs/TECH_SPEC.md          ← este documento
-  packages/campus-engine/
-    package.json
-    src/
-      domain/                # types, context, org, library, tasks, workers
-      catalog/sample-catalog.json
-      catalog/sample-library.json
-      layouts/sample-project.json
-      store/CampusStore.ts
-      adapter/types.ts
-      game/                  # pantalla gamification
-      ui/
-        AppShell.tsx         # switch gamification | org_tasks | chats
-        OrgMindmap.tsx
-        TaskInventoryPanel.ts
-        OrderComposer.ts
-        ChatView.tsx
-        HarnessParamsForm.ts
-        LibraryPanel.ts
-        CatalogModal.ts
-    public/assets/
-      maps/
-      sprites/
-      ui/
-  apps/playground/           # Vite app que embebe el engine con mock events
+  docs/TECH_SPEC.md
+  deploy/compose/
+  packages/campus-engine/     # domain TS (API + clients)
+  packages/campus-cli/        # low priority
+  apps/campus-godot/          # app principal: mobile + web + mapa Stardew
+  apps/web-admin/             # opcional React admin
 ```
 
 ---
@@ -496,27 +647,27 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ## 12. Criterios de aceptación v0
 
-1. Tres pantallas navegables: `gamification` | `org_tasks` | `chats`.
-2. Dominio: contexto, org, library, calls, tasks/orders.
-3. Solo `rankKey === ic` puede `spawnAnonymousWorker`; otros → `worker.spawn.rejected`.
-4. Spawn/destroy emiten `worker.entered` / `worker.exited` (mapa representa entrar/salir).
-5. Named agents stationed at home salvo `ProjectCall`.
-6. Domain testable con Vitest.
+1. Dominio: org, library, workers, memory, specKit, comms, **host/runtime**.
+2. `campus host join` + `agent spawn` emiten eventos y asignan `hostId`/`runtimeId`.
+3. UI mapa representa el agente en su oficina al `runtime.started`.
+4. Host down → `runtime.stopped`.
+5. Mismo contrato en web/ios/android/cli_host.
+6. Domain testable (Vitest) sin canvas.
 
 ---
 
 ## 13. Fuera de alcance v0
 
-- Polish Stardew (globos/panel).
-- Mindmap avanzado / protocolo rico de chat.
-- Embeddings reales / LLM provider.
-- Workers con identidad de catálogo o chat propio (TBD).
+- Binario CLI publicado en npm (solo contrato + package path).
+- Orquestación k8s multi-host.
+- Wire runtime MemPalace/Buzz completo.
+- Art final.
 
 ---
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Confirmación: **último rango = `ic` (menor level)** — ¿o era el rango más alto?
-2. ¿Los workers anónimos aparecen en el mindmap / tienen chat?
-3. Órdenes humanas vs jerarquía.
-4. Scaffold: ¿por cuál pantalla empezamos?
+1. Scaffold: ¿creamos el proyecto Godot 4 vacío en `apps/campus-godot` ya?
+2. Art: tileset Stardew temporal (asset pack) vs placeholders.
+3. ¿Org/chats 100% en Godot desde el día 1, o mapa primero y UI después?
+4. Plugins MCP: ¿panel in-Godot o solo vía API al inicio?
