@@ -63,6 +63,12 @@ export interface Project {
   status: ProjectStatus;
 }
 
+/** An agent assigned to a project (N:N). The project appears on the agent. */
+export interface Assignment {
+  agentId: Id;
+  projectId: Id;
+}
+
 /**
  * A named agent instance, represented in a room of a building.
  * Role fields (rank/skill/supervisor) are optional and populated in layer 6+.
@@ -239,6 +245,8 @@ export type CampusEvent =
   | { type: "room.context.updated"; roomId: Id; context: string }
   | { type: "project.created"; project: Project }
   | { type: "project.archived"; projectId: Id }
+  | { type: "project.assigned"; agentId: Id; projectId: Id }
+  | { type: "project.unassigned"; agentId: Id; projectId: Id }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }
@@ -282,6 +290,7 @@ export interface State {
   classifications: DocClassification[];
   documents: LibraryDocument[];
   projects: Project[];
+  assignments: Assignment[];
 }
 
 /** Canonical empty projection. */
@@ -302,4 +311,5 @@ export const EMPTY_STATE: State = {
   classifications: [],
   documents: [],
   projects: [],
+  assignments: [],
 };

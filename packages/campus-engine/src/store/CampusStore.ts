@@ -91,6 +91,10 @@ export class CampusStore {
       this.dispatch({ type: "project.create", project: buildProject(input) }),
     archive: (input: { projectId: Id }): CommandResult =>
       this.dispatch({ type: "project.archive", projectId: input.projectId }),
+    assign: (input: { agentId: Id; projectId: Id }): CommandResult =>
+      this.dispatch({ type: "project.assign", agentId: input.agentId, projectId: input.projectId }),
+    unassign: (input: { agentId: Id; projectId: Id }): CommandResult =>
+      this.dispatch({ type: "project.unassign", agentId: input.agentId, projectId: input.projectId }),
   };
 
   /** Spec Kit (SDD) per building. */

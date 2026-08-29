@@ -43,6 +43,8 @@ export type CampusCommand =
   | { type: "room.updateContext"; roomId: Id; context: string }
   | { type: "project.create"; project: Project }
   | { type: "project.archive"; projectId: Id }
+  | { type: "project.assign"; agentId: Id; projectId: Id }
+  | { type: "project.unassign"; agentId: Id; projectId: Id }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
@@ -81,6 +83,9 @@ export type RejectionReason =
   | "agent_not_in_room"
   | "agent_not_in_building"
   | "project_not_found"
+  | "project_not_in_building"
+  | "already_assigned"
+  | "not_assigned"
   | "actor_not_found"
   | "rank_not_allowed"
   | "worker_not_found"
@@ -199,6 +204,27 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       const { projectId } = command;
       if (!state.projects.some((p) => p.id === projectId)) return reject("project_not_found");
       return accept({ type: "project.archived", projectId });
+    }
+
+    case "project.assign": {
+      const { agentId, projectId } = command;
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) return reject("agent_not_found");
+      const project = state.projects.find((p) => p.id === projectId);
+      if (!project) return reject("project_not_found");
+      if (project.buildingId !== agent.buildingId) return reject("project_not_in_building");
+      if (state.assignments.some((x) => x.agentId === agentId && x.projectId === projectId)) {
+        return reject("already_assigned");
+      }
+      return accept({ type: "project.assigned", agentId, projectId });
+    }
+
+    case "project.unassign": {
+      const { agentId, projectId } = command;
+      if (!state.assignments.some((x) => x.agentId === agentId && x.projectId === projectId)) {
+        return reject("not_assigned");
+      }
+      return accept({ type: "project.unassigned", agentId, projectId });
     }
 
     case "agent.instantiate": {

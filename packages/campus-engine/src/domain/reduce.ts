@@ -93,6 +93,27 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "project.assigned": {
+      const { agentId, projectId } = event;
+      if (state.assignments.some((x) => x.agentId === agentId && x.projectId === projectId)) {
+        return state;
+      }
+      return { ...state, assignments: [...state.assignments, { agentId, projectId }] };
+    }
+
+    case "project.unassigned": {
+      const { agentId, projectId } = event;
+      if (!state.assignments.some((x) => x.agentId === agentId && x.projectId === projectId)) {
+        return state;
+      }
+      return {
+        ...state,
+        assignments: state.assignments.filter(
+          (x) => !(x.agentId === agentId && x.projectId === projectId),
+        ),
+      };
+    }
+
     case "agent.instantiated": {
       const { agent } = event;
       if (!state.buildings.some((b) => b.id === agent.buildingId)) return state;
