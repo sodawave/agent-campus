@@ -16,14 +16,36 @@ export interface Campus {
   buildingIds: Id[];
 }
 
+/** An AI provider and the models it exposes (credentials/keys are NOT here — secrets). */
+export interface AiProvider {
+  id: Id;
+  name: string;
+  models: string[];
+}
+
+/** A reference to a specific model of a provider. */
+export interface ModelRef {
+  providerId: Id;
+  model: string;
+}
+
 /** Campus/system configuration (managed by the future Control Panel). */
 export interface CampusConfig {
   language: string;
   timezone: string;
+  /** AI providers/models catalog (keys live outside the state, as secrets). */
+  providers: AiProvider[];
+  /** Campus-wide default model, if set. */
+  defaultModel: ModelRef | null;
 }
 
 /** Default campus configuration. */
-export const DEFAULT_CONFIG: CampusConfig = { language: "en", timezone: "UTC" };
+export const DEFAULT_CONFIG: CampusConfig = {
+  language: "en",
+  timezone: "UTC",
+  providers: [],
+  defaultModel: null,
+};
 
 /** A building (= environment: Casa, Empresa A…) belongs to a campus. */
 export interface Building {
@@ -259,6 +281,9 @@ export interface ProjectCall {
 export type CampusEvent =
   | { type: "campus.loaded"; campus: Campus }
   | { type: "campus.config.updated"; config: CampusConfig }
+  | { type: "campus.provider.upserted"; provider: AiProvider }
+  | { type: "campus.provider.removed"; providerId: Id }
+  | { type: "campus.defaultModel.set"; model: ModelRef }
   | { type: "building.spawned"; building: Building; leaderRoom?: Room; leaderAgent?: AgentInstance }
   | { type: "building.context.updated"; buildingId: Id; context: string }
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }

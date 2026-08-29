@@ -6,6 +6,7 @@
 
 import type {
   AgentInstance,
+  AiProvider,
   Building,
   Campus,
   CampusEvent,
@@ -32,6 +33,9 @@ import { liveRuntimeForAgent } from "./host";
 export type CampusCommand =
   | { type: "campus.load"; campus: Campus }
   | { type: "campus.setConfig"; language?: string; timezone?: string }
+  | { type: "campus.addProvider"; provider: AiProvider }
+  | { type: "campus.removeProvider"; providerId: Id }
+  | { type: "campus.setDefaultModel"; providerId: Id; model: string }
   | {
       type: "building.spawn";
       building: Building;
@@ -93,6 +97,8 @@ export type RejectionReason =
   | "not_assigned"
   | "leader_room_not_deletable"
   | "room_not_empty"
+  | "provider_not_found"
+  | "model_not_in_provider"
   | "actor_not_found"
   | "rank_not_allowed"
   | "worker_not_found"
@@ -138,10 +144,32 @@ export function execute(state: State, command: CampusCommand): CommandResult {
     case "campus.setConfig": {
       if (!state.campus) return reject("campus_not_loaded");
       const config = {
+        ...state.config,
         language: command.language ?? state.config.language,
         timezone: command.timezone ?? state.config.timezone,
       };
       return accept({ type: "campus.config.updated", config });
+    }
+
+    case "campus.addProvider": {
+      if (!state.campus) return reject("campus_not_loaded");
+      return accept({ type: "campus.provider.upserted", provider: command.provider });
+    }
+
+    case "campus.removeProvider": {
+      if (!state.campus) return reject("campus_not_loaded");
+      if (!state.config.providers.some((p) => p.id === command.providerId)) {
+        return reject("provider_not_found");
+      }
+      return accept({ type: "campus.provider.removed", providerId: command.providerId });
+    }
+
+    case "campus.setDefaultModel": {
+      if (!state.campus) return reject("campus_not_loaded");
+      const provider = state.config.providers.find((p) => p.id === command.providerId);
+      if (!provider) return reject("provider_not_found");
+      if (!provider.models.includes(command.model)) return reject("model_not_in_provider");
+      return accept({ type: "campus.defaultModel.set", model: { providerId: command.providerId, model: command.model } });
     }
 
     case "building.spawn": {

@@ -26,6 +26,29 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, config: event.config };
     }
 
+    case "campus.provider.upserted": {
+      const { provider } = event;
+      const exists = state.config.providers.some((p) => p.id === provider.id);
+      const providers = exists
+        ? state.config.providers.map((p) => (p.id === provider.id ? provider : p))
+        : [...state.config.providers, provider];
+      return { ...state, config: { ...state.config, providers } };
+    }
+
+    case "campus.provider.removed": {
+      const { providerId } = event;
+      const providers = state.config.providers.filter((p) => p.id !== providerId);
+      const defaultModel =
+        state.config.defaultModel && state.config.defaultModel.providerId === providerId
+          ? null
+          : state.config.defaultModel;
+      return { ...state, config: { ...state.config, providers, defaultModel } };
+    }
+
+    case "campus.defaultModel.set": {
+      return { ...state, config: { ...state.config, defaultModel: event.model } };
+    }
+
     case "building.spawned": {
       const { building, leaderRoom, leaderAgent } = event;
       if (!state.campus || building.campusId !== state.campus.id) return state;

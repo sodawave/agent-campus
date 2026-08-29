@@ -61,6 +61,12 @@ export class CampusStore {
         ...(input.language !== undefined ? { language: input.language } : {}),
         ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
       }),
+    addProvider: (input: { id: Id; name: string; models: string[] }): CommandResult =>
+      this.dispatch({ type: "campus.addProvider", provider: { id: input.id, name: input.name, models: [...input.models] } }),
+    removeProvider: (input: { providerId: Id }): CommandResult =>
+      this.dispatch({ type: "campus.removeProvider", providerId: input.providerId }),
+    setDefaultModel: (input: { providerId: Id; model: string }): CommandResult =>
+      this.dispatch({ type: "campus.setDefaultModel", providerId: input.providerId, model: input.model }),
   };
 
   readonly building = {
