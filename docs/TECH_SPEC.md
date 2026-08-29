@@ -986,3 +986,15 @@ App de configuración del campus/servidor: **idioma**, **zona horaria del servid
 conexión** (auth de hosts/CLI/MCP — hoy diferida) y otros ajustes. Consumirá la capa de conexión
 (GraphQL para config/queries; MCP para tools). **No v0.**
 
+**Proveedores y modelos de IA para los agentes.** El Control Panel gestiona:
+
+- **Catálogo de proveedores** (OpenAI, Anthropic, local/Ollama…) con sus **credenciales/keys**
+  (secretos, junto al token/auth — nunca en el estado del campus).
+- **Modelos disponibles** por proveedor y **defaults** (por campus y/o por edificio/entorno).
+- El agente selecciona de ese catálogo vía su `harness` (`HarnessParams { model, temperature,
+  effort, maxTokens? }`, §5.1): el Control Panel define *qué existe y con qué credenciales*; el
+  agente/edificio elige *cuál usa*.
+
+Domain angle (cuando toque su capa): comando `agent.setHarness` + catálogo de modelos como estado
+de config; las keys quedan fuera del `CampusState` (secretos del servidor). **No v0.**
+
