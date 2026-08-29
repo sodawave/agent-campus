@@ -46,4 +46,20 @@ describe("GraphQL surface", () => {
     const m = await executeGraphql(link, `mutation { createProject(id: "p1", buildingId: "nope", name: "X") { ok reason } }`);
     expect((m.data as any).createProject).toEqual({ ok: false, reason: "building_not_found" });
   });
+
+  it("manages AI providers + default model", async () => {
+    const link = memLink();
+    const add = await executeGraphql(
+      link,
+      `mutation($m: [String!]!) { addProvider(id: "openai", name: "OpenAI", models: $m) { ok event } }`,
+      { m: ["gpt-x", "gpt-mini"] },
+    );
+    expect((add.data as any).addProvider.ok).toBe(true);
+    const setD = await executeGraphql(link, `mutation { setDefaultModel(providerId: "openai", model: "gpt-x") { ok } }`);
+    expect((setD.data as any).setDefaultModel.ok).toBe(true);
+    const q = await executeGraphql(link, `{ campus { config { providers { id models } defaultModel { providerId model } } } }`);
+    const cfg = (q.data as any).campus.config;
+    expect(cfg.providers).toEqual([{ id: "openai", models: ["gpt-x", "gpt-mini"] }]);
+    expect(cfg.defaultModel).toEqual({ providerId: "openai", model: "gpt-x" });
+  });
 });
