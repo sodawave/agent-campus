@@ -29,6 +29,15 @@ export interface ModelRef {
   model: string;
 }
 
+/** Per-agent LLM harness: chosen provider/model (from the catalog) + knobs. */
+export interface AgentHarness {
+  providerId: Id;
+  model: string;
+  temperature?: number;
+  effort?: number;
+  maxTokens?: number;
+}
+
 /** Campus/system configuration (managed by the future Control Panel). */
 export interface CampusConfig {
   language: string;
@@ -135,6 +144,8 @@ export interface AgentInstance {
   hostId?: Id | null;
   /** Execution plane: the live runtime feeding this agent, if alive. */
   runtimeId?: Id | null;
+  /** Chosen LLM harness (provider/model from the catalog + knobs). */
+  harness?: AgentHarness;
 }
 
 /** A machine/process joined to the campus that can run agent runtimes. */
@@ -296,6 +307,7 @@ export type CampusEvent =
   | { type: "project.unassigned"; agentId: Id; projectId: Id }
   | { type: "chat.message.posted"; message: ChatMessage }
   | { type: "agent.instantiated"; agent: AgentInstance }
+  | { type: "agent.harness.set"; agentId: Id; harness: AgentHarness }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }
   | { type: "worker.entered"; worker: AgentInstance }

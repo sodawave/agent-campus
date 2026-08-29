@@ -173,6 +173,15 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, agents: [...state.agents, agent] };
     }
 
+    case "agent.harness.set": {
+      const { agentId, harness } = event;
+      if (!state.agents.some((a) => a.id === agentId)) return state;
+      return {
+        ...state,
+        agents: state.agents.map((a) => (a.id === agentId ? { ...a, harness } : a)),
+      };
+    }
+
     case "agent.supervisor.assigned": {
       const { agentId, supervisorId } = event;
       if (!state.agents.some((a) => a.id === agentId)) return state;

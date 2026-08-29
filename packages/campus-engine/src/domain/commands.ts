@@ -5,6 +5,7 @@
  */
 
 import type {
+  AgentHarness,
   AgentInstance,
   AiProvider,
   Building,
@@ -55,6 +56,7 @@ export type CampusCommand =
   | { type: "project.unassign"; agentId: Id; projectId: Id }
   | { type: "chat.send"; message: ChatMessage }
   | { type: "agent.instantiate"; agent: AgentInstance }
+  | { type: "agent.setHarness"; agentId: Id; providerId: Id; model: string; temperature?: number; effort?: number; maxTokens?: number }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
   | { type: "worker.spawn"; actorId: Id; worker: AgentInstance }
@@ -298,6 +300,22 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (!roomOk) return reject("room_not_found_in_building");
       if (state.agents.some((a) => a.id === agent.id)) return reject("duplicate_id");
       return accept({ type: "agent.instantiated", agent });
+    }
+
+    case "agent.setHarness": {
+      const { agentId, providerId, model } = command;
+      if (!state.agents.some((a) => a.id === agentId)) return reject("agent_not_found");
+      const provider = state.config.providers.find((p) => p.id === providerId);
+      if (!provider) return reject("provider_not_found");
+      if (!provider.models.includes(model)) return reject("model_not_in_provider");
+      const harness: AgentHarness = {
+        providerId,
+        model,
+        ...(command.temperature !== undefined ? { temperature: command.temperature } : {}),
+        ...(command.effort !== undefined ? { effort: command.effort } : {}),
+        ...(command.maxTokens !== undefined ? { maxTokens: command.maxTokens } : {}),
+      };
+      return accept({ type: "agent.harness.set", agentId, harness });
     }
 
     case "agent.assignSupervisor": {

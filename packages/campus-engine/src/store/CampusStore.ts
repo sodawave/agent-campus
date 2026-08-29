@@ -138,6 +138,16 @@ export class CampusStore {
         agentId: input.agentId,
         supervisorId: input.supervisorId,
       }),
+    setHarness: (input: { agentId: Id; providerId: Id; model: string; temperature?: number; effort?: number; maxTokens?: number }): CommandResult =>
+      this.dispatch({
+        type: "agent.setHarness",
+        agentId: input.agentId,
+        providerId: input.providerId,
+        model: input.model,
+        ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+        ...(input.effort !== undefined ? { effort: input.effort } : {}),
+        ...(input.maxTokens !== undefined ? { maxTokens: input.maxTokens } : {}),
+      }),
     callToBuilding: (input: { id: Id; agentId: Id; toBuildingId: Id; toRoomId: Id }): CommandResult =>
       this.dispatch({
         type: "project.call",
