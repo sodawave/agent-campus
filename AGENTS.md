@@ -7,18 +7,19 @@ Documento canónico de diseño: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md).
 
 npm workspaces:
 
-- `packages/campus-engine` — dominio puro + `CampusStore` (TypeScript, sin render).
-- `apps/playground` — cliente web de referencia (Vite) que **solo proyecta** estado.
-- `apps/campus-godot` — cliente principal (Godot, futuro).
+- `packages/campus-engine` — **core** puro: dominio, reglas, `CampusStore`, `CampusCore`, contrato Command/Event (TypeScript, sin render).
+- `apps/server` — **core headless** (sin pantalla): corre el core y lo sirve por WebSocket (`:8787`).
+- `apps/viewer` — **pantalla mínima**: se conecta al core y proyecta el estado + envía Commands (`:5173`).
 
 Comandos (desde la raíz):
 
 ```bash
 npm install
-npm run dev         # playground en :5173
-npm run typecheck   # engine + playground
-npm test            # Vitest (dominio/store)
-npm run build       # engine (tsc) + playground (vite build)
+npm run server      # core headless en ws://localhost:8787 (sin pantalla)
+npm run viewer      # pantalla mínima en :5173 (consume el core)
+npm run typecheck   # engine + server + viewer
+npm test            # Vitest (engine + server)
+npm run build       # viewer (vite build)
 ```
 
 ## Arquitectura — invariantes (no negociables)
