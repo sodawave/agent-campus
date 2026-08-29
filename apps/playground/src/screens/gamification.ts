@@ -3,7 +3,7 @@ import type {
   CampusEvent,
   RoomDef,
 } from "@agent-campus/campus-engine";
-import { activeBuilding, building, store, ui } from "../app";
+import { activeBuilding, building, send, store, ui } from "../app";
 import { clear, colorFromString, h, initials } from "../util";
 
 const TILE = 24;
@@ -370,7 +370,7 @@ export function createGamification(): {
         disabled: !actor,
         onclick: () => {
           if (!actor) return;
-          store.worker.spawn({ actorId: actor.id, label: "Worker" });
+          send({ type: "worker.spawn", actorId: actor.id, label: "Worker" });
         },
       },
       ["Spawn worker"],
@@ -388,7 +388,7 @@ export function createGamification(): {
           if (!actor) return;
           const last = myWorkers[myWorkers.length - 1];
           if (last)
-            store.worker.despawn({ actorId: actor.id, workerId: last.id });
+            send({ type: "worker.despawn", actorId: actor.id, workerId: last.id });
         },
       },
       ["Remove worker"],
@@ -434,12 +434,10 @@ export function createGamification(): {
           const name = nameInput.value.trim() || "New Agent";
           const b = activeBuilding();
           if (!b) return;
-          const agent = store.agent.spawn({
-            projectId: b.id,
-            archetypeId: archSelect.value,
-            name,
+          send({
+            type: "agent.spawn",
+            request: { projectId: b.id, archetypeId: archSelect.value, name },
           });
-          store.agent.introduce(agent.id);
           nameInput.value = "";
         },
       },
@@ -481,7 +479,8 @@ export function createGamification(): {
         disabled: transferables.length === 0 || otherBuildings.length === 0,
         onclick: () => {
           if (!transferAgentSel.value || !destSel.value) return;
-          store.agent.callToBuilding({
+          send({
+            type: "agent.callToBuilding",
             agentId: transferAgentSel.value,
             toBuildingId: destSel.value,
             reason: "cross-building work",
@@ -500,7 +499,7 @@ export function createGamification(): {
           "button",
           {
             class: "btn",
-            onclick: () => store.agent.returnHome(a.id),
+            onclick: () => send({ type: "agent.returnHome", agentId: a.id }),
           },
           ["Return home"],
         ),
@@ -530,7 +529,7 @@ export function createGamification(): {
         ]),
         h(
           "button",
-          { class: "btn", onclick: () => store.host.leave(hh.id) },
+          { class: "btn", onclick: () => send({ type: "host.leave", hostId: hh.id }) },
           ["Leave"],
         ),
       ]),
@@ -544,7 +543,7 @@ export function createGamification(): {
       {
         class: "btn",
         onclick: () => {
-          store.host.join({ label: joinInput.value.trim() || "host" });
+          send({ type: "host.join", label: joinInput.value.trim() || "host" });
           joinInput.value = "";
         },
       },
@@ -570,7 +569,8 @@ export function createGamification(): {
         disabled: dormant.length === 0 || onlineHosts.length === 0,
         onclick: () => {
           if (!rtAgentSel.value || !rtHostSel.value) return;
-          store.host.spawnRuntime({
+          send({
+            type: "host.spawnRuntime",
             hostId: rtHostSel.value,
             agentId: rtAgentSel.value,
             workingDir: "/work/agent-campus",
@@ -589,7 +589,7 @@ export function createGamification(): {
         ]),
         h(
           "button",
-          { class: "btn danger", onclick: () => store.host.stopRuntime(r.id) },
+          { class: "btn danger", onclick: () => send({ type: "host.stopRuntime", runtimeId: r.id }) },
           ["Stop"],
         ),
       ]);

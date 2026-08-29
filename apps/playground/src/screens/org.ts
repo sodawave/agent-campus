@@ -4,7 +4,7 @@ import {
   type SpecKitArtifactKind,
   type SpecKitPhase,
 } from "@agent-campus/campus-engine";
-import { activeBuilding, store } from "../app";
+import { activeBuilding, send, store } from "../app";
 import { clear, colorFromString, h, initials } from "../util";
 
 const SPEC_PHASES: SpecKitPhase[] = [
@@ -148,7 +148,8 @@ export function createOrg(): { root: HTMLElement; render: () => void } {
             status.style.color = "var(--danger)";
             return;
           }
-          store.agent.order({
+          send({
+            type: "agent.order",
             toAgentId: to,
             fromActorId: from,
             fromKind: "agent",
@@ -195,7 +196,7 @@ function specKitPanel(buildingId: string): HTMLElement {
         "button",
         {
           class: "btn primary",
-          onclick: () => store.building.specKit.enable(buildingId),
+          onclick: () => send({ type: "speckit.enable", buildingId }),
         },
         ["Enable Spec Kit"],
       ),
@@ -229,7 +230,7 @@ function specKitPanel(buildingId: string): HTMLElement {
     {
       class: "btn",
       disabled: sk.phase === "converge",
-      onclick: () => store.building.specKit.advancePhase(buildingId),
+      onclick: () => send({ type: "speckit.advancePhase", buildingId }),
     },
     ["Advance phase"],
   );
@@ -265,7 +266,8 @@ function specKitPanel(buildingId: string): HTMLElement {
     {
       class: "btn",
       onclick: () => {
-        store.building.specKit.addArtifact({
+        send({
+          type: "speckit.addArtifact",
           buildingId,
           kind: kindSel.value as SpecKitArtifactKind,
           title: titleInput.value.trim() || "Untitled",

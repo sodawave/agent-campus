@@ -151,6 +151,41 @@ export class CampusCore {
             ? { ok: true, events }
             : { ok: false, reason: result.reason };
         }
+        case "host.leave": {
+          this.store.host.leave(command.hostId);
+          return { ok: true, events };
+        }
+        case "agent.introduce": {
+          this.store.agent.introduce(command.agentId);
+          return { ok: true, events };
+        }
+        case "agent.order": {
+          this.store.agent.order({
+            toAgentId: command.toAgentId,
+            fromActorId: command.fromActorId,
+            fromKind: command.fromKind,
+            instruction: command.instruction,
+          });
+          return { ok: true, events };
+        }
+        case "speckit.enable": {
+          this.store.building.specKit.enable(command.buildingId);
+          return { ok: true, events };
+        }
+        case "speckit.advancePhase": {
+          this.store.building.specKit.advancePhase(command.buildingId);
+          return { ok: true, events };
+        }
+        case "speckit.addArtifact": {
+          this.store.building.specKit.addArtifact({
+            buildingId: command.buildingId,
+            kind: command.kind,
+            title: command.title,
+            uri: command.uri,
+            slug: command.slug,
+          });
+          return { ok: true, events };
+        }
       }
     } catch (error) {
       return {

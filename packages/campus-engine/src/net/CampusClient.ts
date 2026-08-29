@@ -49,6 +49,16 @@ export class CampusClient {
     return this.projection.getState();
   }
 
+  /** The projection store (read model): consumers read via its helpers. */
+  read(): CampusStore {
+    return this.projection;
+  }
+
+  /** Notified whenever the projection changes (for UI re-render). */
+  subscribe(listener: (state: CampusState, event: CampusEvent | null) => void): () => void {
+    return this.projection.subscribe(listener);
+  }
+
   dispose(): void {
     this.unsubscribe();
   }
