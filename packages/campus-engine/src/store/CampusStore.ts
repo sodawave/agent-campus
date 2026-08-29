@@ -5,7 +5,7 @@
  */
 
 import { buildAgent, buildBuilding, buildCampus, buildRoom } from "../domain/builders";
-import { execute, type CommandResult } from "../domain/commands";
+import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
 import { EMPTY_STATE, type CampusEvent, type Id, type State } from "../domain/types";
 
@@ -36,7 +36,8 @@ export class CampusStore {
     for (const listener of this.#listeners) listener(this.#state);
   }
 
-  #dispatch(command: Parameters<typeof execute>[1]): CommandResult {
+  /** Apply a raw command: validate, and on accept reduce + append + notify. */
+  dispatch(command: CampusCommand): CommandResult {
     const result = execute(this.#state, command);
     if (!result.ok) return result;
     const next = reduce(this.#state, result.event);
@@ -51,12 +52,12 @@ export class CampusStore {
 
   readonly campus = {
     load: (input: { id: Id; name: string; buildingIds?: Id[] }): CommandResult =>
-      this.#dispatch({ type: "campus.load", campus: buildCampus(input) }),
+      this.dispatch({ type: "campus.load", campus: buildCampus(input) }),
   };
 
   readonly building = {
     spawn: (input: { id: Id; name: string }): CommandResult =>
-      this.#dispatch({
+      this.dispatch({
         type: "building.spawn",
         building: buildBuilding({
           id: input.id,
@@ -68,7 +69,7 @@ export class CampusStore {
 
   readonly room = {
     spawn: (input: { id: Id; buildingId: Id; key: string }): CommandResult =>
-      this.#dispatch({ type: "room.spawn", room: buildRoom(input) }),
+      this.dispatch({ type: "room.spawn", room: buildRoom(input) }),
   };
 
   readonly agent = {
@@ -78,6 +79,6 @@ export class CampusStore {
       buildingId: Id;
       roomId: Id;
     }): CommandResult =>
-      this.#dispatch({ type: "agent.instantiate", agent: buildAgent(input) }),
+      this.dispatch({ type: "agent.instantiate", agent: buildAgent(input) }),
   };
 }
