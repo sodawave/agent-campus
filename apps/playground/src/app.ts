@@ -1,8 +1,13 @@
 import {
   CampusStore,
+  CampusCore,
+  InMemoryCommsBus,
+  CampusServer,
+  CampusClient,
   sampleDataset,
   type AgentInstance,
   type BuildingLayout,
+  type CampusCommand,
   type Project,
 } from "@agent-campus/campus-engine";
 
@@ -19,7 +24,6 @@ export interface UiState {
   chats: Map<string, ChatMessage[]>;
 }
 
-export const store = new CampusStore();
 /** Shared building geometry for the map (all demo buildings reuse it). */
 export const building: BuildingLayout = sampleDataset.building;
 
@@ -30,6 +34,19 @@ export const ui: UiState = {
   chatAgentId: null,
   chats: new Map(),
 };
+
+/**
+ * The read model: the CLIENT's projection of the core (read-only).
+ * Assigned in {@link bootstrap}; screens read via this and NEVER mutate it —
+ * all mutations go through {@link send} as Commands to the core.
+ */
+export let store: CampusStore;
+let client: CampusClient;
+
+/** Send a Command to the core (fire-and-forget; projection updates + notifies). */
+export function send(command: CampusCommand): void {
+  void client.send(command);
+}
 
 type Cb = () => void;
 const listeners = new Set<Cb>();
@@ -43,17 +60,19 @@ export function notify(): void {
   for (const cb of listeners) cb();
 }
 
-// Re-render whenever the store changes.
-store.subscribe(() => notify());
-
 export function activeBuilding(): Project | undefined {
   const id = ui.activeBuildingId;
   return (id ? store.getBuilding(id) : undefined) ?? store.firstBuilding();
 }
 
-/** Load the demo campus and seed a small, believable multi-building org. */
+/**
+ * Load + seed the demo campus on the CORE, then expose the client projection.
+ * Seeding (setup) uses the core's store directly; runtime user interactions go
+ * through Commands (see {@link send}) — demonstrating the three planes.
+ */
 export function bootstrap(): void {
-  store.campus.load({
+  const seed = new CampusStore();
+  seed.campus.load({
     campus: sampleDataset.campus,
     project: sampleDataset.project,
     workspaces: sampleDataset.workspaces,
@@ -65,30 +84,27 @@ export function bootstrap(): void {
 
   const demoId = sampleDataset.project.id;
 
-  // Engineering department: head + a senior report.
-  const nadia = store.agent.spawn({
+  const nadia = seed.agent.spawn({
     projectId: demoId,
     archetypeId: "arch-dept-head",
     name: "Nadia Ortiz",
   });
-  store.room.assignHead("ws-dev", nadia.id);
+  seed.room.assignHead("ws-dev", nadia.id);
 
-  const ada = store.agent.spawn({
+  const ada = seed.agent.spawn({
     projectId: demoId,
     archetypeId: "arch-systems-eng",
     name: "Ada Rivera",
   });
 
-  // Marketing: an ic marketer (can spawn anonymous workers).
-  const mia = store.agent.spawn({
+  const mia = seed.agent.spawn({
     projectId: demoId,
     archetypeId: "arch-marketer",
     name: "Mia Chen",
   });
 
-  // Second building on the campus, with a matching Engineering office so a
-  // dev agent can be loaned there (ProjectCall) without being duplicated.
-  const beta = store.building.spawn({
+  // Second building with a matching Engineering office (loan target).
+  const beta = seed.building.spawn({
     name: "Beta Labs",
     context: {
       product: "Beta",
@@ -96,7 +112,7 @@ export function bootstrap(): void {
       brand: "Experimental, rápido",
     },
   });
-  store.room.spawn({
+  seed.room.spawn({
     buildingId: beta.id,
     key: "dev",
     name: "Engineering",
@@ -105,7 +121,7 @@ export function bootstrap(): void {
     role: "ops",
     context: { title: "Engineering", specialization: "Prototipos R&D" },
   });
-  store.room.spawn({
+  seed.room.spawn({
     buildingId: beta.id,
     key: "mkt",
     name: "Growth",
@@ -115,38 +131,35 @@ export function bootstrap(): void {
     context: { title: "Growth", specialization: "Lanzamientos beta" },
   });
 
-  // Settle introductions.
-  for (const a of store.namedAgents()) store.agent.introduce(a.id);
+  for (const a of seed.namedAgents()) seed.agent.introduce(a.id);
 
-  // Seed a couple of tasks so the ops screen is populated.
-  store.agent.addTask({
+  seed.agent.addTask({
     agentId: ada.id,
     title: "Wire CampusStore events",
     status: "running",
   });
-  store.agent.addTask({
+  seed.agent.addTask({
     agentId: ada.id,
     title: "A* pathing on collision layer",
     status: "queued",
   });
-  store.agent.order({
+  seed.agent.order({
     toAgentId: mia.id,
     fromActorId: nadia.id,
     fromKind: "agent",
     instruction: "Draft the launch announcement",
   });
 
-  // Spec-Driven Development on the demo building (Spec Kit).
-  store.building.specKit.enable(demoId);
-  store.building.specKit.advancePhase(demoId); // → specify
-  store.building.specKit.addArtifact({
+  seed.building.specKit.enable(demoId);
+  seed.building.specKit.advancePhase(demoId); // → specify
+  seed.building.specKit.addArtifact({
     buildingId: demoId,
     kind: "constitution",
     title: "Campus constitution",
     uri: "specs/constitution.md",
     authorAgentId: nadia.id,
   });
-  store.building.specKit.addArtifact({
+  seed.building.specKit.addArtifact({
     buildingId: demoId,
     kind: "spec",
     title: "Agent Campus MVP spec",
@@ -154,14 +167,21 @@ export function bootstrap(): void {
     authorAgentId: ada.id,
   });
 
-  // Execution plane: a host (like a CLI process on a machine) keeps Ada alive,
-  // fed by that machine with access to its working directory.
-  const laptop = store.host.join({ label: "laptop-ana" });
-  store.host.spawnRuntime({
+  const laptop = seed.host.join({ label: "laptop-ana" });
+  seed.host.spawnRuntime({
     hostId: laptop.id,
     agentId: ada.id,
     workingDir: "/home/ana/agent-campus",
   });
+
+  // --- Wrap the seeded core and expose the client projection ---
+  const core = new CampusCore(seed);
+  const bus = new InMemoryCommsBus();
+  const server = new CampusServer(core, bus);
+  client = new CampusClient(bus, (json) => server.submit(json));
+  client.replay(server.log()); // catch up to the seeded snapshot
+  client.subscribe(() => notify()); // re-render on projected changes
+  store = client.read();
 
   // Default selections.
   ui.activeBuildingId = demoId;

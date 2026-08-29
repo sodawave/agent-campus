@@ -24,6 +24,12 @@ const KNOWN_COMMANDS = new Set<CampusCommand["type"]>([
   "host.join",
   "host.spawnRuntime",
   "host.stopRuntime",
+  "host.leave",
+  "agent.introduce",
+  "agent.order",
+  "speckit.enable",
+  "speckit.advancePhase",
+  "speckit.addArtifact",
 ]);
 
 export class CampusServer {

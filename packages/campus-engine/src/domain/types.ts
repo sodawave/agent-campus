@@ -859,4 +859,24 @@ export type CampusCommand =
       token?: string;
     }
   | { type: "host.spawnRuntime"; hostId: Id; agentId: Id; workingDir?: string }
-  | { type: "host.stopRuntime"; runtimeId: Id };
+  | { type: "host.stopRuntime"; runtimeId: Id }
+  | { type: "host.leave"; hostId: Id }
+  // --- UI-facing commands (006): introduction, orders, Spec Kit ---
+  | { type: "agent.introduce"; agentId: Id }
+  | {
+      type: "agent.order";
+      toAgentId: Id;
+      fromActorId: Id;
+      fromKind: "human" | "agent";
+      instruction: string;
+    }
+  | { type: "speckit.enable"; buildingId: Id }
+  | { type: "speckit.advancePhase"; buildingId: Id }
+  | {
+      type: "speckit.addArtifact";
+      buildingId: Id;
+      kind: SpecKitArtifactKind;
+      title: string;
+      uri: string;
+      slug?: string;
+    };
