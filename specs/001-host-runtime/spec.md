@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-29
 
-**Status**: Specified
+**Status**: Converged
 
 **Input**: "El agente instanciado por CLI vive en una máquina (host) que lo alimenta con acceso a sus ficheros; envía sus acciones al core y cada cliente lo renderiza. Modelar hosts y runtimes en el core, con liveness en el agente."
 
