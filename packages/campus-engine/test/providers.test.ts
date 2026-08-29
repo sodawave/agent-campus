@@ -44,4 +44,25 @@ describe("AI providers/models config catalog", () => {
     const store = new CampusStore();
     expect(store.campus.addProvider({ id: "x", name: "X", models: [] })).toEqual({ ok: false, reason: "campus_not_loaded" });
   });
+
+  it("setProviderToken flags token presence (never stores the secret value)", () => {
+    const store = withCampus();
+    store.campus.addProvider({ id: "openai", name: "OpenAI", models: ["gpt-x"] });
+    // No token by default.
+    expect(store.state().config.providers[0]?.hasToken).toBeFalsy();
+    // Mark presence (the secret value lives outside the state, in the server store).
+    expect(store.campus.setProviderToken({ providerId: "openai", hasToken: true }).ok).toBe(true);
+    expect(store.state().config.providers[0]?.hasToken).toBe(true);
+    // Clearing the token flips the flag off.
+    expect(store.campus.setProviderToken({ providerId: "openai", hasToken: false }).ok).toBe(true);
+    expect(store.state().config.providers[0]?.hasToken).toBe(false);
+  });
+
+  it("setProviderToken rejects an unknown provider", () => {
+    const store = withCampus();
+    expect(store.campus.setProviderToken({ providerId: "nope", hasToken: true })).toEqual({
+      ok: false,
+      reason: "provider_not_found",
+    });
+  });
 });
