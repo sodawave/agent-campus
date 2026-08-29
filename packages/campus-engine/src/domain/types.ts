@@ -822,4 +822,41 @@ export type CampusCommand =
       label?: string;
       spriteKey?: string;
     }
-  | { type: "worker.despawn"; actorId: Id; workerId: Id };
+  | { type: "worker.despawn"; actorId: Id; workerId: Id }
+  // --- Command surface expansion (004): structure + mobility + host ---
+  | {
+      type: "building.spawn";
+      name: string;
+      buildingId?: string;
+      context?: BuildingContext;
+    }
+  | {
+      type: "room.spawn";
+      buildingId: Id;
+      key: string;
+      name: string;
+      roomId?: string;
+      themeColor?: string;
+      role?: WorkspaceRole;
+      context?: DepartmentContext;
+    }
+  | { type: "room.assignHead"; workspaceId: Id; headAgentId: Id }
+  | {
+      type: "agent.callToBuilding";
+      agentId: Id;
+      toBuildingId: Id;
+      reason?: string;
+    }
+  | { type: "agent.returnHome"; agentId: Id }
+  | {
+      type: "host.join";
+      label: string;
+      campusUrl?: string;
+      machineId?: string;
+      allowedRankKeys?: string[];
+      allowedSkillKeys?: string[];
+      version?: string;
+      token?: string;
+    }
+  | { type: "host.spawnRuntime"; hostId: Id; agentId: Id; workingDir?: string }
+  | { type: "host.stopRuntime"; runtimeId: Id };

@@ -83,6 +83,74 @@ export class CampusCore {
             ? { ok: true, events }
             : { ok: false, reason: result.reason };
         }
+        case "building.spawn": {
+          this.store.building.spawn({
+            name: command.name,
+            buildingId: command.buildingId,
+            context: command.context,
+          });
+          return { ok: true, events };
+        }
+        case "room.spawn": {
+          this.store.room.spawn({
+            buildingId: command.buildingId,
+            key: command.key,
+            name: command.name,
+            roomId: command.roomId,
+            themeColor: command.themeColor,
+            role: command.role,
+            context: command.context,
+          });
+          return { ok: true, events };
+        }
+        case "room.assignHead": {
+          this.store.room.assignHead(command.workspaceId, command.headAgentId);
+          return { ok: true, events };
+        }
+        case "agent.callToBuilding": {
+          const result = this.store.agent.callToBuilding({
+            agentId: command.agentId,
+            toBuildingId: command.toBuildingId,
+            reason: command.reason,
+          });
+          return result.ok
+            ? { ok: true, events }
+            : { ok: false, reason: result.reason };
+        }
+        case "agent.returnHome": {
+          const result = this.store.agent.returnHome(command.agentId);
+          return result.ok
+            ? { ok: true, events }
+            : { ok: false, reason: result.reason };
+        }
+        case "host.join": {
+          this.store.host.join({
+            label: command.label,
+            campusUrl: command.campusUrl,
+            machineId: command.machineId,
+            allowedRankKeys: command.allowedRankKeys,
+            allowedSkillKeys: command.allowedSkillKeys,
+            version: command.version,
+            token: command.token,
+          });
+          return { ok: true, events };
+        }
+        case "host.spawnRuntime": {
+          const result = this.store.host.spawnRuntime({
+            hostId: command.hostId,
+            agentId: command.agentId,
+            workingDir: command.workingDir,
+          });
+          return result.ok
+            ? { ok: true, events }
+            : { ok: false, reason: result.reason };
+        }
+        case "host.stopRuntime": {
+          const result = this.store.host.stopRuntime(command.runtimeId);
+          return result.ok
+            ? { ok: true, events }
+            : { ok: false, reason: result.reason };
+        }
       }
     } catch (error) {
       return {
