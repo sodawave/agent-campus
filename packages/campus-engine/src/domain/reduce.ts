@@ -106,6 +106,23 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "debate.opened": {
+      const { debate } = event;
+      if (state.debates.some((d) => d.id === debate.id)) return state;
+      return { ...state, debates: [...state.debates, debate] };
+    }
+
+    case "debate.closed": {
+      const { debateId } = event;
+      if (!state.debates.some((d) => d.id === debateId)) return state;
+      return {
+        ...state,
+        debates: state.debates.map((d) =>
+          d.id === debateId ? { ...d, status: "closed" } : d,
+        ),
+      };
+    }
+
     default:
       return state;
   }

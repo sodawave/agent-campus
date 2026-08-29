@@ -4,7 +4,7 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildRoom, buildTask, buildWorker } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildDebate, buildRoom, buildTask, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
 import { EMPTY_STATE, type CampusEvent, type Id, type State, type TaskVerdict } from "../domain/types";
@@ -130,5 +130,12 @@ export class CampusStore {
         evaluatorId: input.evaluatorId,
         verdict: input.verdict,
       }),
+  };
+
+  readonly debate = {
+    open: (input: { id: Id; participantIds: Id[]; topic: string }): CommandResult =>
+      this.dispatch({ type: "debate.open", debate: buildDebate(input) }),
+    close: (input: { debateId: Id }): CommandResult =>
+      this.dispatch({ type: "debate.close", debateId: input.debateId }),
   };
 }

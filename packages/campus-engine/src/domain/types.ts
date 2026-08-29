@@ -78,6 +78,14 @@ export interface Task {
   verdict?: TaskVerdict;
 }
 
+/** A debate between same-rank peers (Constitución: debate solo mismo rango). */
+export interface DebateSession {
+  id: Id;
+  participantIds: Id[];
+  topic: string;
+  status: "open" | "closed";
+}
+
 /**
  * Facts emitted by the core, consumed by any client (JSON-serializable,
  * language-neutral). Named `entity.pastTense`.
@@ -94,7 +102,9 @@ export type CampusEvent =
   | { type: "task.created"; task: Task }
   | { type: "task.started"; taskId: Id }
   | { type: "task.submitted"; taskId: Id }
-  | { type: "task.evaluated"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict };
+  | { type: "task.evaluated"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict }
+  | { type: "debate.opened"; debate: DebateSession }
+  | { type: "debate.closed"; debateId: Id };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -105,6 +115,7 @@ export interface State {
   /** Anonymous workers currently in the campus (ephemeral). */
   workers: AgentInstance[];
   tasks: Task[];
+  debates: DebateSession[];
 }
 
 /** Canonical empty projection. */
@@ -115,4 +126,5 @@ export const EMPTY_STATE: State = {
   agents: [],
   workers: [],
   tasks: [],
+  debates: [],
 };

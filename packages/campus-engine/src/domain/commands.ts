@@ -9,6 +9,7 @@ import type {
   Building,
   Campus,
   CampusEvent,
+  DebateSession,
   Id,
   Room,
   State,
@@ -16,6 +17,7 @@ import type {
   TaskVerdict,
 } from "./types";
 import { WORKER_SPAWNER_RANK_KEY } from "./types";
+import { canDebate } from "./org";
 
 /** Requests from a client/host to the core (validable, rejectable). */
 export type CampusCommand =
@@ -30,7 +32,9 @@ export type CampusCommand =
   | { type: "task.assign"; task: Task }
   | { type: "task.start"; taskId: Id }
   | { type: "task.submit"; taskId: Id }
-  | { type: "task.evaluate"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict };
+  | { type: "task.evaluate"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict }
+  | { type: "debate.open"; debate: DebateSession }
+  | { type: "debate.close"; debateId: Id };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -52,7 +56,12 @@ export type RejectionReason =
   | "task_not_found"
   | "invalid_transition"
   | "evaluator_not_found"
-  | "not_supervisor";
+  | "not_supervisor"
+  | "need_two_participants"
+  | "participant_not_found"
+  | "not_same_rank"
+  | "debate_not_found"
+  | "already_closed";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -191,6 +200,31 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         return reject("not_supervisor");
       }
       return accept({ type: "task.evaluated", taskId, evaluatorId, verdict });
+    }
+
+    case "debate.open": {
+      const { debate } = command;
+      if (debate.participantIds.length < 2) return reject("need_two_participants");
+      if (state.debates.some((d) => d.id === debate.id)) return reject("duplicate_id");
+      const participants: AgentInstance[] = [];
+      for (const id of debate.participantIds) {
+        const agent = state.agents.find((a) => a.id === id);
+        if (!agent) return reject("participant_not_found");
+        participants.push(agent);
+      }
+      // Debate requires all participants to share the same rank.
+      const [first, ...rest] = participants;
+      if (first && rest.some((p) => !canDebate(first, p))) {
+        return reject("not_same_rank");
+      }
+      return accept({ type: "debate.opened", debate: { ...debate, status: "open" } });
+    }
+
+    case "debate.close": {
+      const debate = state.debates.find((d) => d.id === command.debateId);
+      if (!debate) return reject("debate_not_found");
+      if (debate.status === "closed") return reject("already_closed");
+      return accept({ type: "debate.closed", debateId: debate.id });
     }
   }
 }
