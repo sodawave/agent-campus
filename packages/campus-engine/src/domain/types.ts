@@ -23,12 +23,12 @@ export interface Building {
   name: string;
   /** "Who we are" / environment norms (context for agents). */
   context?: string;
-  /** The environment lead (Boss). Defaults to the auto-created boss agent. */
-  campusLeadAgentId?: Id | null;
+  /** The environment leader. Defaults to the auto-created leader agent. */
+  leaderAgentId?: Id | null;
 }
 
-/** Room role/kind. The boss office is non-deletable. */
-export type RoomRole = "boss" | "dept" | "utility" | "hallway";
+/** Room role/kind. The leader office is non-deletable. */
+export type RoomRole = "leader" | "dept" | "utility" | "hallway";
 
 /** A room (= workspace/office) belongs to a building. */
 export interface Room {
@@ -37,17 +37,17 @@ export interface Room {
   key: string;
   /** Department head (an agent in this room). Assigned in layer 6. */
   headAgentId?: Id;
-  /** Room role, e.g. "boss" (the boss office is non-deletable). */
+  /** Room role, e.g. "leader" (the leader office is non-deletable). */
   role?: RoomRole;
   /** Department norms/specialization (feeds the agent's effective context). */
   context?: string;
 }
 
-/** Rank key of the auto-created boss agent that heads a building (environment). */
-export const BOSS_RANK_KEY = "boss";
+/** Rank key of the auto-created leader agent that heads a building (environment). */
+export const LEADER_RANK_KEY = "leader";
 
-/** Role marking the boss office room (created with the building; non-deletable). */
-export const BOSS_ROOM_ROLE = "boss";
+/** Role marking the leader office room (created with the building; non-deletable). */
+export const LEADER_ROOM_ROLE = "leader";
 
 /**
  * A named agent instance, represented in a room of a building.
@@ -218,7 +218,7 @@ export interface ProjectCall {
  */
 export type CampusEvent =
   | { type: "campus.loaded"; campus: Campus }
-  | { type: "building.spawned"; building: Building; bossRoom?: Room; bossAgent?: AgentInstance }
+  | { type: "building.spawned"; building: Building; leaderRoom?: Room; leaderAgent?: AgentInstance }
   | { type: "building.context.updated"; buildingId: Id; context: string }
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
   | { type: "room.spawned"; room: Room }

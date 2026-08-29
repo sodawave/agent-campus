@@ -20,7 +20,7 @@ import type {
   Task,
   TaskVerdict,
 } from "./types";
-import { WORKER_SPAWNER_RANK_KEY, BOSS_RANK_KEY, BOSS_ROOM_ROLE } from "./types";
+import { WORKER_SPAWNER_RANK_KEY, LEADER_RANK_KEY, LEADER_ROOM_ROLE } from "./types";
 import { canDebate } from "./org";
 import { nextSpecKitPhase } from "./speckit";
 import { liveRuntimeForAgent } from "./host";
@@ -31,10 +31,10 @@ export type CampusCommand =
   | {
       type: "building.spawn";
       building: Building;
-      bossRoomId?: Id;
-      bossRoomKey?: string;
-      bossAgentId?: Id;
-      bossName?: string;
+      leaderRoomId?: Id;
+      leaderRoomKey?: string;
+      leaderAgentId?: Id;
+      leaderName?: string;
     }
   | { type: "building.updateContext"; buildingId: Id; context: string }
   | { type: "building.assignLead"; buildingId: Id; agentId: Id }
@@ -126,29 +126,29 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (state.buildings.some((b) => b.id === building.id)) {
         return reject("duplicate_id");
       }
-      // Composite: every building (environment) gets a Boss office + a boss agent,
-      // and the boss agent becomes the environment lead.
-      const bossRoomId = command.bossRoomId ?? `${building.id}-boss`;
-      const bossAgentId = command.bossAgentId ?? `${building.id}-boss-agent`;
-      const bossRoom: Room = {
-        id: bossRoomId,
+      // Composite: every building (environment) gets a Leader office + a leader
+      // agent, and the leader agent becomes the environment lead.
+      const leaderRoomId = command.leaderRoomId ?? `${building.id}-leader`;
+      const leaderAgentId = command.leaderAgentId ?? `${building.id}-leader-agent`;
+      const leaderRoom: Room = {
+        id: leaderRoomId,
         buildingId: building.id,
-        key: command.bossRoomKey ?? "boss",
-        role: BOSS_ROOM_ROLE,
+        key: command.leaderRoomKey ?? "leader",
+        role: LEADER_ROOM_ROLE,
       };
-      const bossAgent: AgentInstance = {
-        id: bossAgentId,
-        name: command.bossName ?? "Boss",
+      const leaderAgent: AgentInstance = {
+        id: leaderAgentId,
+        name: command.leaderName ?? "Leader",
         kind: "named",
         buildingId: building.id,
-        roomId: bossRoomId,
-        rankKey: BOSS_RANK_KEY,
+        roomId: leaderRoomId,
+        rankKey: LEADER_RANK_KEY,
       };
       return accept({
         type: "building.spawned",
-        building: { ...building, campusLeadAgentId: bossAgentId },
-        bossRoom,
-        bossAgent,
+        building: { ...building, leaderAgentId },
+        leaderRoom,
+        leaderAgent,
       });
     }
 
