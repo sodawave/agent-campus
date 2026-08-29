@@ -12,11 +12,14 @@ signal changed
 
 var has_campus := false
 var campus_name := ""
-var buildings: Array = []  # [{ id, name }]
-var rooms: Array = []      # [{ id, buildingId, key, role, headAgentId }]
-var agents: Array = []     # [{ id, name, buildingId, roomId, rankKey, skillKey }]
-var workers: Array = []    # [{ id, name, buildingId, roomId }] (anonymous, ephemeral)
-var runtimes: Array = []   # [{ id, hostId, agentId, status }] (execution plane -> liveness)
+var buildings: Array = []    # [{ id, name, leaderAgentId }]
+var rooms: Array = []        # [{ id, buildingId, key, role, headAgentId }]
+var agents: Array = []       # [{ id, name, buildingId, roomId, rankKey, skillKey }]
+var workers: Array = []      # [{ id, name, buildingId, roomId }] (anonymous, ephemeral)
+var runtimes: Array = []     # [{ id, hostId, agentId, status }] (execution plane -> liveness)
+var projects: Array = []     # [{ id, buildingId, name, status }]
+var assignments: Array = []  # [{ agentId, projectId }]
+var tasks: Array = []        # [{ id, title, assigneeId, status }]
 
 var _ws := WebSocketPeer.new()
 var _last_state := WebSocketPeer.STATE_CLOSED
@@ -63,7 +66,11 @@ func _reduce(ev) -> void:
 			has_campus = true
 		"building.spawned":
 			var b = ev.get("building", {})
-			_upsert(buildings, { "id": String(b.get("id", "")), "name": String(b.get("name", "")) })
+			_upsert(buildings, {
+				"id": String(b.get("id", "")),
+				"name": String(b.get("name", "")),
+				"leaderAgentId": String(b.get("leaderAgentId", "")),
+			})
 			var lr = ev.get("leaderRoom", null)
 			if lr != null:
 				_upsert(rooms, _room(lr))
@@ -98,8 +105,66 @@ func _reduce(ev) -> void:
 			for i in runtimes.size():
 				if String(runtimes[i].get("hostId", "")) == hid:
 					runtimes[i]["status"] = "stopped"
+		"project.created":
+			var p = ev.get("project", {})
+			var pid := String(p.get("id", ""))
+			var bid := String(p.get("buildingId", ""))
+			_upsert(projects, {
+				"id": pid,
+				"buildingId": bid,
+				"name": String(p.get("name", "")),
+				"status": String(p.get("status", "active")),
+			})
+			# Mirror the core rule (capa 28): the building leader is auto-assigned to
+			# a new project. This assignment is derived in the core reducer, not a
+			# separate event, so the client replicates it to stay faithful.
+			var lid := _leader_of(bid)
+			if lid != "":
+				_add_assignment(lid, pid)
+		"project.archived":
+			for i in projects.size():
+				if String(projects[i].get("id", "")) == String(ev.get("projectId", "")):
+					projects[i]["status"] = "archived"
+		"project.assigned":
+			_add_assignment(String(ev.get("agentId", "")), String(ev.get("projectId", "")))
+		"project.unassigned":
+			_remove_assignment(String(ev.get("agentId", "")), String(ev.get("projectId", "")))
+		"task.created":
+			var t = ev.get("task", {})
+			_upsert(tasks, {
+				"id": String(t.get("id", "")),
+				"title": String(t.get("title", "")),
+				"assigneeId": String(t.get("assigneeId", "")),
+				"status": String(t.get("status", "queued")),
+			})
+		"task.started":
+			_set_task_status(String(ev.get("taskId", "")), "running")
+		"task.submitted":
+			_set_task_status(String(ev.get("taskId", "")), "under_review")
+		"task.evaluated":
+			_set_task_status(String(ev.get("taskId", "")), String(ev.get("verdict", "")))
 		_:
 			pass
+
+## Active project names assigned to an agent.
+func projects_of_agent(agent_id: String) -> Array:
+	var names: Array = []
+	for x in assignments:
+		if String(x.get("agentId", "")) != agent_id:
+			continue
+		for p in projects:
+			if String(p.get("id", "")) == String(x.get("projectId", "")) and String(p.get("status", "")) == "active":
+				names.append(String(p.get("name", "")))
+	return names
+
+## Tasks whose assignee lives in a given building.
+func tasks_of_building(building_id: String) -> Array:
+	var out: Array = []
+	for t in tasks:
+		var a := _agent_by_id(String(t.get("assigneeId", "")))
+		if not a.is_empty() and String(a.get("buildingId", "")) == building_id:
+			out.append(t)
+	return out
 
 ## Execution plane: an agent is "live" while it has a running runtime.
 func is_live(agent_id: String) -> bool:
@@ -139,6 +204,38 @@ func _set_runtime_status(rid: String, status: String) -> void:
 	for i in runtimes.size():
 		if String(runtimes[i].get("id", "")) == rid:
 			runtimes[i]["status"] = status
+			return
+
+func _set_task_status(tid: String, status: String) -> void:
+	for i in tasks.size():
+		if String(tasks[i].get("id", "")) == tid:
+			tasks[i]["status"] = status
+			return
+
+func _agent_by_id(aid: String) -> Dictionary:
+	for a in agents:
+		if String(a.get("id", "")) == aid:
+			return a
+	return {}
+
+func _leader_of(building_id: String) -> String:
+	for b in buildings:
+		if String(b.get("id", "")) == building_id:
+			return String(b.get("leaderAgentId", ""))
+	return ""
+
+func _add_assignment(agent_id: String, project_id: String) -> void:
+	if agent_id == "" or project_id == "":
+		return
+	for x in assignments:
+		if String(x.get("agentId", "")) == agent_id and String(x.get("projectId", "")) == project_id:
+			return
+	assignments.append({ "agentId": agent_id, "projectId": project_id })
+
+func _remove_assignment(agent_id: String, project_id: String) -> void:
+	for i in assignments.size():
+		if String(assignments[i].get("agentId", "")) == agent_id and String(assignments[i].get("projectId", "")) == project_id:
+			assignments.remove_at(i)
 			return
 
 func _remove(arr: Array, id: String) -> void:
