@@ -155,6 +155,17 @@ function drawRoundedToken(
     roundRect(ctx, x - 3, y - 3, size + 6, size + 6, 8);
     ctx.stroke();
   }
+
+  // alive indicator: agent bound to a runtime on a host
+  if (agent.runtimeId != null) {
+    ctx.fillStyle = "#2ecc71";
+    ctx.strokeStyle = "#0a0d12";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x + size - 2, y + 2, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -511,6 +522,93 @@ export function createGamification(): {
         : h("p", { class: "hint" }, ["No agents on loan."]),
     ]);
 
+    // Hosts & runtimes (execution plane)
+    const hostRows = store.hosts().map((hh) =>
+      h("div", { class: "row", style: "margin-top:6px" }, [
+        h("span", { class: hh.status === "online" ? "chip worker" : "chip" }, [
+          `${hh.label} · ${hh.status} · ${store.runtimesOf(hh.id).length} rt`,
+        ]),
+        h(
+          "button",
+          { class: "btn", onclick: () => store.host.leave(hh.id) },
+          ["Leave"],
+        ),
+      ]),
+    );
+
+    const joinInput = h2("input");
+    joinInput.type = "text";
+    joinInput.placeholder = "Host label (e.g. laptop-ana)";
+    const joinBtn = h(
+      "button",
+      {
+        class: "btn",
+        onclick: () => {
+          store.host.join({ label: joinInput.value.trim() || "host" });
+          joinInput.value = "";
+        },
+      },
+      ["Join host"],
+    );
+
+    const dormant = store.namedAgents().filter((a) => a.runtimeId == null);
+    const onlineHosts = store.hosts().filter((hh) => hh.status === "online");
+    const rtAgentSel = h(
+      "select",
+      {},
+      dormant.map((a) => h("option", { value: a.id }, [a.name])),
+    );
+    const rtHostSel = h(
+      "select",
+      {},
+      onlineHosts.map((hh) => h("option", { value: hh.id }, [hh.label])),
+    );
+    const startRtBtn = h(
+      "button",
+      {
+        class: "btn primary",
+        disabled: dormant.length === 0 || onlineHosts.length === 0,
+        onclick: () => {
+          if (!rtAgentSel.value || !rtHostSel.value) return;
+          store.host.spawnRuntime({
+            hostId: rtHostSel.value,
+            agentId: rtAgentSel.value,
+            workingDir: "/work/agent-campus",
+          });
+        },
+      },
+      ["Start runtime"],
+    );
+
+    const runtimeRows = store.runtimes().map((r) => {
+      const ag = store.getAgent(r.agentId);
+      const hh = store.getHost(r.hostId);
+      return h("div", { class: "row", style: "margin-top:6px" }, [
+        h("span", { class: "chip worker" }, [
+          `${ag?.name ?? "?"} @ ${hh?.label ?? "?"}`,
+        ]),
+        h(
+          "button",
+          { class: "btn danger", onclick: () => store.host.stopRuntime(r.id) },
+          ["Stop"],
+        ),
+      ]);
+    });
+
+    const hostsPanel = h("div", { class: "panel" }, [
+      h("h2", {}, ["Hosts & runtimes"]),
+      hostRows.length
+        ? h("div", {}, hostRows)
+        : h("p", { class: "hint" }, ["No hosts joined."]),
+      h("div", { class: "row", style: "margin-top:8px" }, [joinInput, joinBtn]),
+      h("label", { class: "field" }, ["Start runtime (dormant agent → host)"]),
+      h("div", { class: "row" }, [rtAgentSel, rtHostSel, startRtBtn]),
+      h("p", { class: "hint", style: "margin-top:8px" }, [
+        `Live agents: ${store.liveAgents().length}`,
+      ]),
+      ...runtimeRows,
+    ]);
+
     // Event log
     const log = h(
       "div",
@@ -526,7 +624,7 @@ export function createGamification(): {
       log,
     ]);
 
-    sidebar.append(controls, transfer, hire, logPanel);
+    sidebar.append(controls, transfer, hostsPanel, hire, logPanel);
   };
 
   render();
@@ -565,6 +663,14 @@ function summarize(ev: CampusEvent): string {
     case "agent.building.entered":
       return `${short(ev.agentId)} → ${short(ev.projectId)}`;
     case "agent.returned_home":
+      return short(ev.agentId);
+    case "host.joined":
+      return ev.host.label;
+    case "host.left":
+      return short(ev.hostId);
+    case "runtime.started":
+      return `${short(ev.runtime.agentId)} @ ${short(ev.runtime.hostId)}`;
+    case "runtime.stopped":
       return short(ev.agentId);
     default:
       return "";

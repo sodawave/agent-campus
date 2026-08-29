@@ -154,6 +154,15 @@ export function bootstrap(): void {
     authorAgentId: ada.id,
   });
 
+  // Execution plane: a host (like a CLI process on a machine) keeps Ada alive,
+  // fed by that machine with access to its working directory.
+  const laptop = store.host.join({ label: "laptop-ana" });
+  store.host.spawnRuntime({
+    hostId: laptop.id,
+    agentId: ada.id,
+    workingDir: "/home/ana/agent-campus",
+  });
+
   // Default selections.
   ui.activeBuildingId = demoId;
   ui.actorId = mia.id; // ic marketer → can spawn workers
