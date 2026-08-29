@@ -39,6 +39,7 @@ export type CampusCommand =
   | { type: "building.updateContext"; buildingId: Id; context: string }
   | { type: "building.assignLead"; buildingId: Id; agentId: Id }
   | { type: "room.spawn"; room: Room }
+  | { type: "room.updateContext"; roomId: Id; context: string }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
@@ -173,6 +174,12 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       }
       if (state.rooms.some((r) => r.id === room.id)) return reject("duplicate_id");
       return accept({ type: "room.spawned", room });
+    }
+
+    case "room.updateContext": {
+      const { roomId, context } = command;
+      if (!state.rooms.some((r) => r.id === roomId)) return reject("room_not_found");
+      return accept({ type: "room.context.updated", roomId, context });
     }
 
     case "agent.instantiate": {

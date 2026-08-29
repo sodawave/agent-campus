@@ -27,6 +27,9 @@ export interface Building {
   campusLeadAgentId?: Id | null;
 }
 
+/** Room role/kind. The boss office is non-deletable. */
+export type RoomRole = "boss" | "dept" | "utility" | "hallway";
+
 /** A room (= workspace/office) belongs to a building. */
 export interface Room {
   id: Id;
@@ -35,7 +38,9 @@ export interface Room {
   /** Department head (an agent in this room). Assigned in layer 6. */
   headAgentId?: Id;
   /** Room role, e.g. "boss" (the boss office is non-deletable). */
-  role?: string;
+  role?: RoomRole;
+  /** Department norms/specialization (feeds the agent's effective context). */
+  context?: string;
 }
 
 /** Rank key of the auto-created boss agent that heads a building (environment). */
@@ -217,6 +222,7 @@ export type CampusEvent =
   | { type: "building.context.updated"; buildingId: Id; context: string }
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
   | { type: "room.spawned"; room: Room }
+  | { type: "room.context.updated"; roomId: Id; context: string }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }

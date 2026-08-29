@@ -9,7 +9,7 @@ import { execute, type CampusCommand, type CommandResult } from "../domain/comma
 import { reduce } from "../domain/reduce";
 import { recallForAgent } from "../domain/memory";
 import { documentsForSkill } from "../domain/library";
-import { EMPTY_STATE, type CampusEvent, type DocKind, type Id, type LibraryDocument, type MemoryRecord, type MemoryScope, type State, type TaskVerdict } from "../domain/types";
+import { EMPTY_STATE, type CampusEvent, type DocKind, type Id, type LibraryDocument, type MemoryRecord, type MemoryScope, type RoomRole, type State, type TaskVerdict } from "../domain/types";
 
 type Listener = (state: State) => void;
 
@@ -77,10 +77,12 @@ export class CampusStore {
   };
 
   readonly room = {
-    spawn: (input: { id: Id; buildingId: Id; key: string }): CommandResult =>
+    spawn: (input: { id: Id; buildingId: Id; key: string; role?: RoomRole; context?: string }): CommandResult =>
       this.dispatch({ type: "room.spawn", room: buildRoom(input) }),
     assignHead: (input: { roomId: Id; agentId: Id }): CommandResult =>
       this.dispatch({ type: "room.assignHead", roomId: input.roomId, agentId: input.agentId }),
+    updateContext: (input: { roomId: Id; context: string }): CommandResult =>
+      this.dispatch({ type: "room.updateContext", roomId: input.roomId, context: input.context }),
   };
 
   /** Spec Kit (SDD) per building. */

@@ -66,6 +66,15 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, rooms: [...state.rooms, room] };
     }
 
+    case "room.context.updated": {
+      const { roomId, context } = event;
+      if (!state.rooms.some((r) => r.id === roomId)) return state;
+      return {
+        ...state,
+        rooms: state.rooms.map((r) => (r.id === roomId ? { ...r, context } : r)),
+      };
+    }
+
     case "agent.instantiated": {
       const { agent } = event;
       if (!state.buildings.some((b) => b.id === agent.buildingId)) return state;
