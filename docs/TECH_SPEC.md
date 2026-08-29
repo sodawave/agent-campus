@@ -154,15 +154,62 @@ No vendemos Buzz entero en v0; reutilizamos el **patrón de ops** y dejamos el r
 
 ## 2. Ontología (confirmada)
 
+> **Revisión conceptual (2026-08-29): `Building` = `Entorno`, no proyecto.** Un building es un
+> **entorno** (p. ej. *Casa*, *Empresa A*, *Empresa B*). El **proyecto** deja de ser el building:
+> ahora **vive dentro** del building como un **inventario/archivador de proyectos** en la **room
+> del jefe (Boss)**. Ver §2.0. Las menciones antiguas de "Project (= Building)" quedan
+> **superadas** y se reconcilian por capas.
+
 ```
 Campus
   ├── Library + MemPalace palace
-  └── Project (= Building)
+  └── Building (= Entorno: Casa, Empresa A, Empresa B…)
         ├── context, ranks
-        ├── memoryWingId          memoria compartida del proyecto
-        ├── specKit               Spec-Driven Development
-        └── Workspace → AgentInstance
+        ├── memoryWingId              memoria compartida del entorno
+        ├── specKit                   Spec-Driven Development
+        ├── Room (mín.: Boss office) → AgentInstance
+        └── Project[]                 inventario de proyectos (archivador en la room del Boss)
+                                      ↕ assignment: AgentInstance ↔ Project
 ```
+
+### 2.0 Concepto: Building = Entorno; el Proyecto vive dentro
+
+- **Building = Entorno.** Un contenedor con identidad propia (Casa, Empresa A, Empresa B…). No es
+  un proyecto.
+- **Room mínima: Boss office.** Todo building tiene, como mínimo, la **oficina del jefe (Boss)**.
+- **Inventario de proyectos.** El building tiene un **contenedor** (tipo *inventario de juego* /
+  archivador) donde **viven los proyectos**. Conceptualmente ese archivador está en la **room del
+  Boss**.
+- **Project (nueva sub-entidad).** El proyecto pasa a ser una entidad **dentro** del building
+  (`Project { id, buildingId, name, … }`), guardada en el inventario. Ya **no** equivale al
+  building.
+- **Assignment agente ↔ proyecto.** Un agente puede ser **asignado** a un proyecto; al asignarlo,
+  el proyecto **aparece en el agente** (se refleja en su representación). Cardinalidad asumida:
+  **N:N** (un proyecto puede tener varios agentes; un agente puede estar en varios proyectos) —
+  [PENDIENTE confirmar si se restringe].
+
+```mermaid
+flowchart TB
+  Campus --> Building["Building = Entorno (Casa / Empresa A…)"]
+  Building --> Boss["Room: Boss office (mínima)"]
+  Building --> RoomsN["Room[] (departamentos)"]
+  Building --> Inv["Inventario de proyectos (archivador en la room del Boss)"]
+  Inv --> Projects["Project[]"]
+  RoomsN --> Agents["AgentInstance[]"]
+  Boss --> Agents
+  Agents -->|assignment| Projects
+```
+
+**Implicaciones (se reconcilian en sus capas, no ahora):**
+
+- `ProjectCall` deja de ser "préstamo entre proyectos/edificios" y pasa a ser **préstamo entre
+  entornos (buildings)**; el "proyecto" ya no es la unidad de préstamo (revisar en su capa).
+- La **memoria de proyecto** (`memory` scope `project`, `ownerId = buildingId`) hoy es realmente
+  **memoria de entorno**; la memoria por-proyecto (si se quiere) será scope aparte cuando exista
+  la entidad `Project`.
+- Capas de dominio nuevas a planificar: **`Project` (entidad + inventario del building)** y
+  **`assignment` (agente ↔ proyecto)**. La capa de building en curso se reenfoca a "entorno"
+  (context + Boss office + lead).
 
 
 
@@ -172,7 +219,7 @@ Campus
 | Capa             | Dónde                       | Qué aporta                               |
 | ---------------- | --------------------------- | ---------------------------------------- |
 | Oficio genérico  | `skill`                     | Craft; también **llave** a la biblioteca |
-| Contexto general | `Project.context`           | Quiénes somos                            |
+| Contexto general | `Building.context` (entorno) | Quiénes somos                           |
 | Especialización  | home `Workspace.context`    | Estilo/normas del dpto                   |
 | Knobs LLM        | `harness`                   | model / temp / effort                    |
 | Corpus           | `Library` + classifications | RAG por oficio                           |
@@ -489,11 +536,22 @@ interface AgentArchetype {
   defaultHarness: HarnessParams;
 }
 
-interface Project {
+// NOTA (revisión §2.0): este interfaz describe el ENTORNO, que ahora se llama Building.
+// El "Project" pasa a ser una sub-entidad dentro del building (inventario en la room del Boss),
+// con su propia interfaz (se define en su capa). Se reconcilia el naming por capas.
+interface Building {            // antes "Project (= Building)"; ahora Building = Entorno
   campusId: Id;
-  context: BuildingContext;
+  context: BuildingContext;     // "quiénes somos" / normas del entorno
   ranks: Rank[];
-  campusLeadAgentId?: Id;
+  campusLeadAgentId?: Id;       // jefe del entorno (Boss)
+}
+
+// Nueva sub-entidad: vive en el inventario del building (room del Boss).
+interface Project {
+  id: Id;
+  buildingId: Id;               // entorno al que pertenece
+  name: string;
+  // assignment N:N con AgentInstance (el proyecto aparece en el agente asignado)
 }
 
 interface Workspace {
