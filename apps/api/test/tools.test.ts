@@ -37,11 +37,11 @@ describe("MCP tools over the campus core", () => {
     const data = JSON.parse(text);
     expect(data.campus).toBe("Demo Co");
     expect(data.buildings).toContain("Alpha");
-    // building.spawn is composite: a boss agent is auto-created too.
+    // building.spawn is composite: a leader agent is auto-created too.
     const ids = data.agents.map((a: { id: string }) => a.id);
     expect(ids).toContain("sup");
     expect(ids).toContain("ic1");
-    expect(ids).toContain("b1-boss-agent");
+    expect(ids).toContain("b1-leader-agent");
   });
 
   it("agent_instantiate adds an agent (ok event)", async () => {

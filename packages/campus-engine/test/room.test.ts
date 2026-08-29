@@ -4,7 +4,7 @@ import { CampusStore, EMPTY_STATE, buildCampus, buildBuilding, reduceAll } from 
 function seeded() {
   const store = new CampusStore();
   store.campus.load({ id: "c1", name: "Campus" });
-  store.building.spawn({ id: "b1", name: "Casa" }); // also creates boss room "b1-boss"
+  store.building.spawn({ id: "b1", name: "Casa" }); // also creates leader room "b1-leader"
   store.room.spawn({ id: "r1", buildingId: "b1", key: "dev" });
   return store;
 }
@@ -31,9 +31,9 @@ describe("room.spawn with role", () => {
     const store = seeded();
     expect(store.state().rooms.find((r) => r.id === "r1")?.role).toBeUndefined();
   });
-  it("the boss office created by building.spawn has role boss", () => {
+  it("the leader office created by building.spawn has role leader", () => {
     const store = seeded();
-    expect(store.state().rooms.find((r) => r.id === "b1-boss")?.role).toBe("boss");
+    expect(store.state().rooms.find((r) => r.id === "b1-leader")?.role).toBe("leader");
   });
 });
 

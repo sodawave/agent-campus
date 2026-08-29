@@ -4,9 +4,9 @@ import {
   EMPTY_STATE,
   buildBuilding,
   buildCampus,
-  isBossRoom,
+  isLeaderRoom,
   reduceAll,
-  BOSS_RANK_KEY,
+  LEADER_RANK_KEY,
 } from "../src/index";
 
 function withCampus() {
@@ -15,22 +15,22 @@ function withCampus() {
   return store;
 }
 
-describe("building.spawn is composite (Entorno + Boss office + Boss agent)", () => {
-  it("creates the building, a boss room (role boss) and a boss agent; lead = boss", () => {
+describe("building.spawn is composite (Entorno + Leader office + Leader agent)", () => {
+  it("creates the building, a leader room (role leader) and a leader agent; lead = leader", () => {
     const store = withCampus();
     const res = store.building.spawn({ id: "casa", name: "Casa" });
     expect(res.ok).toBe(true);
 
     const b = store.state().buildings.find((x) => x.id === "casa")!;
     expect(b.name).toBe("Casa");
-    expect(b.campusLeadAgentId).toBe("casa-boss-agent");
+    expect(b.leaderAgentId).toBe("casa-leader-agent");
 
-    const bossRoom = store.state().rooms.find((r) => r.id === "casa-boss")!;
-    expect(bossRoom).toMatchObject({ buildingId: "casa", role: "boss" });
-    expect(isBossRoom(bossRoom)).toBe(true);
+    const leaderRoom = store.state().rooms.find((r) => r.id === "casa-leader")!;
+    expect(leaderRoom).toMatchObject({ buildingId: "casa", role: "leader" });
+    expect(isLeaderRoom(leaderRoom)).toBe(true);
 
-    const bossAgent = store.state().agents.find((a) => a.id === "casa-boss-agent")!;
-    expect(bossAgent).toMatchObject({ buildingId: "casa", roomId: "casa-boss", kind: "named", rankKey: BOSS_RANK_KEY });
+    const leaderAgent = store.state().agents.find((a) => a.id === "casa-leader-agent")!;
+    expect(leaderAgent).toMatchObject({ buildingId: "casa", roomId: "casa-leader", kind: "named", rankKey: LEADER_RANK_KEY });
   });
 
   it("emits a single building.spawned event (log length +1)", () => {
@@ -41,12 +41,11 @@ describe("building.spawn is composite (Entorno + Boss office + Boss agent)", () 
     expect(store.log().at(-1)?.type).toBe("building.spawned");
   });
 
-  it("honors explicit boss ids/name when provided via facade override", () => {
+  it("derives leader room/agent ids from the building id", () => {
     const store = withCampus();
-    // The engine derives defaults; a raw command may override — verify defaults here.
     store.building.spawn({ id: "empresa-a", name: "Empresa A" });
-    expect(store.state().rooms.some((r) => r.id === "empresa-a-boss" && r.role === "boss")).toBe(true);
-    expect(store.state().agents.some((a) => a.id === "empresa-a-boss-agent")).toBe(true);
+    expect(store.state().rooms.some((r) => r.id === "empresa-a-leader" && r.role === "leader")).toBe(true);
+    expect(store.state().agents.some((a) => a.id === "empresa-a-leader-agent")).toBe(true);
   });
 });
 
@@ -67,15 +66,15 @@ describe("building.assignLead", () => {
   it("assigns a lead that belongs to the building", () => {
     const store = withCampus();
     store.building.spawn({ id: "casa", name: "Casa" });
-    store.agent.instantiate({ id: "a1", name: "Mia", buildingId: "casa", roomId: "casa-boss" });
+    store.agent.instantiate({ id: "a1", name: "Mia", buildingId: "casa", roomId: "casa-leader" });
     expect(store.building.assignLead({ buildingId: "casa", agentId: "a1" }).ok).toBe(true);
-    expect(store.state().buildings.find((b) => b.id === "casa")?.campusLeadAgentId).toBe("a1");
+    expect(store.state().buildings.find((b) => b.id === "casa")?.leaderAgentId).toBe("a1");
   });
   it("rejects unknown building, unknown agent, and agent from another building", () => {
     const store = withCampus();
     store.building.spawn({ id: "casa", name: "Casa" });
     store.building.spawn({ id: "otra", name: "Otra" });
-    store.agent.instantiate({ id: "a1", name: "Mia", buildingId: "otra", roomId: "otra-boss" });
+    store.agent.instantiate({ id: "a1", name: "Mia", buildingId: "otra", roomId: "otra-leader" });
     expect(store.building.assignLead({ buildingId: "nope", agentId: "a1" })).toEqual({ ok: false, reason: "building_not_found" });
     expect(store.building.assignLead({ buildingId: "casa", agentId: "ghost" })).toEqual({ ok: false, reason: "agent_not_found" });
     expect(store.building.assignLead({ buildingId: "casa", agentId: "a1" })).toEqual({ ok: false, reason: "agent_not_in_building" });
@@ -83,7 +82,7 @@ describe("building.assignLead", () => {
 });
 
 describe("reduce tolerance (raw events)", () => {
-  it("a raw building.spawned with only the building adds just the building (no boss)", () => {
+  it("a raw building.spawned with only the building adds just the building (no leader)", () => {
     const s = reduceAll(EMPTY_STATE, [
       { type: "campus.loaded", campus: buildCampus({ id: "c1", name: "C" }) },
       { type: "building.spawned", building: buildBuilding({ id: "b1", campusId: "c1", name: "B" }) },
