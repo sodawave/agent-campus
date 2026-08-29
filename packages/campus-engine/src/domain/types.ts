@@ -565,6 +565,17 @@ export type CampusEvent =
       runs: Run[];
     }
   | { type: "catalog.loaded"; catalog: AgentArchetype[] }
+  | { type: "campus.loaded"; campus: Campus }
+  | {
+      /** A new building (project) was created on the campus. */
+      type: "building.spawned";
+      project: Project;
+    }
+  | {
+      /** A new room (department / workspace) was created inside a building. */
+      type: "room.spawned";
+      workspace: Workspace;
+    }
   | {
       type: "agent.instantiate.requested";
       request: InstantiateRequest;
@@ -711,6 +722,11 @@ export type CampusEvent =
       type: "memory.project.remembered";
       projectId: Id;
       drawer: MemoryDrawer;
+    }
+  | {
+      type: "speckit.enabled";
+      projectId: Id;
+      specKit: ProjectSpecKit;
     }
   | {
       type: "speckit.phase.changed";

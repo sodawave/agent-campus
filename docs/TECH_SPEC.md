@@ -302,44 +302,105 @@ flowchart TB
 
 ---
 
-## 4. Arquitectura
+## 4. Arquitectura — tres planos
+
+El sistema se separa en **tres planos**. Ningún plano contiene reglas de otro.
+
+| Plano | Dónde vive | Qué posee | En el repo |
+|---|---|---|---|
+| **Control** (autoridad) | **Core** en servidor (VPS o server local expuesto vía VPN) | Identidad, org, binding a campus/edificio, memoria (punteros), reglas y **secuencia** del bus de eventos | [`campus-engine`](../packages/campus-engine/src) + API |
+| **Ejecución** (cómputo) | **Host** = cualquier máquina (el servidor, un portátil, un box GPU… incluso **headless por CLI**) | El **proceso vivo** del agente + acceso a **archivos/carpetas locales** y tools de esa máquina | [`domain/host.ts`](../packages/campus-engine/src/domain/host.ts) (`AgentHost`, `AgentRuntime`, `CampusCliPort`) |
+| **Presentación** (proyección) | **Cliente** en cada dispositivo (Godot / web) | Solo **renderiza** el estado; no decide negocio | `apps/campus-godot`, `apps/playground` |
 
 ```mermaid
 flowchart TB
-  subgraph sources [Fuentes]
-    HarnessAPI[Harness / Agent API]
-    Events[Run events]
+  subgraph exec [Plano de Ejecución · hosts]
+    CLI[Agente CLI · laptop-ana]
+    Srv[Runtime en servidor]
+    Files[(FS local / tools)]
+    CLI --- Files
   end
-
-  subgraph core [Core]
-    Adapter[EventAdapter]
-    Store[CampusStore]
-    Model[Domain model]
+  subgraph control [Plano de Control · CORE en servidor]
+    API[Campus API / WS]
+    Engine[campus-engine: reglas + reduce]
+    Bus[(AgentCommsPort: WS+Redis o Buzz)]
+    API --- Engine
+    API --- Bus
   end
-
-  subgraph phaser [Phaser]
-    Boot[BootScene]
-    Campus[CampusScene]
-    HUD[HudScene]
+  subgraph present [Plano de Presentación · clientes]
+    Godot[Cliente Godot]
+    Web[Cliente web]
   end
-
-  HarnessAPI --> Adapter
-  Events --> Adapter
-  Adapter --> Store
-  Store --> Model
-  Model --> Campus
-  Model --> HUD
-  Boot --> Campus
-  Campus --> HUD
+  CLI -->|acciones| API
+  Srv -->|acciones| API
+  API -->|CampusEvent secuenciado| Bus
+  Bus --> Godot
+  Bus --> Web
 ```
 
-### Capas
+> Los **archivos/carpetas son host-local, no del core**. El core guarda solo una referencia/manifiesto (qué host, `workingDir`, scopes concedidos), nunca los bytes. El host ejecuta con acceso real: el core **autoriza** (`AgentHost.allowedSkillKeys/allowedRankKeys`) y el host **sandboxea** (`workingDir`).
 
-1. **Domain** — tipos puros (`AgentArchetype`, `AgentInstance`, `Skill`, `Project`, …). Cero Phaser.
-2. **CampusStore** — fuente de verdad en cliente; catálogo + instancias; aplica eventos idempotentes.
-3. **EventAdapter** — mapea eventos externos → `agent.instantiated`, `agent.moved`, …
-4. **Scenes Phaser** — solo proyección: leen el store, no deciden negocio.
-5. **HudScene** — catálogo modal, barras, tooltips, selección; parte de UI puede ser DOM sobre el canvas.
+### 4.1 Las tres "vidas" de un agente (no confundir)
+
+- **Agent (identidad)** → plano control. Vive en el core (`AgentInstance`).
+- **Runtime (ejecución)** → plano ejecución. Vive en un host (`AgentRuntime.hostId`). Es el "proceso de la máquina" que lo alimenta y le da acceso a ficheros.
+- **Sprite (proyección)** → plano presentación. Uno por cliente conectado.
+
+Relación: **`1 Agent → 0..1 Runtime → 0..N Sprites`**. Semillado en `AgentInstance.hostId` / `runtimeId`:
+
+- `hostId/runtimeId = null` → **representado pero dormido** (catálogo/suspendido; en el mapa, "no vivo").
+- seteados → **vivo**, alimentado por ese host.
+
+Instanciar por CLI (host headless, sin cliente gráfico):
+
+```
+campus login --url <core> --token <…>
+campus host join --label laptop-ana
+campus agent spawn --archetype systems-eng --project <edificio> --rank ic
+```
+
+### 4.2 Autoridad y contrato: Command vs Event
+
+- **Command** (cliente/host → core): *petición*. El core la valida contra el dominio y **puede rechazarla**.
+- **Event** (`CampusEvent`, core → clientes): *hecho consumado y secuenciado*. Es lo único que ven los clientes.
+
+El **core es el único punto de verdad y de ordenación**: nada es canónico hasta que el core lo acepta y le asigna secuencia; por eso todos los clientes convergen al mismo estado en el mismo orden. El contrato `CampusEvent` es **neutral de lenguaje** (JSON serializable) → cualquier cliente (Godot/GDScript, web/TS, CLI) lo consume sin compartir código; solo el core y los clientes TS reutilizan además el `campus-engine`.
+
+### 4.3 Flujo runtime → core → clientes
+
+El runtime (p. ej. un agente CLI) emite **dos tipos** de acciones:
+
+1. **Eventos de actividad** (hechos ya ocurridos en su máquina) → el core registra y reemite tal cual: `run.upserted` (progreso), `agent.mood`, `agent.moved`, `task.inventory.updated`, lecturas de su `workingDir`…
+2. **Comandos gobernados** (tocan reglas del campus) → el core los valida y puede vetarlos; el cliente ve el **resultado**, no la petición: `spawnWorker` (solo `ic`), `order`/comunicación (`canCommunicate`), `debate` (peers), `callToBuilding` (préstamo). El core responde con el evento de hecho (`worker.entered`) **o** el de rechazo (`worker.spawn.rejected`, `hierarchy.violation`).
+
+En ambos casos, a los clientes **siempre** les llega un `CampusEvent` secuenciado por el core; el cliente nunca distingue si el origen fue un agente CLI, otro humano o el propio servidor.
+
+**Proyección robusta:** el cliente aplica `reduce(state, event)` ([`CampusStore`](../packages/campus-engine/src/store/CampusStore.ts)), que es **idempotente** (reintentos/duplicados no rompen estado). Un cliente que entra tarde **reproduce** el event log (`getEventLog()`) —o recibe snapshot + cola— y llega al mismo estado.
+
+### 4.4 Campus multi-edificio y préstamos
+
+El campus es **multi-edificio**: `campus → buildings[] (Project) → rooms (Workspace)`. El `CampusStore` es **campus-scoped** y expone una **fachada de comandos por entidad**:
+
+```
+store.campus.load(...)
+store.building.spawn(...) / building.updateContext(...)
+store.room.spawn(...) / room.assignHead(...) / room.updateContext(...)
+store.agent.spawn(...) / order(...) / callToBuilding(...) / returnHome(...)
+store.worker.spawn(...) / despawn(...)
+```
+
+**Préstamo sin duplicar:** un `ProjectCall` mueve la **representación** (`projectId`/edificio), **no la ejecución** (`hostId`). Un agente que corre en `laptop-ana` puede ser prestado Demo→Beta y **sigue vivo en el mismo portátil, con los mismos ficheros**; solo cambia el edificio donde se le representa y su *contexto efectivo* (razona como su oficio, pero con el contexto del edificio destino).
+
+### 4.5 Regla de diseño
+
+> **El runtime propone; el core dispone; los clientes proyectan.**
+> Producción de eventos = host/runtime. Autoridad + orden + reglas = core. Render = clientes.
+
+### 4.6 Pendiente al implementar el plano de ejecución (host)
+
+- Añadir a `HostSpawnRequest`/`AgentRuntime` el **scope de recursos**: `workingDir` + rutas permitidas (hoy `host.ts` no lo tiene).
+- Confirmar **un runtime por agente** y que un agente no esté vivo en dos hosts a la vez.
+- Eventos de ciclo de vida en el bus: `host.joined/left/heartbeat`, `runtime.started/stopped/dead`.
 
 ---
 
@@ -445,36 +506,40 @@ El layout de la captura de referencia se modela así:
 
 ---
 
-## 6. Escenas Phaser
+## 6. Escenas del cliente (plano de presentación)
+
+> **Plano de presentación** (§4): estas escenas **solo proyectan** el estado; no deciden negocio. Cliente principal = **Godot** (§3); `apps/playground` es un cliente web de referencia (Canvas/Phaser) para validar el contrato. Cualquier interacción del usuario se envía como **Command** al core (nunca muta estado localmente).
 
 ### BootScene
 - Carga tilesets, spritesheets de agentes, UI atlas (bubbles, bars).
-- Resuelve `BuildingLayout` del proyecto activo.
+- Resuelve `BuildingLayout` del edificio activo.
 
 ### CampusScene
-- Monta tilemap.
+- Monta tilemap del edificio activo.
 - Spawnea `RoomZone` (debug opcional).
-- Spawnea `AgentSprite` por agente; depth = `y`.
+- Spawnea un sprite por agente **presente en el edificio** (`agent.projectId`); depth = `y`.
 - Pathing simple: grid A* sobre capa de colisión del tilemap (pasillo ↔ salas).
-- Suscripción al store: diff → tween move / change emote / update bar.
+- Suscripción al stream de `CampusEvent`: diff → tween move / change emote / update bar.
 
-### HudScene (overlay) + DOM shell
-- Acción **Añadir** por sala (botón en HUD o hotzone de la room).
-- **CatalogModal** (DOM o Phaser UI): lista `AgentArchetype`, input de nombre, confirm.
+### HudScene (overlay) + shell
+- Acción **Añadir** por sala.
+- **CatalogModal**: lista `AgentArchetype`, input de nombre, confirm.
 - Retratos + barras del pasillo.
-- Sin lógica de negocio: emite `InstantiateRequest` al store/host.
+- Sin lógica de negocio: emite **Commands** (`agent.spawn`, `agent.order`, …) al core.
 
 ---
 
-## 7. Agente como sprite
+## 7. Agente como sprite (proyección)
 
-```ts
-class AgentSprite extends Phaser.GameObjects.Container {
-  // body (spritesheet 4-dir walk + idle) — key desde archetype.spriteKey
-  // bubble (Mood → frame del atlas)
-  // name label (visible al menos durante introduction)
-  // skill chip opcional (TBD)
-}
+Renderer-agnóstico (Godot `Node2D`/`Control`, o `Container` en el cliente web). El sprite es **solo proyección** de `AgentInstance`:
+
+```
+Sprite(agent):
+  body   // spritesheet 4-dir walk + idle — key = archetype.spriteKey
+  bubble // Mood → frame del atlas
+  label  // nombre (visible al menos durante introduction)
+  chip?  // skill opcional (TBD)
+  alive? // hostId/runtimeId != null → "vivo" (alimentado por un host)
 ```
 
 **Máquina de estados visual:**
@@ -511,7 +576,7 @@ type CampusEvent =
   // + introduction.*, agent.moved, agent.mood, agent.despawned, catalog.loaded, debate.*, task.*, hierarchy.*, project.call.*
 ```
 
-El adapter traduce WS/API del harness a este set. Reglas en dominio (`org.ts`, `library.ts`, `workers.ts`), no en Phaser.
+El adapter traduce WS/API del harness a este set. Reglas en dominio del core (`org.ts`, `library.ts`, `workers.ts`), **nunca en el cliente**.
 
 ---
 
@@ -656,6 +721,40 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ---
 
+## 12.b Premisas de desarrollo
+
+### Semántica de producto
+
+- **Task con test-gate.** Una task solo se da por hecha si **pasa su verificación**. Ciclo: `queued → running → under_review → succeeded` (o `needs_revision`), evaluada por el supervisor directo (`org.ts::canEvaluate` / `TaskEvaluation`). **"Hecho" = 100% de lo ordenado + test en verde.**
+- **Worker = bucle acotado hasta el 100%.** Un `anonymous_worker` ejecuta un **bucle no infinito** (con límite de iteraciones/guard) que itera **hasta cumplir al 100%** la task indicada; al converger, **sale** (`worker.exited`). No es un proceso perpetuo: nace para una tarea, la completa y muere. Alinea con `SpecKitConvergenceStatus` (`diverged → in_progress → converged`) y con `RunStatus`.
+- **Subprocesos detallados.** Cada orden se descompone en subprocesos verificables; cada subproceso se testea de forma independiente.
+
+### Disciplina de ingeniería
+
+- **Cada unidad se testea** antes de cerrarla (Vitest en dominio/store; prueba manual en cliente).
+- **Coherencia estructural:** un patrón por capa — dominio puro, **fachada por entidad** en el store (`building/room/agent/worker/…`), reducer puro idempotente, clientes solo proyección.
+- **Sin código espagueti:** reglas solo en el core; cero lógica de negocio en clientes; helpers puros reutilizables.
+- **Refactor periódico ("cada x"):** consolidar/limpiar de forma recurrente para no acumular deuda; extraer/renombrar cuando un patrón se repite.
+
+---
+
+## 12.c Protocolo de ramas — una rama por spec
+
+Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
+
+| Paso | Acción |
+|---|---|
+| Abrir | Al entrar en fase `specify`, se crea una rama dedicada a esa spec. |
+| Trabajar | `specify → plan → tasks → implement` ocurren **en esa rama**; no se acumulan specs distintas en la misma rama. |
+| Cerrar | Fase `converge` = spec cerrada → **tests en verde** → PR a `main` (ready). |
+| Integrar | **Merge a `main`** tras revisión/CI. `main` es la integración estable. |
+
+- **Naming** (agente cloud): `cursor/spec-<slug>-7599` (prefijo `cursor/`, sufijo `-7599` obligatorios en este entorno).
+- **Señal de cierre**: la fase `converge` del Spec Kit del edificio es el gate para test + merge.
+- **Merge**: lo realiza un humano tras revisión (el agente solo mergea con permiso explícito).
+
+---
+
 ## 13. Fuera de alcance v0
 
 - Binario CLI publicado en npm (solo contrato + package path).
@@ -671,3 +770,13 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 2. Art: tileset Stardew temporal (asset pack) vs placeholders.
 3. ¿Org/chats 100% en Godot desde el día 1, o mapa primero y UI después?
 4. Plugins MCP: ¿panel in-Godot o solo vía API al inicio?
+
+---
+
+## 15. Visión de producto (futuro, no v0)
+
+**SaaS multi-tenant "Campus as a Service".** El usuario **adquiere campus y los gestiona** (crear/borrar campus, invitar miembros, conectar hosts, límites de uso). Encaja con el modelo de 3 planos: el **core** ya es la autoridad multi-campus (`Campus.projectIds`), los **hosts** aportan cómputo del cliente y los **clientes** solo proyectan.
+
+- **Tiers / pricing**: TBD (p. ej. nº de campus/edificios, hosts conectados, agentes vivos, retención de memoria).
+- **Aislamiento**: cada tenant = uno o varios campus; identidad y facturación por cuenta.
+- **No v0**: se documenta como norte de producto; no bloquea el MVP (pantallas + API + host/runtime).
