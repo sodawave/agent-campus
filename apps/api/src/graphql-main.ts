@@ -13,9 +13,19 @@ const PORT = Number(process.env.GRAPHQL_PORT ?? 8788);
 async function main(): Promise<void> {
   const link = await createWsCampusLink(URL);
 
+  const cors = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+  };
+
   const server = createServer((req, res) => {
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, cors).end();
+      return;
+    }
     if (req.method !== "POST" || !req.url?.startsWith("/graphql")) {
-      res.writeHead(404).end("POST /graphql");
+      res.writeHead(404, cors).end("POST /graphql");
       return;
     }
     let body = "";
@@ -24,10 +34,10 @@ async function main(): Promise<void> {
       try {
         const { query, variables } = JSON.parse(body || "{}");
         const result = await executeGraphql(link, query, variables);
-        res.writeHead(200, { "content-type": "application/json" });
+        res.writeHead(200, { "content-type": "application/json", ...cors });
         res.end(JSON.stringify(result));
       } catch (err) {
-        res.writeHead(400, { "content-type": "application/json" });
+        res.writeHead(400, { "content-type": "application/json", ...cors });
         res.end(JSON.stringify({ errors: [{ message: err instanceof Error ? err.message : String(err) }] }));
       }
     });
