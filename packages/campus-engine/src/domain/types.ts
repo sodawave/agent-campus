@@ -308,6 +308,7 @@ export type CampusEvent =
   | { type: "chat.message.posted"; message: ChatMessage }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.harness.set"; agentId: Id; harness: AgentHarness }
+  | { type: "agent.ranked"; agentId: Id; rankKey: string }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }
   | { type: "worker.entered"; worker: AgentInstance }
