@@ -13,7 +13,7 @@
 
 Producto con **tres ámbitos / pantallas** (en **web y mobile nativo**):
 
-1. **Gamificación** — mapa campus; workers anónimos entrar/salir.
+1. **Gamificación** — mapas de campus/building/room; workers anónimos entrar/salir.
 2. **Organigrama / tareas** — mindmap; inventario; órdenes.
 3. **Chats con agentes** — hilos con instancias nombradas.
 
@@ -45,14 +45,18 @@ flowchart LR
   Map -->|sprite in office| Agents[AgentInstances]
 ```
 
-| Concepto | Tipo | Notas |
-|---|---|---|
-| Host | `AgentHost` | Máquina/proceso unido al campus |
-| Runtime | `AgentRuntime` | Proceso vivo de un `AgentInstance` en un host |
-| Representación | `hostId` + `runtimeId` en la instancia | Mapa coloca el sprite en la oficina del rol |
-| Plataforma | `ClientPlatform = "cli_host"` | Junto a web/ios/android |
 
-Comandos (contrato): ver `CAMPUS_CLI_COMMANDS` en [`domain/host.ts`](../packages/campus-engine/src/domain/host.ts).
+
+
+| Concepto       | Tipo                                   | Notas                                         |
+| -------------- | -------------------------------------- | --------------------------------------------- |
+| Host           | `AgentHost`                            | Máquina/proceso unido al campus               |
+| Runtime        | `AgentRuntime`                         | Proceso vivo de un `AgentInstance` en un host |
+| Representación | `hostId` + `runtimeId` en la instancia | Mapa coloca el sprite en la oficina del rol   |
+| Plataforma     | `ClientPlatform = "cli_host"`          | Junto a web/ios/android                       |
+
+
+Comandos (contrato): ver `CAMPUS_CLI_COMMANDS` en `[domain/host.ts](../packages/campus-engine/src/domain/host.ts)`.
 
 Eventos: `host.joined` / `host.left` / `host.heartbeat` / `runtime.started` / `runtime.stopped`.
 
@@ -64,15 +68,19 @@ Reglas:
 - Al caer el host: `runtime.stopped` → sprites salen o pasan a idle offline (TBD visual).
 - Workers anónimos también pueden spawnearse desde un host `ic` y verse entrar/salir.
 
+
+
 ### Clientes: Godot-first (mobile + desktop + web)
 
-| Plataforma | Cómo |
-|---|---|
-| **iOS / Android** | Export nativo Godot → stores |
-| **Desktop** | Export nativo Godot → **Windows / macOS / Linux** |
-| **Web** | Export HTML5/WASM del mismo proyecto |
-| Admin React (opc.) | Consola web si hace falta |
-| CLI host | Prioridad baja |
+
+| Plataforma         | Cómo                                              |
+| ------------------ | ------------------------------------------------- |
+| **iOS / Android**  | Export nativo Godot → stores                      |
+| **Desktop**        | Export nativo Godot → **Windows / macOS / Linux** |
+| **Web**            | Export HTML5/WASM del mismo proyecto              |
+| Admin React (opc.) | Consola web si hace falta                         |
+| CLI host           | Prioridad baja                                    |
+
 
 Las **tres pantallas** viven en Godot. Look **Stardew**. Estado en API/TS.
 
@@ -80,19 +88,23 @@ Las **tres pantallas** viven en Godot. Look **Stardew**. Estado en API/TS.
 
 Base: [MemPalace](https://github.com/MemPalace/mempalace).
 
-| MemPalace | Agent Campus |
-|---|---|
-| Palace | Campus (`memoryPalaceRef`) |
-| Wing (proyecto) | `Project.memoryWingId` ?? `project.id` — **memoria compartida del edificio** |
-| Wing (agente) | opcional privado = `agent.id` |
-| Room | `_general` \| `naturalDepartmentKey` \| topic |
-| Drawer | `MemoryDrawer` verbatim |
 
-| Corpus | Ámbito | Uso |
-|---|---|---|
-| Library | Oficio / campus | Docs RAG |
-| MemPalace agent | Instancia | Chat, handoffs personales |
-| MemPalace project | Edificio | Decisiones, contexto compartido del proyecto |
+| MemPalace       | Agent Campus                                                                 |
+| --------------- | ---------------------------------------------------------------------------- |
+| Palace          | Campus (`memoryPalaceRef`)                                                   |
+| Wing (proyecto) | `Project.memoryWingId` ?? `project.id` — **memoria compartida del edificio** |
+| Wing (agente)   | opcional privado = `agent.id`                                                |
+| Room            | `_general` | `naturalDepartmentKey` | topic                                  |
+| Drawer          | `MemoryDrawer` verbatim                                                      |
+
+
+
+| Corpus            | Ámbito          | Uso                                          |
+| ----------------- | --------------- | -------------------------------------------- |
+| Library           | Oficio / campus | Docs RAG                                     |
+| MemPalace agent   | Instancia       | Chat, handoffs personales                    |
+| MemPalace project | Edificio        | Decisiones, contexto compartido del proyecto |
+
 
 Recall efectivo: `recallScopesForAgent` → agent + project + department rooms.  
 Eventos: `memory.remembered`, `memory.project.remembered`, `memory.recalled`.
@@ -106,33 +118,39 @@ Cada **proyecto/edificio** puede activar Spec-Driven Development:
 `constitution → specify → plan → tasks → implement → converge`  
 (+ extensions `bug`, `assess`).
 
-| Spec Kit | Agent Campus |
-|---|---|
-| `specify init` | `Project.specKit` en el building |
-| Phases `/speckit-*` | `ProjectSpecKit.phase` + `SpecKitArtifact` |
-| Convergence | `convergence: diverged \| in_progress \| converged` |
-| Agents implementan tasks | Órdenes / runs ligados a artifacts |
+
+| Spec Kit                 | Agent Campus                                      |
+| ------------------------ | ------------------------------------------------- |
+| `specify init`           | `Project.specKit` en el building                  |
+| Phases `/speckit-*`      | `ProjectSpecKit.phase` + `SpecKitArtifact`        |
+| Convergence              | `convergence: diverged | in_progress | converged` |
+| Agents implementan tasks | Órdenes / runs ligados a artifacts                |
+
 
 Eventos: `speckit.phase.changed`, `speckit.artifact.upserted`.  
-Helpers: [`domain/speckit.ts`](../packages/campus-engine/src/domain/speckit.ts).
+Helpers: `[domain/speckit.ts](../packages/campus-engine/src/domain/speckit.ts)`.
 
 ### Comunicación entre agentes + despliegue
 
 Tomamos del [Buzz compose](https://github.com/block/buzz/tree/main/deploy/compose) (hive mind / relay):
 
-| De Buzz | En Agent Campus |
-|---|---|
-| `relay` + WS event log | `api` + **bus de eventos** (`CampusEvent`) |
-| Postgres + Redis + MinIO | Igual (estado, pub/sub, library blobs) |
-| `run.sh` + `.env` + Caddy TLS | [`deploy/compose/`](../deploy/compose/) |
-| Agentes como miembros de rooms | Chats / debates / orders / calls en canales scoped |
-| Opción futura Nostr/Buzz | `CAMPUS_COMMS_BACKEND=buzz` + `CAMPUS_BUZZ_RELAY_URL` |
 
-Puerto: [`domain/comms.ts`](../packages/campus-engine/src/domain/comms.ts) — `AgentCommsPort.publish/subscribe` por `campus|project|workspace|agent|thread`.
+| De Buzz                        | En Agent Campus                                       |
+| ------------------------------ | ----------------------------------------------------- |
+| `relay` + WS event log         | `api` + **bus de eventos** (`CampusEvent`)            |
+| Postgres + Redis + MinIO       | Igual (estado, pub/sub, library blobs)                |
+| `run.sh` + `.env` + Caddy TLS  | `[deploy/compose/](../deploy/compose/)`               |
+| Agentes como miembros de rooms | Chats / debates / orders / calls en canales scoped    |
+| Opción futura Nostr/Buzz       | `CAMPUS_COMMS_BACKEND=buzz` + `CAMPUS_BUZZ_RELAY_URL` |
+
+
+Puerto: `[domain/comms.ts](../packages/campus-engine/src/domain/comms.ts)` — `AgentCommsPort.publish/subscribe` por `campus|project|workspace|agent|thread`.
 
 No vendemos Buzz entero en v0; reutilizamos el **patrón de ops** y dejamos el relay Buzz como backend opcional de comms.
 
 ---
+
+
 
 ## 2. Ontología (confirmada)
 
@@ -146,15 +164,19 @@ Campus
         └── Workspace → AgentInstance
 ```
 
+
+
 ### Capas de conocimiento
 
-| Capa | Dónde | Qué aporta |
-|---|---|---|
-| Oficio genérico | `skill` | Craft; también **llave** a la biblioteca |
-| Contexto general | `Project.context` | Quiénes somos |
-| Especialización | home `Workspace.context` | Estilo/normas del dpto |
-| Knobs LLM | `harness` | model / temp / effort |
-| Corpus | `Library` + classifications | RAG por oficio |
+
+| Capa             | Dónde                       | Qué aporta                               |
+| ---------------- | --------------------------- | ---------------------------------------- |
+| Oficio genérico  | `skill`                     | Craft; también **llave** a la biblioteca |
+| Contexto general | `Project.context`           | Quiénes somos                            |
+| Especialización  | home `Workspace.context`    | Estilo/normas del dpto                   |
+| Knobs LLM        | `harness`                   | model / temp / effort                    |
+| Corpus           | `Library` + classifications | RAG por oficio                           |
+
 
 Stack: `craft ⊕ currentBuilding ⊕ correspondingOffice ⊕ harness ⊕ rank ⊕ libraryClassifications(skill.key)`.
 
@@ -173,14 +195,16 @@ Stack: `craft ⊕ currentBuilding ⊕ correspondingOffice ⊕ harness ⊕ rank �
 
 Sin `activeCallId` **no** hay roaming libre entre edificios ni entre salas.
 
-| Concepto | Campo / API |
-|---|---|
-| Estación normal | `homeProjectId` + `homeWorkspaceId`, `activeCallId = null` |
-| Llamada | `ProjectCall` + `project.call.issued` / `accepted` |
-| En destino | `agent.building.entered` (requiere `callId`) |
-| Fin | `agent.returned_home` |
 
-Helpers: `issueProjectCall`, `acceptProjectCall`, `returnHomeFromCall`, `canLeaveHomeOffice` en [`context.ts`](../packages/campus-engine/src/domain/context.ts).
+| Concepto        | Campo / API                                                |
+| --------------- | ---------------------------------------------------------- |
+| Estación normal | `homeProjectId` + `homeWorkspaceId`, `activeCallId = null` |
+| Llamada         | `ProjectCall` + `project.call.issued` / `accepted`         |
+| En destino      | `agent.building.entered` (requiere `callId`)               |
+| Fin             | `agent.returned_home`                                      |
+
+
+Helpers: `issueProjectCall`, `acceptProjectCall`, `returnHomeFromCall`, `canLeaveHomeOffice` en `[context.ts](../packages/campus-engine/src/domain/context.ts)`.
 
 ### Departamento natural (homing)
 
@@ -201,52 +225,64 @@ flowchart LR
   Skill --> Agents
 ```
 
-| Regla | Decisión |
-|---|---|
-| Ámbito | Biblioteca **de campus** (compartida entre edificios) |
-| Material | `DocKind`: code, law, manual, policy, research, other |
-| Clasificación | Taxonomía → `vectorNamespace` (categorización vectorial / RAG) |
-| Asociación a agentes | Por **`skillKeys`** (oficio), no por instance id |
-| Mismo oficio, distintos edificios | Comparten las mismas classifications / namespaces |
-| Sala | Opcional `role: "library"` + `Library.roomId` en el mapa |
 
-Helpers: [`domain/library.ts`](../packages/campus-engine/src/domain/library.ts). Sample: [`sample-library.json`](../packages/campus-engine/src/catalog/sample-library.json).
+
+
+| Regla                             | Decisión                                                       |
+| --------------------------------- | -------------------------------------------------------------- |
+| Ámbito                            | Biblioteca **de campus** (compartida entre edificios)          |
+| Material                          | `DocKind`: code, law, manual, policy, research, other          |
+| Clasificación                     | Taxonomía → `vectorNamespace` (categorización vectorial / RAG) |
+| Asociación a agentes              | Por `skillKeys` (oficio), no por instance id                   |
+| Mismo oficio, distintos edificios | Comparten las mismas classifications / namespaces              |
+| Sala                              | Opcional `role: "library"` + `Library.roomId` en el mapa       |
+
+
+Helpers: `[domain/library.ts](../packages/campus-engine/src/domain/library.ts)`. Sample: `[sample-library.json](../packages/campus-engine/src/catalog/sample-library.json)`.
 
 ### Departamento natural (homing)
 
 - `naturalDepartmentKey` → `homeWorkspaceId` si el dpto existe.
 - Tras intro, **homing** al dpto natural (salvo `stayInRoom`).
 
+
+
 ### Organigrama, debate y evaluación
 
-| Regla | Decisión |
-|---|---|
-| Debate | Solo mismo rango |
-| Sin saltar jerarquía | Solo peers o supervisor/report directo |
-| Evaluación | Solo supervisor directo |
-| Jefe de dpto | `Workspace.headAgentId` |
 
-Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
+| Regla                | Decisión                               |
+| -------------------- | -------------------------------------- |
+| Debate               | Solo mismo rango                       |
+| Sin saltar jerarquía | Solo peers o supervisor/report directo |
+| Evaluación           | Solo supervisor directo                |
+| Jefe de dpto         | `Workspace.headAgentId`                |
+
+
+Helpers: `[domain/org.ts](../packages/campus-engine/src/domain/org.ts)`.
 
 ### Reglas v0
 
-| Regla | Decisión |
-|---|---|
-| Salas | = departamentos (+ library room opcional) |
-| Homing | Oficina home; tras llamada, oficina homologa en destino |
-| Movilidad inter-edificio | **Solo** vía `ProjectCall` — no salen de oficina por defecto |
-| Workers anónimos | Solo **último rango** (`ic`) puede instanciar/destruir; mapa = entrar/salir del campus |
-| Pantallas | `gamification` \| `org_tasks` \| `chats` |
-| Razonamiento | Siempre oficio; building/dept = actuales correspondientes |
-| Biblioteca | Campus-scoped; bind por `Skill.key` |
-| Memoria agente | MemPalace drawers (episódica) |
-| Memoria proyecto | Wing compartido del building (`memoryWingId`) |
-| Spec Kit | SDD por proyecto (`Project.specKit`) |
-| Clientes | `web` \| `ios` \| `android` \| `cli_host` |
-| CLI | Contrato listo; **prioridad baja** — post-MVP |
-| Pantallas | `gamification` \| `org_tasks` \| `chats` |
-| Harness / org / debate / eval | Como v0.4 |
-| Persistencia | Data-driven |
+
+| Regla                         | Decisión                                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| Salas                         | = departamentos (+ library room opcional)                                              |
+| Homing                        | Oficina home; tras llamada, oficina homologa en destino                                |
+| Movilidad inter-edificio      | **Solo** vía `ProjectCall` — no salen de oficina por defecto                           |
+| Workers anónimos              | Solo **último rango** (`ic`) puede instanciar/destruir; mapa = entrar/salir del campus |
+| Pantallas                     | `gamification` | `org_tasks` | `chats`                                                 |
+| Razonamiento                  | Siempre oficio; building/dept = actuales correspondientes                              |
+| Biblioteca                    | Campus-scoped; bind por `Skill.key`                                                    |
+| Memoria agente                | MemPalace drawers (episódica)                                                          |
+| Memoria proyecto              | Wing compartido del building (`memoryWingId`)                                          |
+| Spec Kit                      | SDD por proyecto (`Project.specKit`)                                                   |
+| Clientes                      | `web` | `ios` | `android` | `cli_host`                                                 |
+| CLI                           | Contrato listo; **prioridad baja** — post-MVP                                          |
+| Pantallas                     | `gamification` | `org_tasks` | `chats`                                                 |
+| Harness / org / debate / eval | Como v0.4                                                                              |
+| Persistencia                  | Data-driven                                                                            |
+
+
+
 
 ### Workers anónimos (spawn / destroy)
 
@@ -256,23 +292,29 @@ Helpers: [`domain/org.ts`](../packages/campus-engine/src/domain/org.ts).
 - Destruir → evento `worker.exited` → figura anónima **sale** del campus.
 - Solo el spawner puede destruir a sus workers (`canDestroyWorker`).
 
-Helpers: [`domain/workers.ts`](../packages/campus-engine/src/domain/workers.ts).
+Helpers: `[domain/workers.ts](../packages/campus-engine/src/domain/workers.ts)`.
 
 ---
 
+
+
 ## 3. Stack (cerrado v1 — Godot-first)
 
-| Capa | Tecnología | Motivo |
-|---|---|---|
-| **App (mapa + org + chats)** | **Godot 4 (2D)** | Stardew-like; export **iOS · Android · Desktop · Web** |
-| Domain / API | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia |
-| Memoria | **MemPalace** | Agente + proyecto |
-| Specs | **Spec Kit** | SDD por building |
-| Comms | WS + Redis (`AgentCommsPort`) | Chats, orders, calls |
-| Plugins / MCP | Host en API + UI Godot (paneles) | Tools externos sin fork del juego |
-| Deploy | `deploy/compose` | api, pg, redis, minio, caddy |
-| CLI host | diferido | Prioridad baja |
-| React/Expo | **opcional** (admin web) | No requerido para mobile |
+
+| Capa                         | Tecnología                                   | Motivo                                                 |
+| ---------------------------- | -------------------------------------------- | ------------------------------------------------------ |
+| **App (mapa + org + chats)** | **Godot 4 (2D)**                             | Stardew-like; export **iOS · Android · Desktop · Web** |
+| Domain / API                 | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia                              |
+| Memoria                      | **MemPalace**                                | Agente + proyecto                                      |
+| Specs                        | **Spec Kit**                                 | SDD por building                                       |
+| Comms                        | WS + Redis (`AgentCommsPort`)                | Chats, orders, calls                                   |
+| Plugins / MCP                | Host en API + UI Godot (paneles)             | Tools externos sin fork del juego                      |
+| Deploy                       | `deploy/compose`                             | api, pg, redis, minio, caddy                           |
+| CLI host                     | diferido                                     | Prioridad baja                                         |
+| React/Expo                   | **opcional** (admin web)                     | No requerido para mobile                               |
+
+
+
 
 ### Por qué Godot como app mobile
 
@@ -300,17 +342,23 @@ flowchart TB
   godotApp --> Web
 ```
 
+
+
 ---
+
+
 
 ## 4. Arquitectura — tres planos
 
 El sistema se separa en **tres planos**. Ningún plano contiene reglas de otro.
 
-| Plano | Dónde vive | Qué posee | En el repo |
-|---|---|---|---|
-| **Control** (autoridad) | **Core** en servidor (VPS o server local expuesto vía VPN) | Identidad, org, binding a campus/edificio, memoria (punteros), reglas y **secuencia** del bus de eventos | [`campus-engine`](../packages/campus-engine/src) + API |
-| **Ejecución** (cómputo) | **Host** = cualquier máquina (el servidor, un portátil, un box GPU… incluso **headless por CLI**) | El **proceso vivo** del agente + acceso a **archivos/carpetas locales** y tools de esa máquina | [`domain/host.ts`](../packages/campus-engine/src/domain/host.ts) (`AgentHost`, `AgentRuntime`, `CampusCliPort`) |
-| **Presentación** (proyección) | **Cliente** en cada dispositivo (Godot / web) | Solo **renderiza** el estado; no decide negocio | `apps/campus-godot`, `apps/playground` |
+
+| Plano                         | Dónde vive                                                                                        | Qué posee                                                                                                | En el repo                                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Control** (autoridad)       | **Core** en servidor (VPS o server local expuesto vía VPN)                                        | Identidad, org, binding a campus/edificio, memoria (punteros), reglas y **secuencia** del bus de eventos | `[campus-engine](../packages/campus-engine/src)` + API                                                          |
+| **Ejecución** (cómputo)       | **Host** = cualquier máquina (el servidor, un portátil, un box GPU… incluso **headless por CLI**) | El **proceso vivo** del agente + acceso a **archivos/carpetas locales** y tools de esa máquina           | `[domain/host.ts](../packages/campus-engine/src/domain/host.ts)` (`AgentHost`, `AgentRuntime`, `CampusCliPort`) |
+| **Presentación** (proyección) | **Cliente** en cada dispositivo (Godot / web)                                                     | Solo **renderiza** el estado; no decide negocio                                                          | `apps/campus-godot`, `apps/playground`                                                                          |
+
 
 ```mermaid
 flowchart TB
@@ -338,7 +386,11 @@ flowchart TB
   Bus --> Web
 ```
 
+
+
 > Los **archivos/carpetas son host-local, no del core**. El core guarda solo una referencia/manifiesto (qué host, `workingDir`, scopes concedidos), nunca los bytes. El host ejecuta con acceso real: el core **autoriza** (`AgentHost.allowedSkillKeys/allowedRankKeys`) y el host **sandboxea** (`workingDir`).
+
+
 
 ### 4.1 Las tres "vidas" de un agente (no confundir)
 
@@ -346,7 +398,7 @@ flowchart TB
 - **Runtime (ejecución)** → plano ejecución. Vive en un host (`AgentRuntime.hostId`). Es el "proceso de la máquina" que lo alimenta y le da acceso a ficheros.
 - **Sprite (proyección)** → plano presentación. Uno por cliente conectado.
 
-Relación: **`1 Agent → 0..1 Runtime → 0..N Sprites`**. Semillado en `AgentInstance.hostId` / `runtimeId`:
+Relación: `1 Agent → 0..1 Runtime → 0..N Sprites`. Semillado en `AgentInstance.hostId` / `runtimeId`:
 
 - `hostId/runtimeId = null` → **representado pero dormido** (catálogo/suspendido; en el mapa, "no vivo").
 - seteados → **vivo**, alimentado por ese host.
@@ -358,6 +410,8 @@ campus login --url <core> --token <…>
 campus host join --label laptop-ana
 campus agent spawn --archetype systems-eng --project <edificio> --rank ic
 ```
+
+
 
 ### 4.2 Autoridad y contrato: Command vs Event
 
@@ -375,7 +429,7 @@ El runtime (p. ej. un agente CLI) emite **dos tipos** de acciones:
 
 En ambos casos, a los clientes **siempre** les llega un `CampusEvent` secuenciado por el core; el cliente nunca distingue si el origen fue un agente CLI, otro humano o el propio servidor.
 
-**Proyección robusta:** el cliente aplica `reduce(state, event)` ([`CampusStore`](../packages/campus-engine/src/store/CampusStore.ts)), que es **idempotente** (reintentos/duplicados no rompen estado). Un cliente que entra tarde **reproduce** el event log (`getEventLog()`) —o recibe snapshot + cola— y llega al mismo estado.
+**Proyección robusta:** el cliente aplica `reduce(state, event)` (`[CampusStore](../packages/campus-engine/src/store/CampusStore.ts)`), que es **idempotente** (reintentos/duplicados no rompen estado). Un cliente que entra tarde **reproduce** el event log (`getEventLog()`) —o recibe snapshot + cola— y llega al mismo estado.
 
 ### 4.4 Campus multi-edificio y préstamos
 
@@ -396,6 +450,8 @@ store.worker.spawn(...) / despawn(...)
 > **El runtime propone; el core dispone; los clientes proyectan.**
 > Producción de eventos = host/runtime. Autoridad + orden + reglas = core. Render = clientes.
 
+
+
 ### 4.6 Pendiente al implementar el plano de ejecución (host)
 
 - Añadir a `HostSpawnRequest`/`AgentRuntime` el **scope de recursos**: `workingDir` + rutas permitidas (hoy `host.ts` no lo tiene).
@@ -404,11 +460,13 @@ store.worker.spawn(...) / despawn(...)
 
 ---
 
+
+
 ## 5. Modelo de datos
 
-Fuente canónica: [`packages/campus-engine/src/domain/types.ts`](../packages/campus-engine/src/domain/types.ts).  
-Home/contexto: [`context.ts`](../packages/campus-engine/src/domain/context.ts).  
-Org rules: [`org.ts`](../packages/campus-engine/src/domain/org.ts).  
+Fuente canónica: `[packages/campus-engine/src/domain/types.ts](../packages/campus-engine/src/domain/types.ts)`.  
+Home/contexto: `[context.ts](../packages/campus-engine/src/domain/context.ts)`.  
+Org rules: `[org.ts](../packages/campus-engine/src/domain/org.ts)`.  
 Catálogo / proyecto: `sample-catalog.json`, `sample-project.json`.
 
 ### 5.1 Contexto, harness, organigrama, biblioteca e instancias
@@ -456,6 +514,8 @@ interface DebateSession { participantIds: Id[]; topic: string; status: "open" | 
 interface TaskEvaluation { runId; evaluatorId; assigneeId; verdict }
 ```
 
+
+
 ### 5.2 Layout del edificio (asset + metadata)
 
 Separar **geometría** (Tiled) de **semántica** (manifest):
@@ -497,37 +557,52 @@ interface PortraitSlot {
 
 El layout de la captura de referencia se modela así:
 
-| Room | `workspaceKey` (ejemplo) | `role` |
-|---|---|---|
-| Left lecture | `briefing` / `mkt` | `briefing` |
-| Right ops | `dev` / `ops` | `ops` |
-| Bottom hall | `_hallway` | `hallway` |
-| Left machine alcove | `_infra` | `utility` |
+
+| Room                | `workspaceKey` (ejemplo) | `role`     |
+| ------------------- | ------------------------ | ---------- |
+| Left lecture        | `briefing` / `mkt`       | `briefing` |
+| Right ops           | `dev` / `ops`            | `ops`      |
+| Bottom hall         | `_hallway`               | `hallway`  |
+| Left machine alcove | `_infra`                 | `utility`  |
+
 
 ---
+
+
 
 ## 6. Escenas del cliente (plano de presentación)
 
 > **Plano de presentación** (§4): estas escenas **solo proyectan** el estado; no deciden negocio. Cliente principal = **Godot** (§3); `apps/playground` es un cliente web de referencia (Canvas/Phaser) para validar el contrato. Cualquier interacción del usuario se envía como **Command** al core (nunca muta estado localmente).
 
+
+
 ### BootScene
+
 - Carga tilesets, spritesheets de agentes, UI atlas (bubbles, bars).
 - Resuelve `BuildingLayout` del edificio activo.
 
+
+
 ### CampusScene
+
 - Monta tilemap del edificio activo.
 - Spawnea `RoomZone` (debug opcional).
 - Spawnea un sprite por agente **presente en el edificio** (`agent.projectId`); depth = `y`.
 - Pathing simple: grid A* sobre capa de colisión del tilemap (pasillo ↔ salas).
 - Suscripción al stream de `CampusEvent`: diff → tween move / change emote / update bar.
 
+
+
 ### HudScene (overlay) + shell
+
 - Acción **Añadir** por sala.
 - **CatalogModal**: lista `AgentArchetype`, input de nombre, confirm.
 - Retratos + barras del pasillo.
 - Sin lógica de negocio: emite **Commands** (`agent.spawn`, `agent.order`, …) al core.
 
 ---
+
+
 
 ## 7. Agente como sprite (proyección)
 
@@ -555,6 +630,8 @@ Spawning → Introducing → Idle → Walking → OccupyingAnchor → Emoting
 
 ---
 
+
+
 ## 8. Eventos (contrato del adapter)
 
 ```ts
@@ -580,6 +657,8 @@ El adapter traduce WS/API del harness a este set. Reglas en dominio del core (`o
 
 ---
 
+
+
 ## 9. Tres pantallas × tres clientes
 
 ```mermaid
@@ -603,11 +682,15 @@ flowchart TB
   API --> Store
 ```
 
-| # | Pantalla | Mobile notes |
-|---|---|---|
-| 1 | Gamificación | Tab/full-screen; touch pan/zoom; workers enter/leave |
-| 2 | Organigrama / tareas | Primaria en phone; mindmap simplificado + listas |
-| 3 | Chats | Primaria en phone; push al recibir mensajes/órdenes |
+
+
+
+| #   | Pantalla             | Mobile notes                                         |
+| --- | -------------------- | ---------------------------------------------------- |
+| 1   | Gamificación         | Tab/full-screen; touch pan/zoom; workers enter/leave |
+| 2   | Organigrama / tareas | Primaria en phone; mindmap simplificado + listas     |
+| 3   | Chats                | Primaria en phone; push al recibir mensajes/órdenes  |
+
 
 `ClientPlatform` no cambia reglas de org/memoria/spec — solo shell y notificaciones.
 
@@ -618,20 +701,24 @@ flowchart TB
 - `worker.entered` / `runtime.started` / pathing en TileMap.
 - Refs isométricas = layout modular, no art final.
 
+
+
 #### Referente: esquematización de departamentos en un edificio (fuerte)
 
-Asset: [`assets/refs/building-departments-schematic-isometric.png`](../assets/refs/building-departments-schematic-isometric.png)
+Asset: `[assets/refs/building-departments-schematic-isometric.png](../assets/refs/building-departments-schematic-isometric.png)`
 
 **Preferido** para la vista de un **edificio (= proyecto)** y sus oficinas:
 
-| Elemento visual | Lectura Agent Campus |
-|---|---|
-| Plataformas flotantes isométricas | Departamentos / workspaces (smart classroom, study, ops…) |
-| Hub central con racks | Memoria de proyecto (MemPalace wing) + / o biblioteca del building |
-| Líneas teal de red | Flujos: `ProjectCall`, shared memory, datos entre dptos |
-| Pantallas / dashboards en salas | Runs, tasks, Spec Kit status del dpto |
-| Figuras en mesas | AgentInstances en su oficina |
-| Iconos periféricos (cloud, collab, materials) | Integraciones / library / chats — no bloquean el layout |
+
+| Elemento visual                               | Lectura Agent Campus                                               |
+| --------------------------------------------- | ------------------------------------------------------------------ |
+| Plataformas flotantes isométricas             | Departamentos / workspaces (smart classroom, study, ops…)          |
+| Hub central con racks                         | Memoria de proyecto (MemPalace wing) + / o biblioteca del building |
+| Líneas teal de red                            | Flujos: `ProjectCall`, shared memory, datos entre dptos            |
+| Pantallas / dashboards en salas               | Runs, tasks, Spec Kit status del dpto                              |
+| Figuras en mesas                              | AgentInstances en su oficina                                       |
+| Iconos periféricos (cloud, collab, materials) | Integraciones / library / chats — no bloquean el layout            |
+
 
 Estilo: tech-modern, azules/teals, grid limpio, modular. Encaja web y mobile (plataformas → cards en phone).
 
@@ -639,7 +726,7 @@ Convive con el diorama clay (campus entero) y el pixel top-down (layout de salas
 
 #### Referente estético campus (orientativo)
 
-Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthetic-campus-isometric-clay.png) — diorama beige monocromo; útil para sensación de “campus objeto”, no para el esquema interno de dptos.
+Asset: `[assets/refs/aesthetic-campus-isometric-clay.png](../assets/refs/aesthetic-campus-isometric-clay.png)` — diorama beige monocromo; útil para sensación de “campus objeto”, no para el esquema interno de dptos.
 
 ### 9.2 Organigrama / tareas
 
@@ -647,22 +734,30 @@ Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthe
 - Inventario `AgentTask[]`, órdenes `AgentOrder`.
 - Spawn/destroy de workers también puede dispararse desde aquí (si el actor es `ic`); el mapa solo lo representa.
 
+
+
 ### 9.3 Chats con agentes
 
 - Hilos por `AgentInstance` nombrado (workers anónimos: TBD si tienen chat propio o solo via spawner).
 - Tipado de mensajes: pendiente de profundizar; evento mínimo futuro `chat.message` (no bloquea v0).
 
+
+
 ### 9.4 Inventario / órdenes / workers
 
-| Concepto | Tipo / evento |
-|---|---|
+
+| Concepto       | Tipo / evento                         |
+| -------------- | ------------------------------------- |
 | Task inventory | `AgentTask`, `task.inventory.updated` |
-| Orden | `AgentOrder`, `order.issued` |
-| Worker in | `worker.entered` |
-| Worker out | `worker.exited` |
-| Reject spawn | `worker.spawn.rejected` |
+| Orden          | `AgentOrder`, `order.issued`          |
+| Worker in      | `worker.entered`                      |
+| Worker out     | `worker.exited`                       |
+| Reject spawn   | `worker.spawn.rejected`               |
+
 
 ---
+
+
 
 ## 10. Estructura de repo propuesta
 
@@ -677,6 +772,8 @@ Asset: [`assets/refs/aesthetic-campus-isometric-clay.png`](../assets/refs/aesthe
 ```
 
 ---
+
+
 
 ## 11. Layout de referencia (foto)
 
@@ -710,6 +807,8 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ---
 
+
+
 ## 12. Criterios de aceptación v0
 
 1. Dominio: org, library, workers, memory, specKit, comms, **host/runtime**.
@@ -721,13 +820,19 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ---
 
+
+
 ## 12.b Premisas de desarrollo
+
+
 
 ### Semántica de producto
 
 - **Task con test-gate.** Una task solo se da por hecha si **pasa su verificación**. Ciclo: `queued → running → under_review → succeeded` (o `needs_revision`), evaluada por el supervisor directo (`org.ts::canEvaluate` / `TaskEvaluation`). **"Hecho" = 100% de lo ordenado + test en verde.**
 - **Worker = bucle acotado hasta el 100%.** Un `anonymous_worker` ejecuta un **bucle no infinito** (con límite de iteraciones/guard) que itera **hasta cumplir al 100%** la task indicada; al converger, **sale** (`worker.exited`). No es un proceso perpetuo: nace para una tarea, la completa y muere. Alinea con `SpecKitConvergenceStatus` (`diverged → in_progress → converged`) y con `RunStatus`.
 - **Subprocesos detallados.** Cada orden se descompone en subprocesos verificables; cada subproceso se testea de forma independiente.
+
+
 
 ### Disciplina de ingeniería
 
@@ -738,22 +843,28 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ---
 
+
+
 ## 12.c Protocolo de ramas — una rama por spec
 
 Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 
-| Paso | Acción |
-|---|---|
-| Abrir | Al entrar en fase `specify`, se crea una rama dedicada a esa spec. |
+
+| Paso     | Acción                                                                                                         |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| Abrir    | Al entrar en fase `specify`, se crea una rama dedicada a esa spec.                                             |
 | Trabajar | `specify → plan → tasks → implement` ocurren **en esa rama**; no se acumulan specs distintas en la misma rama. |
-| Cerrar | Fase `converge` = spec cerrada → **tests en verde** → PR a `main` (ready). |
-| Integrar | **Merge a `main`** tras revisión/CI. `main` es la integración estable. |
+| Cerrar   | Fase `converge` = spec cerrada → **tests en verde** → PR a `main` (ready).                                     |
+| Integrar | **Merge a** `main` tras revisión/CI. `main` es la integración estable.                                         |
+
 
 - **Naming** (agente cloud): `cursor/spec-<slug>-7599` (prefijo `cursor/`, sufijo `-7599` obligatorios en este entorno).
 - **Señal de cierre**: la fase `converge` del Spec Kit del edificio es el gate para test + merge.
 - **Merge**: lo realiza un humano tras revisión (el agente solo mergea con permiso explícito).
 
 ---
+
+
 
 ## 13. Fuera de alcance v0
 
@@ -764,6 +875,8 @@ Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 
 ---
 
+
+
 ## 14. Próximos inputs necesarios (cuando quieras)
 
 1. Scaffold: ¿creamos el proyecto Godot 4 vacío en `apps/campus-godot` ya?
@@ -773,6 +886,8 @@ Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 
 ---
 
+
+
 ## 15. Visión de producto (futuro, no v0)
 
 **SaaS multi-tenant "Campus as a Service".** El usuario **adquiere campus y los gestiona** (crear/borrar campus, invitar miembros, conectar hosts, límites de uso). Encaja con el modelo de 3 planos: el **core** ya es la autoridad multi-campus (`Campus.projectIds`), los **hosts** aportan cómputo del cliente y los **clientes** solo proyectan.
@@ -780,3 +895,4 @@ Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 - **Tiers / pricing**: TBD (p. ej. nº de campus/edificios, hosts conectados, agentes vivos, retención de memoria).
 - **Aislamiento**: cada tenant = uno o varios campus; identidad y facturación por cuenta.
 - **No v0**: se documenta como norte de producto; no bloquea el MVP (pantallas + API + host/runtime).
+
