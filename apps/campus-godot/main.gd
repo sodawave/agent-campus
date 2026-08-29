@@ -20,9 +20,10 @@ const ROOM_HEADER_H := 28.0
 const ROOM_PAD := 14.0
 const AGENT_COLS := 2
 const AGENT_CELL_W := 120.0
-const AGENT_CELL_H := 48.0
+const AGENT_CELL_H := 60.0
 const AGENT_R := 15.0
 const WORKER_ROW_H := 26.0
+const TASK_LINE_H := 18.0
 
 var _client = CampusClientScript.new()
 var _font: Font
@@ -109,9 +110,13 @@ func _draw() -> void:
 	var avail_right := vw - PAD
 	var y := TITLE_H
 	for b in _client.buildings:
-		var rooms := _rooms_of(String(b.get("id", "")))
+		var bid := String(b.get("id", ""))
+		var rooms := _rooms_of(bid)
 		var block_h := _block_height(rooms, avail_right)
-		draw_rect(Rect2(PAD - 10, y - 6, (vw - 2 * PAD) + 20, B_HEADER_H + block_h + 12), Color(0.12, 0.15, 0.21), true)
+		var btasks := _client.tasks_of_building(bid)
+		var tasks_h := (20.0 + btasks.size() * TASK_LINE_H) if btasks.size() > 0 else 0.0
+		var content_h := B_HEADER_H + block_h + tasks_h
+		draw_rect(Rect2(PAD - 10, y - 6, (vw - 2 * PAD) + 20, content_h + 12), Color(0.12, 0.15, 0.21), true)
 		_draw_building_icon(Vector2(PAD, y + 4))
 		draw_string(_font, Vector2(PAD + 26, y + 20), String(b.get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.6, 0.8, 1.0))
 
@@ -130,9 +135,12 @@ func _draw() -> void:
 			_draw_room(Rect2(x, ry, ROOM_W, h), r, agents, workers, heads)
 			row_max = max(row_max, h)
 			x += ROOM_W + ROOM_GAP
-		y += B_HEADER_H + block_h + 22
 
-	var status := "core: %s   ·   %d buildings · %d rooms · %d agents · %d workers" % [_ws_state_text(), _client.buildings.size(), _client.rooms.size(), _client.agents.size(), _client.workers.size()]
+		if btasks.size() > 0:
+			_draw_tasks(Vector2(PAD, y + B_HEADER_H + block_h + 6), btasks)
+		y += content_h + 22
+
+	var status := "core: %s   ·   %d buildings · %d rooms · %d agents · %d workers · %d projects · %d tasks" % [_ws_state_text(), _client.buildings.size(), _client.rooms.size(), _client.agents.size(), _client.workers.size(), _client.projects.size(), _client.tasks.size()]
 	draw_string(_font, Vector2(PAD, vh - 14), status, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.5, 0.55, 0.65))
 
 func _draw_building_icon(p: Vector2) -> void:
@@ -188,10 +196,35 @@ func _draw_agent(c: Vector2, a: Dictionary, is_head: bool, is_live: bool) -> voi
 		draw_circle(c + Vector2(AGENT_R - 2, -(AGENT_R - 2)), 3.0, Color(0.35, 0.95, 0.45))
 
 	var tx := c.x + AGENT_R + 8
-	draw_string(_font, Vector2(tx, c.y - 1), String(a.get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.96, 0.97, 1.0))
+	draw_string(_font, Vector2(tx, c.y - 3), String(a.get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.96, 0.97, 1.0))
 	var meta := _agent_meta(a)
 	if meta != "":
-		draw_string(_font, Vector2(tx, c.y + 13), meta, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.62, 0.68, 0.78))
+		draw_string(_font, Vector2(tx, c.y + 11), meta, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.62, 0.68, 0.78))
+	var projs: Array = _client.projects_of_agent(String(a.get("id", "")))
+	if projs.size() > 0:
+		draw_string(_font, Vector2(tx, c.y + 25), "proj: " + ", ".join(projs), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.55, 0.80, 0.70))
+
+func _draw_tasks(p: Vector2, btasks: Array) -> void:
+	draw_string(_font, p + Vector2(0, 12), "Tasks", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.75, 0.78, 0.85))
+	var ty := p.y + 12 + TASK_LINE_H
+	for t in btasks:
+		var st := String(t.get("status", ""))
+		draw_circle(p + Vector2(6, ty - p.y - 4), 5.0, _task_color(st))
+		draw_string(_font, p + Vector2(18, ty - p.y), "%s  [%s]" % [String(t.get("title", "")), st], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.85, 0.88, 0.95))
+		ty += TASK_LINE_H
+
+func _task_color(status: String) -> Color:
+	match status:
+		"running":
+			return Color(0.40, 0.62, 1.0)
+		"under_review":
+			return Color(0.95, 0.72, 0.30)
+		"succeeded":
+			return Color(0.35, 0.90, 0.45)
+		"needs_revision":
+			return Color(0.95, 0.42, 0.42)
+		_:
+			return Color(0.55, 0.58, 0.66)
 
 func _agent_meta(a: Dictionary) -> String:
 	var parts: Array = []
