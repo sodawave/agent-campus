@@ -738,6 +738,23 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ---
 
+## 12.c Protocolo de ramas — una rama por spec
+
+Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
+
+| Paso | Acción |
+|---|---|
+| Abrir | Al entrar en fase `specify`, se crea una rama dedicada a esa spec. |
+| Trabajar | `specify → plan → tasks → implement` ocurren **en esa rama**; no se acumulan specs distintas en la misma rama. |
+| Cerrar | Fase `converge` = spec cerrada → **tests en verde** → PR a `main` (ready). |
+| Integrar | **Merge a `main`** tras revisión/CI. `main` es la integración estable. |
+
+- **Naming** (agente cloud): `cursor/spec-<slug>-7599` (prefijo `cursor/`, sufijo `-7599` obligatorios en este entorno).
+- **Señal de cierre**: la fase `converge` del Spec Kit del edificio es el gate para test + merge.
+- **Merge**: lo realiza un humano tras revisión (el agente solo mergea con permiso explícito).
+
+---
+
 ## 13. Fuera de alcance v0
 
 - Binario CLI publicado en npm (solo contrato + package path).
@@ -753,3 +770,13 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 2. Art: tileset Stardew temporal (asset pack) vs placeholders.
 3. ¿Org/chats 100% en Godot desde el día 1, o mapa primero y UI después?
 4. Plugins MCP: ¿panel in-Godot o solo vía API al inicio?
+
+---
+
+## 15. Visión de producto (futuro, no v0)
+
+**SaaS multi-tenant "Campus as a Service".** El usuario **adquiere campus y los gestiona** (crear/borrar campus, invitar miembros, conectar hosts, límites de uso). Encaja con el modelo de 3 planos: el **core** ya es la autoridad multi-campus (`Campus.projectIds`), los **hosts** aportan cómputo del cliente y los **clientes** solo proyectan.
+
+- **Tiers / pricing**: TBD (p. ej. nº de campus/edificios, hosts conectados, agentes vivos, retención de memoria).
+- **Aislamiento**: cada tenant = uno o varios campus; identidad y facturación por cuenta.
+- **No v0**: se documenta como norte de producto; no bloquea el MVP (pantallas + API + host/runtime).
