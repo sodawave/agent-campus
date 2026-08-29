@@ -123,6 +123,40 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "project.call.issued": {
+      const { call } = event;
+      if (state.calls.some((c) => c.id === call.id)) return state;
+      if (!state.agents.some((a) => a.id === call.agentId)) return state;
+      return {
+        ...state,
+        calls: [...state.calls, call],
+        // Move representation to the calling building/room; keep execution (host).
+        agents: state.agents.map((a) =>
+          a.id === call.agentId
+            ? { ...a, buildingId: call.toBuildingId, roomId: call.toRoomId, activeCallId: call.id }
+            : a,
+        ),
+      };
+    }
+
+    case "project.call.closed": {
+      const { callId, agentId } = event;
+      const call = state.calls.find((c) => c.id === callId);
+      if (!call) return state;
+      return {
+        ...state,
+        calls: state.calls.map((c) =>
+          c.id === callId ? { ...c, status: "closed" } : c,
+        ),
+        // Return the agent home (origin captured at call time).
+        agents: state.agents.map((a) =>
+          a.id === agentId
+            ? { ...a, buildingId: call.originBuildingId, roomId: call.originRoomId, activeCallId: null }
+            : a,
+        ),
+      };
+    }
+
     default:
       return state;
   }

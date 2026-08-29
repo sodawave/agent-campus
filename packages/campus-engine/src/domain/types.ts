@@ -50,6 +50,8 @@ export interface AgentInstance {
   supervisorId?: Id | null;
   /** For anonymous workers: the named agent that spawned it. */
   spawnedById?: Id;
+  /** Active inter-building loan (ProjectCall) if the agent is on loan. */
+  activeCallId?: Id | null;
 }
 
 /** Only agents of this rank may spawn/despawn anonymous workers (Constitución VI). */
@@ -87,6 +89,20 @@ export interface DebateSession {
 }
 
 /**
+ * Inter-building loan. Moves an agent's *representation* (building/room), not its
+ * execution (host). Origin is captured so the agent can return home on close.
+ */
+export interface ProjectCall {
+  id: Id;
+  agentId: Id;
+  toBuildingId: Id;
+  toRoomId: Id;
+  originBuildingId: Id;
+  originRoomId: Id;
+  status: "open" | "closed";
+}
+
+/**
  * Facts emitted by the core, consumed by any client (JSON-serializable,
  * language-neutral). Named `entity.pastTense`.
  */
@@ -104,7 +120,9 @@ export type CampusEvent =
   | { type: "task.submitted"; taskId: Id }
   | { type: "task.evaluated"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict }
   | { type: "debate.opened"; debate: DebateSession }
-  | { type: "debate.closed"; debateId: Id };
+  | { type: "debate.closed"; debateId: Id }
+  | { type: "project.call.issued"; call: ProjectCall }
+  | { type: "project.call.closed"; callId: Id; agentId: Id };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -116,6 +134,7 @@ export interface State {
   workers: AgentInstance[];
   tasks: Task[];
   debates: DebateSession[];
+  calls: ProjectCall[];
 }
 
 /** Canonical empty projection. */
@@ -127,4 +146,5 @@ export const EMPTY_STATE: State = {
   workers: [],
   tasks: [],
   debates: [],
+  calls: [],
 };

@@ -91,6 +91,16 @@ export class CampusStore {
         agentId: input.agentId,
         supervisorId: input.supervisorId,
       }),
+    callToBuilding: (input: { id: Id; agentId: Id; toBuildingId: Id; toRoomId: Id }): CommandResult =>
+      this.dispatch({
+        type: "project.call",
+        id: input.id,
+        agentId: input.agentId,
+        toBuildingId: input.toBuildingId,
+        toRoomId: input.toRoomId,
+      }),
+    returnHome: (input: { agentId: Id }): CommandResult =>
+      this.dispatch({ type: "project.returnHome", agentId: input.agentId }),
   };
 
   readonly worker = {

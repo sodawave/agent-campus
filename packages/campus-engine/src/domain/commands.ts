@@ -34,7 +34,9 @@ export type CampusCommand =
   | { type: "task.submit"; taskId: Id }
   | { type: "task.evaluate"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict }
   | { type: "debate.open"; debate: DebateSession }
-  | { type: "debate.close"; debateId: Id };
+  | { type: "debate.close"; debateId: Id }
+  | { type: "project.call"; id: Id; agentId: Id; toBuildingId: Id; toRoomId: Id }
+  | { type: "project.returnHome"; agentId: Id };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -61,7 +63,9 @@ export type RejectionReason =
   | "participant_not_found"
   | "not_same_rank"
   | "debate_not_found"
-  | "already_closed";
+  | "already_closed"
+  | "already_on_call"
+  | "not_on_call";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -225,6 +229,41 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (!debate) return reject("debate_not_found");
       if (debate.status === "closed") return reject("already_closed");
       return accept({ type: "debate.closed", debateId: debate.id });
+    }
+
+    case "project.call": {
+      const { id, agentId, toBuildingId, toRoomId } = command;
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) return reject("agent_not_found");
+      if (agent.activeCallId != null) return reject("already_on_call");
+      if (state.calls.some((c) => c.id === id)) return reject("duplicate_id");
+      if (!state.buildings.some((b) => b.id === toBuildingId)) {
+        return reject("building_not_found");
+      }
+      const roomOk = state.rooms.some(
+        (r) => r.id === toRoomId && r.buildingId === toBuildingId,
+      );
+      if (!roomOk) return reject("room_not_found_in_building");
+      return accept({
+        type: "project.call.issued",
+        call: {
+          id,
+          agentId,
+          toBuildingId,
+          toRoomId,
+          originBuildingId: agent.buildingId,
+          originRoomId: agent.roomId,
+          status: "open",
+        },
+      });
+    }
+
+    case "project.returnHome": {
+      const { agentId } = command;
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) return reject("agent_not_found");
+      if (agent.activeCallId == null) return reject("not_on_call");
+      return accept({ type: "project.call.closed", callId: agent.activeCallId, agentId });
     }
   }
 }
