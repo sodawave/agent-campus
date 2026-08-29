@@ -3,7 +3,7 @@
  * fixtures and tests stay deterministic. Same input -> structurally equal output.
  */
 
-import type { AgentInstance, Building, Campus, DebateSession, Id, Room, Task } from "./types";
+import type { AgentInstance, Building, Campus, DebateSession, Id, MemoryRecord, MemoryScope, Room, Task } from "./types";
 
 export function buildCampus(input: {
   id: Id;
@@ -108,5 +108,21 @@ export function buildDebate(input: {
     participantIds: [...input.participantIds],
     topic: input.topic,
     status: "open",
+  };
+}
+
+export function buildMemory(input: {
+  id: Id;
+  scope: MemoryScope;
+  ownerId: Id;
+  text: string;
+  room?: string;
+}): MemoryRecord {
+  return {
+    id: input.id,
+    scope: input.scope,
+    ownerId: input.ownerId,
+    room: input.room ?? "_general",
+    text: input.text,
   };
 }

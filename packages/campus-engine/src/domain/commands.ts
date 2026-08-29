@@ -11,6 +11,7 @@ import type {
   CampusEvent,
   DebateSession,
   Id,
+  MemoryRecord,
   Room,
   State,
   Task,
@@ -36,7 +37,8 @@ export type CampusCommand =
   | { type: "debate.open"; debate: DebateSession }
   | { type: "debate.close"; debateId: Id }
   | { type: "project.call"; id: Id; agentId: Id; toBuildingId: Id; toRoomId: Id }
-  | { type: "project.returnHome"; agentId: Id };
+  | { type: "project.returnHome"; agentId: Id }
+  | { type: "memory.remember"; record: MemoryRecord };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -264,6 +266,21 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (!agent) return reject("agent_not_found");
       if (agent.activeCallId == null) return reject("not_on_call");
       return accept({ type: "project.call.closed", callId: agent.activeCallId, agentId });
+    }
+
+    case "memory.remember": {
+      const { record } = command;
+      if (state.memories.some((m) => m.id === record.id)) return reject("duplicate_id");
+      if (record.scope === "agent") {
+        if (!state.agents.some((a) => a.id === record.ownerId)) {
+          return reject("agent_not_found");
+        }
+      } else {
+        if (!state.buildings.some((b) => b.id === record.ownerId)) {
+          return reject("building_not_found");
+        }
+      }
+      return accept({ type: "memory.remembered", record });
     }
   }
 }

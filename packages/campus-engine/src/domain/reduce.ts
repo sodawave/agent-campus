@@ -157,6 +157,12 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "memory.remembered": {
+      const { record } = event;
+      if (state.memories.some((m) => m.id === record.id)) return state;
+      return { ...state, memories: [...state.memories, record] };
+    }
+
     default:
       return state;
   }

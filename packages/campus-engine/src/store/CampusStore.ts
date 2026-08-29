@@ -4,10 +4,11 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildDebate, buildRoom, buildTask, buildWorker } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildDebate, buildMemory, buildRoom, buildTask, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
-import { EMPTY_STATE, type CampusEvent, type Id, type State, type TaskVerdict } from "../domain/types";
+import { recallForAgent } from "../domain/memory";
+import { EMPTY_STATE, type CampusEvent, type Id, type MemoryRecord, type MemoryScope, type State, type TaskVerdict } from "../domain/types";
 
 type Listener = (state: State) => void;
 
@@ -147,5 +148,12 @@ export class CampusStore {
       this.dispatch({ type: "debate.open", debate: buildDebate(input) }),
     close: (input: { debateId: Id }): CommandResult =>
       this.dispatch({ type: "debate.close", debateId: input.debateId }),
+  };
+
+  readonly memory = {
+    remember: (input: { id: Id; scope: MemoryScope; ownerId: Id; text: string; room?: string }): CommandResult =>
+      this.dispatch({ type: "memory.remember", record: buildMemory(input) }),
+    /** Read-only effective recall for an agent (own + current building's project memory). */
+    recall: (agentId: Id): MemoryRecord[] => recallForAgent(this.#state, agentId),
   };
 }

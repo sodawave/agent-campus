@@ -88,6 +88,21 @@ export interface DebateSession {
   status: "open" | "closed";
 }
 
+/** Memory scope: an agent's private drawer, or a building's shared project wing. */
+export type MemoryScope = "agent" | "project";
+
+/**
+ * A memory record (MemPalace drawer). `ownerId` is an agentId (scope "agent") or
+ * a buildingId (scope "project"). The core stores pointers/records, not blobs.
+ */
+export interface MemoryRecord {
+  id: Id;
+  scope: MemoryScope;
+  ownerId: Id;
+  room: string;
+  text: string;
+}
+
 /**
  * Inter-building loan. Moves an agent's *representation* (building/room), not its
  * execution (host). Origin is captured so the agent can return home on close.
@@ -122,7 +137,8 @@ export type CampusEvent =
   | { type: "debate.opened"; debate: DebateSession }
   | { type: "debate.closed"; debateId: Id }
   | { type: "project.call.issued"; call: ProjectCall }
-  | { type: "project.call.closed"; callId: Id; agentId: Id };
+  | { type: "project.call.closed"; callId: Id; agentId: Id }
+  | { type: "memory.remembered"; record: MemoryRecord };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -135,6 +151,7 @@ export interface State {
   tasks: Task[];
   debates: DebateSession[];
   calls: ProjectCall[];
+  memories: MemoryRecord[];
 }
 
 /** Canonical empty projection. */
@@ -147,4 +164,5 @@ export const EMPTY_STATE: State = {
   tasks: [],
   debates: [],
   calls: [],
+  memories: [],
 };
