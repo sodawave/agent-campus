@@ -4,10 +4,10 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildRoom, buildWorker } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildRoom, buildTask, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
-import { EMPTY_STATE, type CampusEvent, type Id, type State } from "../domain/types";
+import { EMPTY_STATE, type CampusEvent, type Id, type State, type TaskVerdict } from "../domain/types";
 
 type Listener = (state: State) => void;
 
@@ -114,5 +114,21 @@ export class CampusStore {
       }),
     despawn: (input: { actorId: Id; workerId: Id }): CommandResult =>
       this.dispatch({ type: "worker.despawn", actorId: input.actorId, workerId: input.workerId }),
+  };
+
+  readonly task = {
+    assign: (input: { id: Id; title: string; assigneeId: Id; orderedById?: Id }): CommandResult =>
+      this.dispatch({ type: "task.assign", task: buildTask(input) }),
+    start: (input: { taskId: Id }): CommandResult =>
+      this.dispatch({ type: "task.start", taskId: input.taskId }),
+    submit: (input: { taskId: Id }): CommandResult =>
+      this.dispatch({ type: "task.submit", taskId: input.taskId }),
+    evaluate: (input: { taskId: Id; evaluatorId: Id; verdict: TaskVerdict }): CommandResult =>
+      this.dispatch({
+        type: "task.evaluate",
+        taskId: input.taskId,
+        evaluatorId: input.evaluatorId,
+        verdict: input.verdict,
+      }),
   };
 }

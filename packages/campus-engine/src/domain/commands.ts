@@ -12,6 +12,8 @@ import type {
   Id,
   Room,
   State,
+  Task,
+  TaskVerdict,
 } from "./types";
 import { WORKER_SPAWNER_RANK_KEY } from "./types";
 
@@ -24,7 +26,11 @@ export type CampusCommand =
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
   | { type: "worker.spawn"; actorId: Id; worker: AgentInstance }
-  | { type: "worker.despawn"; actorId: Id; workerId: Id };
+  | { type: "worker.despawn"; actorId: Id; workerId: Id }
+  | { type: "task.assign"; task: Task }
+  | { type: "task.start"; taskId: Id }
+  | { type: "task.submit"; taskId: Id }
+  | { type: "task.evaluate"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -41,7 +47,12 @@ export type RejectionReason =
   | "actor_not_found"
   | "rank_not_allowed"
   | "worker_not_found"
-  | "not_worker_spawner";
+  | "not_worker_spawner"
+  | "assignee_not_found"
+  | "task_not_found"
+  | "invalid_transition"
+  | "evaluator_not_found"
+  | "not_supervisor";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -139,6 +150,47 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (!worker) return reject("worker_not_found");
       if (worker.spawnedById !== actorId) return reject("not_worker_spawner");
       return accept({ type: "worker.exited", workerId });
+    }
+
+    case "task.assign": {
+      const { task } = command;
+      if (!state.agents.some((a) => a.id === task.assigneeId)) {
+        return reject("assignee_not_found");
+      }
+      if (state.tasks.some((t) => t.id === task.id)) return reject("duplicate_id");
+      return accept({ type: "task.created", task: { ...task, status: "queued" } });
+    }
+
+    case "task.start": {
+      const task = state.tasks.find((t) => t.id === command.taskId);
+      if (!task) return reject("task_not_found");
+      // Startable from queued or after a needed revision.
+      if (task.status !== "queued" && task.status !== "needs_revision") {
+        return reject("invalid_transition");
+      }
+      return accept({ type: "task.started", taskId: task.id });
+    }
+
+    case "task.submit": {
+      const task = state.tasks.find((t) => t.id === command.taskId);
+      if (!task) return reject("task_not_found");
+      if (task.status !== "running") return reject("invalid_transition");
+      return accept({ type: "task.submitted", taskId: task.id });
+    }
+
+    case "task.evaluate": {
+      const { taskId, evaluatorId, verdict } = command;
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task) return reject("task_not_found");
+      if (task.status !== "under_review") return reject("invalid_transition");
+      const evaluator = state.agents.find((a) => a.id === evaluatorId);
+      if (!evaluator) return reject("evaluator_not_found");
+      const assignee = state.agents.find((a) => a.id === task.assigneeId);
+      // Constitución VI: only the direct supervisor evaluates.
+      if (!assignee || assignee.supervisorId !== evaluatorId) {
+        return reject("not_supervisor");
+      }
+      return accept({ type: "task.evaluated", taskId, evaluatorId, verdict });
     }
   }
 }

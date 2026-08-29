@@ -3,7 +3,7 @@
  * fixtures and tests stay deterministic. Same input -> structurally equal output.
  */
 
-import type { AgentInstance, Building, Campus, Id, Room } from "./types";
+import type { AgentInstance, Building, Campus, Id, Room, Task } from "./types";
 
 export function buildCampus(input: {
   id: Id;
@@ -80,4 +80,20 @@ export function buildWorker(input: {
     rankKey: "ic",
     spawnedById: input.spawnedById,
   };
+}
+
+export function buildTask(input: {
+  id: Id;
+  title: string;
+  assigneeId: Id;
+  orderedById?: Id;
+}): Task {
+  const task: Task = {
+    id: input.id,
+    title: input.title,
+    assigneeId: input.assigneeId,
+    status: "queued",
+  };
+  if (input.orderedById !== undefined) task.orderedById = input.orderedById;
+  return task;
 }

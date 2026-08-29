@@ -56,6 +56,29 @@ export interface AgentInstance {
 export const WORKER_SPAWNER_RANK_KEY = "ic";
 
 /**
+ * Task lifecycle (Constitución VI, test-gate): "done" = 100% + green test, only
+ * reachable via the direct supervisor's evaluation after review.
+ */
+export type TaskStatus =
+  | "queued"
+  | "running"
+  | "under_review"
+  | "succeeded"
+  | "needs_revision";
+
+export type TaskVerdict = "succeeded" | "needs_revision";
+
+export interface Task {
+  id: Id;
+  title: string;
+  assigneeId: Id;
+  orderedById?: Id;
+  status: TaskStatus;
+  evaluatorId?: Id;
+  verdict?: TaskVerdict;
+}
+
+/**
  * Facts emitted by the core, consumed by any client (JSON-serializable,
  * language-neutral). Named `entity.pastTense`.
  */
@@ -67,7 +90,11 @@ export type CampusEvent =
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }
   | { type: "worker.entered"; worker: AgentInstance }
-  | { type: "worker.exited"; workerId: Id };
+  | { type: "worker.exited"; workerId: Id }
+  | { type: "task.created"; task: Task }
+  | { type: "task.started"; taskId: Id }
+  | { type: "task.submitted"; taskId: Id }
+  | { type: "task.evaluated"; taskId: Id; evaluatorId: Id; verdict: TaskVerdict };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -77,6 +104,7 @@ export interface State {
   agents: AgentInstance[];
   /** Anonymous workers currently in the campus (ephemeral). */
   workers: AgentInstance[];
+  tasks: Task[];
 }
 
 /** Canonical empty projection. */
@@ -86,4 +114,5 @@ export const EMPTY_STATE: State = {
   rooms: [],
   agents: [],
   workers: [],
+  tasks: [],
 };

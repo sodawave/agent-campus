@@ -4,7 +4,16 @@
  * leave the state unchanged (read-only projection).
  */
 
-import type { CampusEvent, State } from "./types";
+import type { CampusEvent, State, TaskStatus } from "./types";
+
+/** Set a task's status immutably (no-op if the task is absent). */
+function mapTaskStatus(state: State, taskId: string, status: TaskStatus): State {
+  if (!state.tasks.some((t) => t.id === taskId)) return state;
+  return {
+    ...state,
+    tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
+  };
+}
 
 export function reduce(state: State, event: CampusEvent): State {
   switch (event.type) {
@@ -70,6 +79,31 @@ export function reduce(state: State, event: CampusEvent): State {
       const { workerId } = event;
       if (!state.workers.some((w) => w.id === workerId)) return state;
       return { ...state, workers: state.workers.filter((w) => w.id !== workerId) };
+    }
+
+    case "task.created": {
+      const { task } = event;
+      if (state.tasks.some((t) => t.id === task.id)) return state;
+      return { ...state, tasks: [...state.tasks, task] };
+    }
+
+    case "task.started":
+      return mapTaskStatus(state, event.taskId, "running");
+
+    case "task.submitted":
+      return mapTaskStatus(state, event.taskId, "under_review");
+
+    case "task.evaluated": {
+      const { taskId, evaluatorId, verdict } = event;
+      if (!state.tasks.some((t) => t.id === taskId)) return state;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, status: verdict, evaluatorId, verdict }
+            : t,
+        ),
+      };
     }
 
     default:
