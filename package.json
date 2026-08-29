@@ -9,6 +9,8 @@
     "apps/*"
   ],
   "scripts": {
+    "dev:server": "npm run dev --workspace @agent-campus/server",
+    "dev:viewer": "npm run dev --workspace @agent-campus/viewer",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:watch": "npm run test:watch --workspace packages/campus-engine",
