@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-29
 
-**Status**: Clarified (ready for plan)
+**Status**: Converged
 
 **Input**: "El core como servicio: hosts y clientes hablan con él por el cable. Command/Event cruzan como JSON; los consumidores proyectan."
 
