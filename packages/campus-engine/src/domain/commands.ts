@@ -36,6 +36,7 @@ export type CampusCommand =
   | { type: "campus.setConfig"; language?: string; timezone?: string }
   | { type: "campus.addProvider"; provider: AiProvider }
   | { type: "campus.removeProvider"; providerId: Id }
+  | { type: "campus.setProviderToken"; providerId: Id; hasToken: boolean }
   | { type: "campus.setDefaultModel"; providerId: Id; model: string }
   | {
       type: "building.spawn";
@@ -164,6 +165,18 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         return reject("provider_not_found");
       }
       return accept({ type: "campus.provider.removed", providerId: command.providerId });
+    }
+
+    case "campus.setProviderToken": {
+      if (!state.campus) return reject("campus_not_loaded");
+      if (!state.config.providers.some((p) => p.id === command.providerId)) {
+        return reject("provider_not_found");
+      }
+      return accept({
+        type: "campus.provider.tokenSet",
+        providerId: command.providerId,
+        hasToken: command.hasToken,
+      });
     }
 
     case "campus.setDefaultModel": {
