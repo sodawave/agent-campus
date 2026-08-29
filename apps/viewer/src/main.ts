@@ -1,6 +1,8 @@
 import "./style.css";
 import {
   CampusClient,
+  agentsForProject,
+  projectsForAgent,
   type CampusCommand,
   type CommandResult,
   type Connection,
@@ -41,6 +43,7 @@ app.innerHTML = `
     </div>
     <div class="panel"><h2>Workers</h2><div id="workers"></div></div>
     <div class="panel"><h2>Tasks</h2><div id="tasks"></div></div>
+    <div class="panel"><h2>Projects (inventory) &amp; assignments</h2><div id="projects"></div></div>
     <div class="panel"><h2>Execution — hosts / runtimes</h2><div id="exec"></div></div>
     <div class="panel"><h2>SDD &amp; Library</h2><div id="sdd"></div></div>
   </div>
@@ -53,6 +56,7 @@ const controls = document.getElementById("controls")!;
 const logEl = document.getElementById("log")!;
 const workersEl = document.getElementById("workers")!;
 const tasksEl = document.getElementById("tasks")!;
+const projectsEl = document.getElementById("projects")!;
 const execEl = document.getElementById("exec")!;
 const sddEl = document.getElementById("sdd")!;
 
@@ -84,7 +88,7 @@ function renderStatus(): void {
 function render(state: State = client.state()): void {
   if (!state.campus) {
     view.innerHTML = `<span class="muted">no campus loaded</span>`;
-    workersEl.innerHTML = tasksEl.innerHTML = execEl.innerHTML = sddEl.innerHTML = "";
+    workersEl.innerHTML = tasksEl.innerHTML = projectsEl.innerHTML = execEl.innerHTML = sddEl.innerHTML = "";
     return;
   }
 
@@ -102,7 +106,9 @@ function render(state: State = client.state()): void {
               const rank = a.rankKey ? `·${esc(a.rankKey)}` : "";
               const head = r.headAgentId === a.id ? " ★" : "";
               const liveDot = live ? `<span class="live" title="live runtime">●</span>` : "";
-              return `<span class="agent">${liveDot}${esc(a.name)}<span class="muted">${rank}</span>${head}</span>`;
+              const projs = projectsForAgent(state, a.id).map((p) => esc(p.name));
+              const projTag = projs.length ? ` <span class="muted" title="assigned projects">[${projs.join(", ")}]</span>` : "";
+              return `<span class="agent">${liveDot}${esc(a.name)}<span class="muted">${rank}</span>${head}${projTag}</span>`;
             })
             .join("");
           return `<div class="room">· ${esc(r.key)} ${agents || '<span class="muted">(empty)</span>'}</div>`;
@@ -133,6 +139,19 @@ function render(state: State = client.state()): void {
             (t) =>
               `<div class="row-item">${esc(t.title)} <span class="badge status-${t.status}">${t.status}</span> <span class="muted">→ ${esc(t.assigneeId)}</span></div>`,
           )
+          .join("");
+
+  // Projects (inventory) & assignments
+  projectsEl.innerHTML =
+    state.projects.length === 0
+      ? `<span class="muted">none</span>`
+      : state.projects
+          .map((p) => {
+            const building = state.buildings.find((b) => b.id === p.buildingId)?.name ?? p.buildingId;
+            const members = agentsForProject(state, p.id).map((a) => esc(a.name));
+            const who = members.length ? ` · ${members.join(", ")}` : "";
+            return `<div class="row-item">📦 ${esc(p.name)} <span class="badge status-${p.status}">${p.status}</span> <span class="muted">@ ${esc(building)}${who}</span></div>`;
+          })
           .join("");
 
   // Execution
@@ -203,6 +222,21 @@ function renderControls(): void {
       { type: "agent.instantiate", agent: { id, name: `Agent ${seq}`, kind: "named", buildingId: r.buildingId, roomId: r.id } },
       "agent.instantiate",
     );
+  });
+
+  mk("Create project (1st building)", () => {
+    const b = client.state().buildings[0];
+    if (!b) return;
+    const id = `p-${++seq}-${Date.now().toString(36)}`;
+    void send({ type: "project.create", project: { id, buildingId: b.id, name: `Project ${seq}`, status: "active" } }, "project.create");
+  });
+
+  mk("Assign 1st agent → 1st project", () => {
+    const s = client.state();
+    const project = s.projects[0];
+    const agent = project ? s.agents.find((a) => a.buildingId === project.buildingId) : undefined;
+    if (!project || !agent) return;
+    void send({ type: "project.assign", agentId: agent.id, projectId: project.id }, "project.assign");
   });
 
   mk("Try invalid (bad room)", () => {

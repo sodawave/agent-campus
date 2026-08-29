@@ -52,6 +52,10 @@ function seed(server: CampusServer): void {
   s.specKit.advancePhase({ buildingId: "b-alpha" }); // -> specify
   s.library.addClassification({ id: "cl-eng", key: "eng", label: "Engineering", skillKeys: ["software-eng"] });
   s.library.addDocument({ id: "doc-1", title: "Style Guide", kind: "manual", classificationIds: ["cl-eng"] });
+
+  // A project in the building inventory + an agent assigned to it.
+  s.project.create({ id: "p-onboarding", buildingId: "b-alpha", name: "Onboarding" });
+  s.project.assign({ agentId: "a-ivan", projectId: "p-onboarding" });
 }
 
 const server = new CampusServer();
