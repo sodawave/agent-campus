@@ -68,6 +68,12 @@ Ingeniería:
 - Antes de abrir PR: `npm run typecheck && npm test && npm run build` en verde.
 - `main` siempre desplegable/estable.
 
+Metodología SDD con **Spec Kit** (github/spec-kit, integración `cursor-agent`):
+
+- Principios de gobierno: [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+- Comandos del agente en `.cursor/skills/speckit-*`: `/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`, `/speckit-converge` (+ `/speckit-analyze`, `/speckit-checklist`).
+- Artefactos de feature en `specs/<NNN-slug>/` (spec.md, plan.md, tasks.md).
+
 ## Convenciones de código
 
 - TypeScript estricto (ver `tsconfig.base.json`): `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, etc.
