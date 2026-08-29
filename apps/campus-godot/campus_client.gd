@@ -70,6 +70,11 @@ func _reduce(ev) -> void:
 				_upsert(agents, _agent(la))
 		"room.spawned":
 			_upsert(rooms, _room(ev.get("room", {})))
+		"room.head.assigned":
+			var rid := String(ev.get("roomId", ""))
+			for i in rooms.size():
+				if String(rooms[i].get("id", "")) == rid:
+					rooms[i]["headAgentId"] = String(ev.get("agentId", ""))
 		"agent.instantiated":
 			_upsert(agents, _agent(ev.get("agent", {})))
 		_:
@@ -81,6 +86,7 @@ func _room(r) -> Dictionary:
 		"buildingId": String(r.get("buildingId", "")),
 		"key": String(r.get("key", "")),
 		"role": String(r.get("role", "")),
+		"headAgentId": String(r.get("headAgentId", "")),
 	}
 
 func _agent(a) -> Dictionary:
