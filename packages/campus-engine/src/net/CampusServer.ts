@@ -12,7 +12,19 @@ import type { CampusCommand, CampusEvent, Id } from "../domain/types";
 import type { CampusState } from "../store/CampusStore";
 import type { CampusCore, CommandResult } from "../core/CampusCore";
 
-const KNOWN_COMMANDS = new Set(["agent.spawn", "worker.spawn", "worker.despawn"]);
+const KNOWN_COMMANDS = new Set<CampusCommand["type"]>([
+  "agent.spawn",
+  "worker.spawn",
+  "worker.despawn",
+  "building.spawn",
+  "room.spawn",
+  "room.assignHead",
+  "agent.callToBuilding",
+  "agent.returnHome",
+  "host.join",
+  "host.spawnRuntime",
+  "host.stopRuntime",
+]);
 
 export class CampusServer {
   constructor(
