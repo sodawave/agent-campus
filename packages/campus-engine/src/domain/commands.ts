@@ -21,6 +21,7 @@ import type {
 import { WORKER_SPAWNER_RANK_KEY } from "./types";
 import { canDebate } from "./org";
 import { nextSpecKitPhase } from "./speckit";
+import { liveRuntimeForAgent } from "./host";
 
 /** Requests from a client/host to the core (validable, rejectable). */
 export type CampusCommand =
@@ -43,7 +44,11 @@ export type CampusCommand =
   | { type: "memory.remember"; record: MemoryRecord }
   | { type: "speckit.enable"; buildingId: Id }
   | { type: "speckit.advancePhase"; buildingId: Id }
-  | { type: "speckit.addArtifact"; artifact: SpecKitArtifact };
+  | { type: "speckit.addArtifact"; artifact: SpecKitArtifact }
+  | { type: "host.join"; id: Id; label: string }
+  | { type: "host.leave"; hostId: Id }
+  | { type: "runtime.start"; id: Id; hostId: Id; agentId: Id; workingDir?: string }
+  | { type: "runtime.stop"; runtimeId: Id };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -75,7 +80,11 @@ export type RejectionReason =
   | "not_on_call"
   | "speckit_already_enabled"
   | "speckit_not_enabled"
-  | "no_next_phase";
+  | "no_next_phase"
+  | "host_not_found"
+  | "host_offline"
+  | "agent_already_live"
+  | "runtime_not_found";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -320,6 +329,40 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         return reject("duplicate_id");
       }
       return accept({ type: "speckit.artifact.upserted", artifact });
+    }
+
+    case "host.join": {
+      const { id, label } = command;
+      if (state.hosts.some((h) => h.id === id)) return reject("duplicate_id");
+      return accept({ type: "host.joined", host: { id, label, status: "online" } });
+    }
+
+    case "host.leave": {
+      const { hostId } = command;
+      if (!state.hosts.some((h) => h.id === hostId)) return reject("host_not_found");
+      return accept({ type: "host.left", hostId });
+    }
+
+    case "runtime.start": {
+      const { id, hostId, agentId, workingDir } = command;
+      const host = state.hosts.find((h) => h.id === hostId);
+      if (!host) return reject("host_not_found");
+      if (host.status !== "online") return reject("host_offline");
+      if (!state.agents.some((a) => a.id === agentId)) return reject("agent_not_found");
+      if (liveRuntimeForAgent(state, agentId)) return reject("agent_already_live");
+      if (state.runtimes.some((r) => r.id === id)) return reject("duplicate_id");
+      const runtime =
+        workingDir !== undefined
+          ? { id, hostId, agentId, status: "running" as const, workingDir }
+          : { id, hostId, agentId, status: "running" as const };
+      return accept({ type: "runtime.started", runtime });
+    }
+
+    case "runtime.stop": {
+      const { runtimeId } = command;
+      const runtime = state.runtimes.find((r) => r.id === runtimeId);
+      if (!runtime || runtime.status !== "running") return reject("runtime_not_found");
+      return accept({ type: "runtime.stopped", runtimeId });
     }
   }
 }

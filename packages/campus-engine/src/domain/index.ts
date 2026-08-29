@@ -5,3 +5,4 @@ export * from "./commands";
 export * from "./org";
 export * from "./memory";
 export * from "./speckit";
+export * from "./host";

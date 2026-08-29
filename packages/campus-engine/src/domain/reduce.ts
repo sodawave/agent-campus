@@ -191,6 +191,62 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "host.joined": {
+      const { host } = event;
+      if (state.hosts.some((h) => h.id === host.id)) return state;
+      return { ...state, hosts: [...state.hosts, host] };
+    }
+
+    case "host.left": {
+      const { hostId } = event;
+      if (!state.hosts.some((h) => h.id === hostId)) return state;
+      const stoppedRuntimeIds = new Set(
+        state.runtimes.filter((r) => r.hostId === hostId).map((r) => r.id),
+      );
+      return {
+        ...state,
+        hosts: state.hosts.filter((h) => h.id !== hostId),
+        runtimes: state.runtimes.map((r) =>
+          r.hostId === hostId ? { ...r, status: "stopped" } : r,
+        ),
+        // Any agent alive via this host goes offline.
+        agents: state.agents.map((a) =>
+          a.runtimeId != null && stoppedRuntimeIds.has(a.runtimeId)
+            ? { ...a, hostId: null, runtimeId: null }
+            : a,
+        ),
+      };
+    }
+
+    case "runtime.started": {
+      const { runtime } = event;
+      if (state.runtimes.some((r) => r.id === runtime.id)) return state;
+      return {
+        ...state,
+        runtimes: [...state.runtimes, runtime],
+        agents: state.agents.map((a) =>
+          a.id === runtime.agentId
+            ? { ...a, hostId: runtime.hostId, runtimeId: runtime.id }
+            : a,
+        ),
+      };
+    }
+
+    case "runtime.stopped": {
+      const { runtimeId } = event;
+      const runtime = state.runtimes.find((r) => r.id === runtimeId);
+      if (!runtime) return state;
+      return {
+        ...state,
+        runtimes: state.runtimes.map((r) =>
+          r.id === runtimeId ? { ...r, status: "stopped" } : r,
+        ),
+        agents: state.agents.map((a) =>
+          a.runtimeId === runtimeId ? { ...a, hostId: null, runtimeId: null } : a,
+        ),
+      };
+    }
+
     default:
       return state;
   }

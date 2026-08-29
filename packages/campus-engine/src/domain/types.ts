@@ -52,6 +52,27 @@ export interface AgentInstance {
   spawnedById?: Id;
   /** Active inter-building loan (ProjectCall) if the agent is on loan. */
   activeCallId?: Id | null;
+  /** Execution plane: the host running this agent, if alive. */
+  hostId?: Id | null;
+  /** Execution plane: the live runtime feeding this agent, if alive. */
+  runtimeId?: Id | null;
+}
+
+/** A machine/process joined to the campus that can run agent runtimes. */
+export interface AgentHost {
+  id: Id;
+  label: string;
+  status: "online" | "offline";
+}
+
+/** A live runtime of one agent on a host (execution plane). */
+export interface AgentRuntime {
+  id: Id;
+  hostId: Id;
+  agentId: Id;
+  status: "running" | "stopped";
+  /** Host-local working dir the runtime may use (metadata only; core owns no bytes). */
+  workingDir?: string;
 }
 
 /** Only agents of this rank may spawn/despawn anonymous workers (Constitución VI). */
@@ -174,7 +195,11 @@ export type CampusEvent =
   | { type: "memory.remembered"; record: MemoryRecord }
   | { type: "speckit.enabled"; buildingId: Id; phase: SpecKitPhase }
   | { type: "speckit.phase.changed"; buildingId: Id; phase: SpecKitPhase }
-  | { type: "speckit.artifact.upserted"; artifact: SpecKitArtifact };
+  | { type: "speckit.artifact.upserted"; artifact: SpecKitArtifact }
+  | { type: "host.joined"; host: AgentHost }
+  | { type: "host.left"; hostId: Id }
+  | { type: "runtime.started"; runtime: AgentRuntime }
+  | { type: "runtime.stopped"; runtimeId: Id };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -190,6 +215,8 @@ export interface State {
   memories: MemoryRecord[];
   specKits: BuildingSpecKit[];
   specArtifacts: SpecKitArtifact[];
+  hosts: AgentHost[];
+  runtimes: AgentRuntime[];
 }
 
 /** Canonical empty projection. */
@@ -205,4 +232,6 @@ export const EMPTY_STATE: State = {
   memories: [],
   specKits: [],
   specArtifacts: [],
+  hosts: [],
+  runtimes: [],
 };

@@ -166,4 +166,24 @@ export class CampusStore {
     /** Read-only effective recall for an agent (own + current building's project memory). */
     recall: (agentId: Id): MemoryRecord[] => recallForAgent(this.#state, agentId),
   };
+
+  readonly host = {
+    join: (input: { id: Id; label: string }): CommandResult =>
+      this.dispatch({ type: "host.join", id: input.id, label: input.label }),
+    leave: (input: { hostId: Id }): CommandResult =>
+      this.dispatch({ type: "host.leave", hostId: input.hostId }),
+  };
+
+  readonly runtime = {
+    start: (input: { id: Id; hostId: Id; agentId: Id; workingDir?: string }): CommandResult =>
+      this.dispatch({
+        type: "runtime.start",
+        id: input.id,
+        hostId: input.hostId,
+        agentId: input.agentId,
+        ...(input.workingDir !== undefined ? { workingDir: input.workingDir } : {}),
+      }),
+    stop: (input: { runtimeId: Id }): CommandResult =>
+      this.dispatch({ type: "runtime.stop", runtimeId: input.runtimeId }),
+  };
 }
