@@ -21,7 +21,8 @@ describe("project.assign / unassign (agent ↔ project, N:N)", () => {
     const res = store.project.assign({ agentId: "a1", projectId: "p1" });
     expect(res.ok).toBe(true);
     expect(projectsForAgent(store.state(), "a1").map((p) => p.id)).toEqual(["p1"]);
-    expect(agentsForProject(store.state(), "p1").map((a) => a.id)).toEqual(["a1"]);
+    // p1 also has the building leader auto-assigned at creation.
+    expect(agentsForProject(store.state(), "p1").map((a) => a.id)).toEqual(["b1-leader-agent", "a1"]);
   });
 
   it("supports N:N (agent in several projects, project with several agents)", () => {
@@ -32,7 +33,8 @@ describe("project.assign / unassign (agent ↔ project, N:N)", () => {
     store.project.assign({ agentId: "a1", projectId: "p1b" });
     store.project.assign({ agentId: "a3", projectId: "p1" });
     expect(projectsForAgent(store.state(), "a1").map((p) => p.id).sort()).toEqual(["p1", "p1b"]);
-    expect(agentsForProject(store.state(), "p1").map((a) => a.id).sort()).toEqual(["a1", "a3"]);
+    // p1 also has the auto-assigned building leader.
+    expect(agentsForProject(store.state(), "p1").map((a) => a.id).sort()).toEqual(["a1", "a3", "b1-leader-agent"]);
   });
 
   it("rejects cross-building assignment, unknown agent/project, and double assign", () => {
