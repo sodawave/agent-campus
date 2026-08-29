@@ -157,18 +157,18 @@ No vendemos Buzz entero en v0; reutilizamos el **patrón de ops** y dejamos el r
 > **Revisión conceptual (2026-08-29): `Building` = `Entorno`, no proyecto.** Un building es un
 > **entorno** (p. ej. *Casa*, *Empresa A*, *Empresa B*). El **proyecto** deja de ser el building:
 > ahora **vive dentro** del building como un **inventario/archivador de proyectos** en la **room
-> del jefe (Boss)**. Ver §2.0. Las menciones antiguas de "Project (= Building)" quedan
+> del líder (Leader)**. Ver §2.0. Las menciones antiguas de "Project (= Building)" quedan
 > **superadas** y se reconcilian por capas.
 
 ```
 Campus
   ├── Library + MemPalace palace
   └── Building (= Entorno: Casa, Empresa A, Empresa B…)
-        ├── context, ranks
+        ├── context, leaderAgentId
         ├── memoryWingId              memoria compartida del entorno
         ├── specKit                   Spec-Driven Development
-        ├── Room (mín.: Boss office) → AgentInstance
-        └── Project[]                 inventario de proyectos (archivador en la room del Boss)
+        ├── Room (mín.: Leader office) → AgentInstance
+        └── Project[]                 inventario de proyectos (archivador en la room del Leader)
                                       ↕ assignment: AgentInstance ↔ Project
 ```
 
@@ -176,10 +176,10 @@ Campus
 
 - **Building = Entorno.** Un contenedor con identidad propia (Casa, Empresa A, Empresa B…). No es
   un proyecto.
-- **Room mínima: Boss office.** Todo building tiene, como mínimo, la **oficina del jefe (Boss)**.
+- **Room mínima: Leader office.** Todo building tiene, como mínimo, la **oficina del líder (Leader)**.
 - **Inventario de proyectos.** El building tiene un **contenedor** (tipo *inventario de juego* /
   archivador) donde **viven los proyectos**. Conceptualmente ese archivador está en la **room del
-  Boss**.
+  Leader**.
 - **Project (nueva sub-entidad).** El proyecto pasa a ser una entidad **dentro** del building
   (`Project { id, buildingId, name, … }`), guardada en el inventario. Ya **no** equivale al
   building.
@@ -191,12 +191,12 @@ Campus
 ```mermaid
 flowchart TB
   Campus --> Building["Building = Entorno (Casa / Empresa A…)"]
-  Building --> Boss["Room: Boss office (mínima)"]
+  Building --> Leader["Room: Leader office (mínima)"]
   Building --> RoomsN["Room[] (departamentos)"]
-  Building --> Inv["Inventario de proyectos (archivador en la room del Boss)"]
+  Building --> Inv["Inventario de proyectos (archivador en la room del Leader)"]
   Inv --> Projects["Project[]"]
   RoomsN --> Agents["AgentInstance[]"]
-  Boss --> Agents
+  Leader --> Agents
   Agents -->|assignment| Projects
 ```
 
@@ -209,7 +209,7 @@ flowchart TB
   la entidad `Project`.
 - Capas de dominio nuevas a planificar: **`Project` (entidad + inventario del building)** y
   **`assignment` (agente ↔ proyecto)**. La capa de building en curso se reenfoca a "entorno"
-  (context + Boss office + lead).
+  (context + Leader office + lead).
 
 
 
@@ -537,18 +537,18 @@ interface AgentArchetype {
 }
 
 // NOTA (revisión §2.0): este interfaz describe el ENTORNO, que ahora se llama Building.
-// El "Project" pasa a ser una sub-entidad dentro del building (inventario en la room del Boss),
+// El "Project" pasa a ser una sub-entidad dentro del building (inventario en la room del Leader),
 // con su propia interfaz (se define en su capa). Se reconcilia el naming por capas.
 interface Building {            // antes "Project (= Building)"; ahora Building = Entorno
   campusId: Id;
   context: BuildingContext;     // "quiénes somos" / normas del entorno
-  campusLeadAgentId?: Id;       // jefe del entorno (Boss, agente auto-creado con el building)
+  leaderAgentId?: Id;           // líder del entorno (Leader, agente auto-creado con el building)
 }
 // El rango NO cuelga del entorno: es una etiqueta libre en el agente (agent.rankKey,
-// p. ej. "boss"/"ic"/"lead"). Un escalafón formal, si se quiere, vivirá en el Project o el
+// p. ej. "leader"/"ic"/"lead"). Un escalafón formal, si se quiere, vivirá en el Project o el
 // Campus, no en el Building.
 
-// Nueva sub-entidad: vive en el inventario del building (room del Boss).
+// Nueva sub-entidad: vive en el inventario del building (room del Leader).
 interface Project {
   id: Id;
   buildingId: Id;               // entorno al que pertenece
