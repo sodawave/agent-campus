@@ -56,6 +56,10 @@ function seed(server: CampusServer): void {
   // A project in the building inventory + an agent assigned to it.
   s.project.create({ id: "p-onboarding", buildingId: "b-alpha", name: "Onboarding" });
   s.project.assign({ agentId: "a-ivan", projectId: "p-onboarding" });
+
+  // A short chat thread with an agent.
+  s.chat.send({ id: "chat-1", agentId: "a-mia", from: "user", text: "¿Cómo va el lanzamiento?" });
+  s.chat.send({ id: "chat-2", agentId: "a-mia", from: "agent", text: "En marcha; reviso métricas hoy." });
 }
 
 const server = new CampusServer();

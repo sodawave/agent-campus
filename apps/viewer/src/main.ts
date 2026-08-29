@@ -44,6 +44,7 @@ app.innerHTML = `
     <div class="panel"><h2>Workers</h2><div id="workers"></div></div>
     <div class="panel"><h2>Tasks</h2><div id="tasks"></div></div>
     <div class="panel"><h2>Projects (inventory) &amp; assignments</h2><div id="projects"></div></div>
+    <div class="panel"><h2>Chat (per agent)</h2><div id="chat"></div></div>
     <div class="panel"><h2>Execution — hosts / runtimes</h2><div id="exec"></div></div>
     <div class="panel"><h2>SDD &amp; Library</h2><div id="sdd"></div></div>
   </div>
@@ -57,6 +58,7 @@ const logEl = document.getElementById("log")!;
 const workersEl = document.getElementById("workers")!;
 const tasksEl = document.getElementById("tasks")!;
 const projectsEl = document.getElementById("projects")!;
+const chatEl = document.getElementById("chat")!;
 const execEl = document.getElementById("exec")!;
 const sddEl = document.getElementById("sdd")!;
 
@@ -88,7 +90,7 @@ function renderStatus(): void {
 function render(state: State = client.state()): void {
   if (!state.campus) {
     view.innerHTML = `<span class="muted">no campus loaded</span>`;
-    workersEl.innerHTML = tasksEl.innerHTML = projectsEl.innerHTML = execEl.innerHTML = sddEl.innerHTML = "";
+    workersEl.innerHTML = tasksEl.innerHTML = projectsEl.innerHTML = chatEl.innerHTML = execEl.innerHTML = sddEl.innerHTML = "";
     return;
   }
 
@@ -151,6 +153,18 @@ function render(state: State = client.state()): void {
             const members = agentsForProject(state, p.id).map((a) => esc(a.name));
             const who = members.length ? ` · ${members.join(", ")}` : "";
             return `<div class="row-item">📦 ${esc(p.name)} <span class="badge status-${p.status}">${p.status}</span> <span class="muted">@ ${esc(building)}${who}</span></div>`;
+          })
+          .join("");
+
+  // Chat (per agent threads)
+  chatEl.innerHTML =
+    state.messages.length === 0
+      ? `<span class="muted">none</span>`
+      : state.messages
+          .map((m) => {
+            const agent = state.agents.find((a) => a.id === m.agentId)?.name ?? m.agentId;
+            const who = m.from === "user" ? "you" : esc(agent);
+            return `<div class="row-item"><span class="muted">${esc(agent)} ·</span> <b>${who}:</b> ${esc(m.text)}</div>`;
           })
           .join("");
 
@@ -237,6 +251,13 @@ function renderControls(): void {
     const agent = project ? s.agents.find((a) => a.buildingId === project.buildingId) : undefined;
     if (!project || !agent) return;
     void send({ type: "project.assign", agentId: agent.id, projectId: project.id }, "project.assign");
+  });
+
+  mk("Message 1st agent", () => {
+    const agent = client.state().agents[0];
+    if (!agent) return;
+    const id = `cm-${++seq}-${Date.now().toString(36)}`;
+    void send({ type: "chat.send", message: { id, agentId: agent.id, from: "user", text: `Hola ${agent.name} (${seq})` } }, "chat.send");
   });
 
   mk("Try invalid (bad room)", () => {

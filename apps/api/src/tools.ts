@@ -5,7 +5,7 @@
  */
 
 import { z, type ZodRawShape } from "zod";
-import type { CommandResult } from "@agent-campus/campus-engine";
+import { messagesForAgent, type CommandResult } from "@agent-campus/campus-engine";
 import type { CampusLink } from "./link";
 
 export interface CampusTool {
@@ -200,5 +200,25 @@ export const tools: CampusTool[] = [
     { id: z.string(), scope: z.enum(["agent", "project"]), ownerId: z.string(), text: z.string(), room: z.string().optional() },
     async (link, a) =>
       fmt(await link.send({ type: "memory.remember", record: { id: a.id, scope: a.scope, ownerId: a.ownerId, room: a.room ?? "_general", text: a.text } })),
+  ),
+
+  tool(
+    "chat_send",
+    "Send a chat message to a named agent's thread (from user or agent).",
+    { id: z.string(), agentId: z.string(), from: z.enum(["user", "agent"]), text: z.string() },
+    async (link, a) =>
+      fmt(await link.send({ type: "chat.send", message: { id: a.id, agentId: a.agentId, from: a.from, text: a.text } })),
+  ),
+
+  tool(
+    "chat_history",
+    "Read a named agent's chat thread.",
+    { agentId: z.string() },
+    async (link, a) =>
+      JSON.stringify(
+        messagesForAgent(link.state(), a.agentId).map((m) => ({ from: m.from, text: m.text })),
+        null,
+        2,
+      ),
   ),
 ];

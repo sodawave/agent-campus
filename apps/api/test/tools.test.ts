@@ -116,4 +116,15 @@ describe("MCP tools — projects, assignment, execution, memory", () => {
     expect(await byName("memory_remember").run(link, { id: "m1", scope: "agent", ownerId: "ic1", text: "note" })).toBe("ok: memory.remembered");
     expect(await byName("building_assign_lead").run(link, { buildingId: "b1", agentId: "ic1" })).toBe("ok: building.lead.assigned");
   });
+
+  it("chat_send + chat_history round-trip", async () => {
+    const link = memLink();
+    expect(await byName("chat_send").run(link, { id: "cm1", agentId: "ic1", from: "user", text: "hola" })).toBe("ok: chat.message.posted");
+    expect(await byName("chat_send").run(link, { id: "cm2", agentId: "ic1", from: "agent", text: "dime" })).toBe("ok: chat.message.posted");
+    const history = JSON.parse(await byName("chat_history").run(link, { agentId: "ic1" }));
+    expect(history).toEqual([
+      { from: "user", text: "hola" },
+      { from: "agent", text: "dime" },
+    ]);
+  });
 });
