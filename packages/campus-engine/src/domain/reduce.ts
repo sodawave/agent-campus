@@ -120,6 +120,12 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "chat.message.posted": {
+      const { message } = event;
+      if (state.messages.some((m) => m.id === message.id)) return state;
+      return { ...state, messages: [...state.messages, message] };
+    }
+
     case "agent.instantiated": {
       const { agent } = event;
       if (!state.buildings.some((b) => b.id === agent.buildingId)) return state;

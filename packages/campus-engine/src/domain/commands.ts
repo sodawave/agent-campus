@@ -9,6 +9,7 @@ import type {
   Building,
   Campus,
   CampusEvent,
+  ChatMessage,
   DebateSession,
   DocClassification,
   Id,
@@ -47,6 +48,7 @@ export type CampusCommand =
   | { type: "project.archive"; projectId: Id }
   | { type: "project.assign"; agentId: Id; projectId: Id }
   | { type: "project.unassign"; agentId: Id; projectId: Id }
+  | { type: "chat.send"; message: ChatMessage }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
@@ -238,6 +240,13 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         return reject("not_assigned");
       }
       return accept({ type: "project.unassigned", agentId, projectId });
+    }
+
+    case "chat.send": {
+      const { message } = command;
+      if (!state.agents.some((a) => a.id === message.agentId)) return reject("agent_not_found");
+      if (state.messages.some((m) => m.id === message.id)) return reject("duplicate_id");
+      return accept({ type: "chat.message.posted", message });
     }
 
     case "agent.instantiate": {

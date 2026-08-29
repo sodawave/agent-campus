@@ -69,6 +69,17 @@ export interface Assignment {
   projectId: Id;
 }
 
+/** Author of a chat message. */
+export type ChatFrom = "user" | "agent";
+
+/** A chat message in a named agent's thread (user <-> agent). */
+export interface ChatMessage {
+  id: Id;
+  agentId: Id;
+  from: ChatFrom;
+  text: string;
+}
+
 /**
  * A named agent instance, represented in a room of a building.
  * Role fields (rank/skill/supervisor) are optional and populated in layer 6+.
@@ -248,6 +259,7 @@ export type CampusEvent =
   | { type: "project.archived"; projectId: Id }
   | { type: "project.assigned"; agentId: Id; projectId: Id }
   | { type: "project.unassigned"; agentId: Id; projectId: Id }
+  | { type: "chat.message.posted"; message: ChatMessage }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }
@@ -292,6 +304,7 @@ export interface State {
   documents: LibraryDocument[];
   projects: Project[];
   assignments: Assignment[];
+  messages: ChatMessage[];
 }
 
 /** Canonical empty projection. */
@@ -313,4 +326,5 @@ export const EMPTY_STATE: State = {
   documents: [],
   projects: [],
   assignments: [],
+  messages: [],
 };

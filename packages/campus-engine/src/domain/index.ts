@@ -9,3 +9,4 @@ export * from "./speckit";
 export * from "./host";
 export * from "./library";
 export * from "./project";
+export * from "./chat";
