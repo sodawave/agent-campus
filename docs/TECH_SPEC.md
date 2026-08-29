@@ -721,6 +721,23 @@ Rectángulos exactos se fijan al exportar el mapa Tiled a partir de la captura.
 
 ---
 
+## 12.b Premisas de desarrollo
+
+### Semántica de producto
+
+- **Task con test-gate.** Una task solo se da por hecha si **pasa su verificación**. Ciclo: `queued → running → under_review → succeeded` (o `needs_revision`), evaluada por el supervisor directo (`org.ts::canEvaluate` / `TaskEvaluation`). **"Hecho" = 100% de lo ordenado + test en verde.**
+- **Worker = bucle acotado hasta el 100%.** Un `anonymous_worker` ejecuta un **bucle no infinito** (con límite de iteraciones/guard) que itera **hasta cumplir al 100%** la task indicada; al converger, **sale** (`worker.exited`). No es un proceso perpetuo: nace para una tarea, la completa y muere. Alinea con `SpecKitConvergenceStatus` (`diverged → in_progress → converged`) y con `RunStatus`.
+- **Subprocesos detallados.** Cada orden se descompone en subprocesos verificables; cada subproceso se testea de forma independiente.
+
+### Disciplina de ingeniería
+
+- **Cada unidad se testea** antes de cerrarla (Vitest en dominio/store; prueba manual en cliente).
+- **Coherencia estructural:** un patrón por capa — dominio puro, **fachada por entidad** en el store (`building/room/agent/worker/…`), reducer puro idempotente, clientes solo proyección.
+- **Sin código espagueti:** reglas solo en el core; cero lógica de negocio en clientes; helpers puros reutilizables.
+- **Refactor periódico ("cada x"):** consolidar/limpiar de forma recurrente para no acumular deuda; extraer/renombrar cuando un patrón se repite.
+
+---
+
 ## 13. Fuera de alcance v0
 
 - Binario CLI publicado en npm (solo contrato + package path).
