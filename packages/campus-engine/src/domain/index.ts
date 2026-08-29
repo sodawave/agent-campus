@@ -5,3 +5,7 @@ export * from "./org";
 export * from "./library";
 export * from "./tasks";
 export * from "./workers";
+export * from "./comms";
+export * from "./host";
+export * from "./memory";
+export * from "./speckit";
