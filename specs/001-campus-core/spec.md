@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-29
 
-**Status**: Draft (pendiente de clarificación y aprobación)
+**Status**: Ready for plan (clarificaciones resueltas y aprobadas)
 
 **Input**: Reconstrucción desde cero tras borrado del engine heredado. Primera capa del
 loop de desarrollo (Constitución, Principio VIII: *espec mínima testeada → capas*).
@@ -87,10 +87,9 @@ sin efectos secundarios (misma entrada → misma salida).
 
 ### Edge Cases
 
-- `building.spawned` cuyo `campusId` no corresponde al campus cargado → [NEEDS CLARIFICATION:
-  ¿el reducer ignora el evento, lanza, o registra inconsistencia? Propuesta: ignorar y no
-  mutar, dado que el reducer es proyección tolerante].
-- `room.spawned` con `buildingId` inexistente → misma política que arriba.
+- `building.spawned` cuyo `campusId` no corresponde al campus cargado → el reducer
+  **ignora el evento y no muta** (proyección tolerante; decisión Q4).
+- `room.spawned` con `buildingId` inexistente → misma política: ignorar sin mutar.
 - Evento de tipo desconocido → el reducer devuelve el estado sin cambios.
 - Reaplicar `campus.loaded` de un campus ya cargado → estado sin cambios (idempotente).
 
@@ -115,22 +114,23 @@ sin efectos secundarios (misma entrada → misma salida).
   por el caller (sin generación interna de IDs no determinista).
 - **FR-007**: Todo lo anterior MUST ser testeable con Vitest **sin canvas ni red**
   (Criterio de aceptación v0 §12.6).
-- **FR-008**: [NEEDS CLARIFICATION: ¿`AgentInstance` (named) entra ya en la capa 1 con
-  `agent.instantiated`, o se difiere a la capa siguiente y esta spec cubre solo
-  `Campus→Building→Room`?]
-- **FR-009**: [NEEDS CLARIFICATION: ¿el contrato de `Command` (petición + posible rechazo)
-  forma parte de esta spec, o es su propia spec posterior y aquí solo modelamos eventos +
-  reducer?]
+- **FR-008**: Esta capa cubre **solo** `Campus→Building→Room` (decisión Q1). `AgentInstance`
+  + `agent.instantiated` se difieren a la capa 2.
+- **FR-009**: Esta capa modela **solo eventos + `reduce`** (decisión Q2). El contrato
+  `Command` (petición + validación/rechazo) es una spec/capa posterior.
+- **FR-010**: El reducer MUST ser **tolerante** ante eventos inconsistentes (p. ej.
+  `building.spawned` con `campusId` inexistente, `room.spawned` con `buildingId`
+  inexistente, evento duplicado o tipo desconocido): devuelve el estado sin mutar
+  (decisión Q4).
 
 ### Key Entities *(include if feature involves data)*
 
 - **Campus**: raíz del árbol. Atributos mínimos: `id`, `name`, `buildingIds`.
 - **Building** (= Project/edificio): pertenece a un campus. Mínimo: `id`, `campusId`,
-  `name`, `context` (mínimo), `ranks` (mínimo o diferido — ver clarificación).
+  `name`.
 - **Room** (= Workspace/oficina): pertenece a un edificio. Mínimo: `id`, `buildingId`,
-  `key`, `context` (mínimo).
-- **CampusEvent** (capa 1): unión `campus.loaded | building.spawned | room.spawned`
-  (+ `agent.instantiated` si se confirma FR-008).
+  `key`.
+- **CampusEvent** (capa 1): unión `campus.loaded | building.spawned | room.spawned`.
 - **State**: proyección `{ campus, buildings[], rooms[] }` reconstruible desde el log.
 
 ---
@@ -151,9 +151,8 @@ sin efectos secundarios (misma entrada → misma salida).
 
 ## Assumptions
 
-- Reescritura **desde cero**: no se arrastra el `types.ts` heredado; se reintroduce solo lo
-  que esta capa testea. [NEEDS CLARIFICATION: confirmar reescritura total vs. rescatar
-  subconjunto auditado del dominio viejo].
+- Reescritura **total desde cero** (decisión Q3): no se arrastra el `types.ts` heredado
+  (eliminado); se reintroduce solo lo que esta capa testea.
 - IDs son **strings opacos provistos por el caller** (determinismo en tests).
 - Nombres de eventos en formato `entidad.hechoEnPasado` (`building.spawned`).
 - El paquete vivirá en `packages/campus-engine` (ruta canónica del plano de Control),
@@ -164,17 +163,14 @@ sin efectos secundarios (misma entrada → misma salida).
 
 ---
 
-## Preguntas de clarificación (bloquean el paso a `plan`)
+## Clarificaciones (resueltas · aprobadas 2026-08-29)
 
-1. **Alcance capa 1**: ¿solo `Campus→Building→Room`, o incluimos ya `AgentInstance` +
-   `agent.instantiated`? (FR-008)
-2. **Command en esta spec o en la siguiente**: ¿modelamos ya el contrato de comandos con
-   validación/rechazo, o esta capa es solo *eventos + reducer* y los comandos son la
-   capa 2? (FR-009)
-3. **Reescritura total vs. rescate auditado**: ¿tipos y helpers desde cero, o rescatamos
-   un subconjunto concreto del dominio anterior tras auditarlo?
-4. **Política del reducer ante eventos inconsistentes** (campusId/buildingId inexistente):
-   ¿ignorar sin mutar (propuesta), lanzar, o registrar inconsistencia?
+| # | Pregunta | Decisión |
+|---|---|---|
+| Q1 | Alcance capa 1 | **Solo `Campus→Building→Room`**; agentes → capa 2 (FR-008) |
+| Q2 | Command en esta spec | **No**; solo eventos + `reduce`; comandos → capa posterior (FR-009) |
+| Q3 | Reescritura vs. rescate | **Reescritura total desde cero** |
+| Q4 | Reducer ante evento inconsistente | **Ignorar sin mutar** (proyección tolerante, FR-010) |
 
-> Al aprobar respuestas a estas 4, paso a `/plan` (capa 1) y solo entonces implemento +
-> testeo. Una spec = una rama (`cursor/spec-001-campus-core-7599`) = un PR.
+> Decisiones alineadas con la Constitución, Principio VIII (incremento mínimo testeable).
+> Una spec = una rama (`cursor/spec-001-campus-core-7599`) = un PR.
