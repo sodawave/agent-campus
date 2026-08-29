@@ -83,9 +83,18 @@ export function reduce(state: State, event: CampusEvent): State {
 
     case "project.created": {
       const { project } = event;
-      if (!state.buildings.some((b) => b.id === project.buildingId)) return state;
+      const building = state.buildings.find((b) => b.id === project.buildingId);
+      if (!building) return state;
       if (state.projects.some((p) => p.id === project.id)) return state;
-      return { ...state, projects: [...state.projects, project] };
+      // Auto-assign the building leader so it has the project in its context.
+      // Normal assignment (removable via project.unassign); idempotent.
+      const leaderId = building.leaderAgentId ?? null;
+      const assignments =
+        leaderId != null &&
+        !state.assignments.some((x) => x.agentId === leaderId && x.projectId === project.id)
+          ? [...state.assignments, { agentId: leaderId, projectId: project.id }]
+          : state.assignments;
+      return { ...state, projects: [...state.projects, project], assignments };
     }
 
     case "project.archived": {
