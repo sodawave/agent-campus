@@ -36,7 +36,7 @@ describe("MCP tools over the campus core", () => {
     const text = await byName("campus_status").run(link, {});
     const data = JSON.parse(text);
     expect(data.campus).toBe("Demo Co");
-    expect(data.buildings).toContain("Alpha");
+    expect(data.buildings.map((b: { name: string }) => b.name)).toContain("Alpha");
     // building.spawn is composite: a leader agent is auto-created too.
     const ids = data.agents.map((a: { id: string }) => a.id);
     expect(ids).toContain("sup");
@@ -85,5 +85,35 @@ describe("MCP tools over the campus core", () => {
     await byName("task_start").run(link, { taskId: "t1" });
     await byName("task_submit").run(link, { taskId: "t1" });
     expect(await byName("task_evaluate").run(link, { taskId: "t1", evaluatorId: "ic1", verdict: "succeeded" })).toBe("rejected: not_supervisor");
+  });
+});
+
+describe("MCP tools — projects, assignment, execution, memory", () => {
+  it("project_create + project_assign; status reflects them", async () => {
+    const link = memLink();
+    expect(await byName("project_create").run(link, { id: "p1", buildingId: "b1", name: "Onboarding" })).toBe("ok: project.created");
+    expect(await byName("project_assign").run(link, { agentId: "ic1", projectId: "p1" })).toBe("ok: project.assigned");
+    const data = JSON.parse(await byName("campus_status").run(link, {}));
+    expect(data.projects.map((p: { id: string }) => p.id)).toContain("p1");
+    expect(data.assignments).toContainEqual({ agentId: "ic1", projectId: "p1" });
+  });
+
+  it("project_assign before create is rejected", async () => {
+    const link = memLink();
+    expect(await byName("project_assign").run(link, { agentId: "ic1", projectId: "nope" })).toBe("rejected: project_not_found");
+  });
+
+  it("host_join + runtime_start makes the agent live", async () => {
+    const link = memLink();
+    expect(await byName("host_join").run(link, { id: "h1", label: "box" })).toBe("ok: host.joined");
+    expect(await byName("runtime_start").run(link, { id: "rt1", hostId: "h1", agentId: "ic1", workingDir: "/w" })).toBe("ok: runtime.started");
+    const data = JSON.parse(await byName("campus_status").run(link, {}));
+    expect(data.agents.find((a: { id: string; live: boolean }) => a.id === "ic1")?.live).toBe(true);
+  });
+
+  it("memory_remember and building_assign_lead accept", async () => {
+    const link = memLink();
+    expect(await byName("memory_remember").run(link, { id: "m1", scope: "agent", ownerId: "ic1", text: "note" })).toBe("ok: memory.remembered");
+    expect(await byName("building_assign_lead").run(link, { buildingId: "b1", agentId: "ic1" })).toBe("ok: building.lead.assigned");
   });
 });
