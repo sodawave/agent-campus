@@ -26,6 +26,12 @@ Una **task** solo está hecha si **pasa su verificación**: hecho = 100% de lo o
 ### VII. Coherencia estructural, sin espagueti, refactor recurrente
 Un patrón por capa; helpers puros reutilizables; imports `type`-only donde aplique. Se refactoriza de forma periódica ("cada x") para no acumular deuda; se extrae/renombra cuando un patrón se repite.
 
+### VIII. Loop: espec mínima testeada → capas (NON-NEGOTIABLE)
+El desarrollo es un **bucle**: se parte de la **especificación mínima viable, testeada**, y se van **añadiendo capas** (incrementos mínimos, cada uno con sus tests en verde) hasta alcanzar la spec final. Aplica a **todo** el desarrollo. Consecuencias directas:
+- Ante cualquier decisión de "cuánto alcance ahora", el default es **el incremento mínimo testeable**; no se sobre-dimensiona una feature.
+- No se pregunta lo que esta filosofía ya responde: alcance = mínimo; profundidad = por capas; durabilidad/infra/red = capas posteriores salvo que sean el propio incremento.
+- Cada capa se cierra (`converge`) con tests verdes antes de añadir la siguiente.
+
 ## Restricciones técnicas
 
 - TypeScript estricto (`tsconfig.base.json`: `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, …).
@@ -47,4 +53,6 @@ Comandos del agente en `.cursor/skills/speckit-*` (`/speckit-specify`, `/speckit
 
 Esta constitución **prevalece** sobre otras prácticas. Toda PR verifica su cumplimiento; la complejidad debe justificarse. Las enmiendas se documentan aquí (con bump de versión) y se reflejan, si aplica, en `AGENTS.md`, `.cursor/rules/` y `TECH_SPEC.md`. Las herramientas de Spec Kit (`.specify/`, `.cursor/skills/`) se actualizan por separado de los artefactos de features en `specs/`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29
+**Version**: 1.1.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29
+<!-- 1.1.0: +Principle VIII (Loop: minimal tested spec → layers) -->
+
