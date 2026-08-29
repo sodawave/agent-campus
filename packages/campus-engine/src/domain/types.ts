@@ -49,6 +49,20 @@ export const LEADER_RANK_KEY = "leader";
 /** Role marking the leader office room (created with the building; non-deletable). */
 export const LEADER_ROOM_ROLE = "leader";
 
+/** Project lifecycle status. */
+export type ProjectStatus = "active" | "archived";
+
+/**
+ * A project lives inside a building (environment), in its inventory (Leader room).
+ * Agents are assigned to projects; the project appears on the assigned agent.
+ */
+export interface Project {
+  id: Id;
+  buildingId: Id;
+  name: string;
+  status: ProjectStatus;
+}
+
 /**
  * A named agent instance, represented in a room of a building.
  * Role fields (rank/skill/supervisor) are optional and populated in layer 6+.
@@ -223,6 +237,8 @@ export type CampusEvent =
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
   | { type: "room.spawned"; room: Room }
   | { type: "room.context.updated"; roomId: Id; context: string }
+  | { type: "project.created"; project: Project }
+  | { type: "project.archived"; projectId: Id }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
   | { type: "room.head.assigned"; roomId: Id; agentId: Id }
@@ -265,6 +281,7 @@ export interface State {
   runtimes: AgentRuntime[];
   classifications: DocClassification[];
   documents: LibraryDocument[];
+  projects: Project[];
 }
 
 /** Canonical empty projection. */
@@ -284,4 +301,5 @@ export const EMPTY_STATE: State = {
   runtimes: [],
   classifications: [],
   documents: [],
+  projects: [],
 };

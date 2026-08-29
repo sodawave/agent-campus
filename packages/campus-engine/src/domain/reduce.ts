@@ -75,6 +75,24 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "project.created": {
+      const { project } = event;
+      if (!state.buildings.some((b) => b.id === project.buildingId)) return state;
+      if (state.projects.some((p) => p.id === project.id)) return state;
+      return { ...state, projects: [...state.projects, project] };
+    }
+
+    case "project.archived": {
+      const { projectId } = event;
+      if (!state.projects.some((p) => p.id === projectId)) return state;
+      return {
+        ...state,
+        projects: state.projects.map((p) =>
+          p.id === projectId ? { ...p, status: "archived" } : p,
+        ),
+      };
+    }
+
     case "agent.instantiated": {
       const { agent } = event;
       if (!state.buildings.some((b) => b.id === agent.buildingId)) return state;

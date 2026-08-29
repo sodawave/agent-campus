@@ -14,6 +14,7 @@ import type {
   Id,
   LibraryDocument,
   MemoryRecord,
+  Project,
   Room,
   SpecKitArtifact,
   State,
@@ -40,6 +41,8 @@ export type CampusCommand =
   | { type: "building.assignLead"; buildingId: Id; agentId: Id }
   | { type: "room.spawn"; room: Room }
   | { type: "room.updateContext"; roomId: Id; context: string }
+  | { type: "project.create"; project: Project }
+  | { type: "project.archive"; projectId: Id }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
@@ -77,6 +80,7 @@ export type RejectionReason =
   | "room_not_found"
   | "agent_not_in_room"
   | "agent_not_in_building"
+  | "project_not_found"
   | "actor_not_found"
   | "rank_not_allowed"
   | "worker_not_found"
@@ -180,6 +184,21 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       const { roomId, context } = command;
       if (!state.rooms.some((r) => r.id === roomId)) return reject("room_not_found");
       return accept({ type: "room.context.updated", roomId, context });
+    }
+
+    case "project.create": {
+      const { project } = command;
+      if (!state.buildings.some((b) => b.id === project.buildingId)) {
+        return reject("building_not_found");
+      }
+      if (state.projects.some((p) => p.id === project.id)) return reject("duplicate_id");
+      return accept({ type: "project.created", project: { ...project, status: "active" } });
+    }
+
+    case "project.archive": {
+      const { projectId } = command;
+      if (!state.projects.some((p) => p.id === projectId)) return reject("project_not_found");
+      return accept({ type: "project.archived", projectId });
     }
 
     case "agent.instantiate": {
