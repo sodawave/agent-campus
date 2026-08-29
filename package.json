@@ -2,18 +2,17 @@
   "name": "agent-campus",
   "version": "0.9.0",
   "private": true,
-  "description": "Gamified campus for AI agent harnesses — engine + playground.",
+  "description": "Gamified campus for AI agent harnesses — headless core + minimal viewer.",
   "type": "module",
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace apps/playground",
-    "build": "npm run build --workspace packages/campus-engine && npm run build --workspace apps/playground",
-    "preview": "npm run preview --workspace apps/playground",
+    "server": "npm run start --workspace apps/server",
+    "viewer": "npm run dev --workspace apps/viewer",
+    "build": "npm run build --workspace apps/viewer",
     "test": "npm run test --workspaces --if-present",
-    "test:watch": "npm run test:watch --workspace packages/campus-engine",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "engines": {
