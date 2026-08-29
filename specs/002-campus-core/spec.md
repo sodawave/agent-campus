@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-29
 
-**Status**: Clarified (ready for plan)
+**Status**: Converged
 
 **Input**: "Comenzar por el campus y toda la estructura core: el core autoritativo que posee el estado y las reglas del campus y expone el contrato Command/Event para que hosts y clientes se conecten a una única fuente de verdad."
 
