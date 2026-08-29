@@ -37,11 +37,13 @@ export const tools: CampusTool[] = [
     return JSON.stringify(
       {
         campus: s.campus?.name ?? null,
-        buildings: s.buildings.map((b) => b.name),
+        buildings: s.buildings.map((b) => ({ id: b.id, name: b.name, leaderAgentId: b.leaderAgentId ?? null })),
         agents: s.agents.map((a) => ({ id: a.id, name: a.name, rank: a.rankKey ?? null, live: a.runtimeId != null })),
         workers: s.workers.length,
         tasks: s.tasks.map((t) => ({ id: t.id, title: t.title, status: t.status })),
-        hosts: s.hosts.map((h) => h.label),
+        projects: s.projects.map((p) => ({ id: p.id, name: p.name, buildingId: p.buildingId, status: p.status })),
+        assignments: s.assignments.map((x) => ({ agentId: x.agentId, projectId: x.projectId })),
+        hosts: s.hosts.map((h) => `${h.label}(${h.status})`),
       },
       null,
       2,
@@ -135,5 +137,68 @@ export const tools: CampusTool[] = [
     { taskId: z.string(), evaluatorId: z.string(), verdict: z.enum(["succeeded", "needs_revision"]) },
     async (link, a) =>
       fmt(await link.send({ type: "task.evaluate", taskId: a.taskId, evaluatorId: a.evaluatorId, verdict: a.verdict })),
+  ),
+
+  tool(
+    "building_update_context",
+    "Set the environment (building) context/norms.",
+    { buildingId: z.string(), context: z.string() },
+    async (link, a) => fmt(await link.send({ type: "building.updateContext", buildingId: a.buildingId, context: a.context })),
+  ),
+
+  tool(
+    "building_assign_lead",
+    "Assign the environment lead (an agent of that building).",
+    { buildingId: z.string(), agentId: z.string() },
+    async (link, a) => fmt(await link.send({ type: "building.assignLead", buildingId: a.buildingId, agentId: a.agentId })),
+  ),
+
+  tool(
+    "project_create",
+    "Create a project in a building's inventory.",
+    { id: z.string(), buildingId: z.string(), name: z.string() },
+    async (link, a) =>
+      fmt(await link.send({ type: "project.create", project: { id: a.id, buildingId: a.buildingId, name: a.name, status: "active" } })),
+  ),
+
+  tool("project_archive", "Archive a project.", { projectId: z.string() }, async (link, a) =>
+    fmt(await link.send({ type: "project.archive", projectId: a.projectId })),
+  ),
+
+  tool(
+    "project_assign",
+    "Assign an agent to a project (same building).",
+    { agentId: z.string(), projectId: z.string() },
+    async (link, a) => fmt(await link.send({ type: "project.assign", agentId: a.agentId, projectId: a.projectId })),
+  ),
+
+  tool(
+    "project_unassign",
+    "Unassign an agent from a project.",
+    { agentId: z.string(), projectId: z.string() },
+    async (link, a) => fmt(await link.send({ type: "project.unassign", agentId: a.agentId, projectId: a.projectId })),
+  ),
+
+  tool(
+    "host_join",
+    "Join a host (machine) to the campus.",
+    { id: z.string(), label: z.string() },
+    async (link, a) => fmt(await link.send({ type: "host.join", id: a.id, label: a.label })),
+  ),
+
+  tool(
+    "runtime_start",
+    "Start a live runtime for an agent on a host (makes the agent live).",
+    { id: z.string(), hostId: z.string(), agentId: z.string(), workingDir: z.string().optional() },
+    async (link, a) =>
+      fmt(await link.send({ type: "runtime.start", id: a.id, hostId: a.hostId, agentId: a.agentId, ...(a.workingDir !== undefined ? { workingDir: a.workingDir } : {}) })),
+  ),
+
+  tool(
+    "memory_remember",
+    "Store a memory record (scope agent or project).",
+    { id: z.string(), scope: z.enum(["agent", "project"]), ownerId: z.string(), text: z.string(), room: z.string().optional() },
+    async (link, a) =>
+      fmt(await link.send({ type: "memory.remember", record: { id: a.id, scope: a.scope, ownerId: a.ownerId, room: a.room ?? "_general", text: a.text } })),
   ),
 ];
