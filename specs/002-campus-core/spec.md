@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-29
 
-**Status**: Draft (awaiting clarification)
+**Status**: Clarified (ready for plan)
 
 **Input**: "Comenzar por el campus y toda la estructura core: el core autoritativo que posee el estado y las reglas del campus y expone el contrato Command/Event para que hosts y clientes se conecten a una única fuente de verdad."
 
@@ -57,9 +57,9 @@ El contrato Command/Event es serializable (JSON) para que clientes en cualquier 
 - **FR-004**: El core MUST **secuenciar** los eventos (orden total) de forma que cualquier consumidor converja al mismo estado.
 - **FR-005**: El contrato Command/Event MUST ser **JSON-serializable** (neutral de lenguaje).
 - **FR-006**: Un consumidor MUST poder obtener el estado actual (snapshot y/o replay del log) al conectarse.
-- **FR-007**: El core MUST persistir su estado según [NEEDS CLARIFICATION: ¿persistencia in-memory ahora (data-driven luego) o durable (Postgres) ya en esta feature?].
-- **FR-008**: El alcance de ejecución del core en esta feature es [NEEDS CLARIFICATION: ¿contrato + core service in-process envolviendo `campus-engine` (sin red), o servicio en red real (Hono + WS) ya ahora, o WS local sin Redis?].
-- **FR-009**: La superficie de Commands cubierta en esta feature es [NEEDS CLARIFICATION: ¿todos los de la fachada actual (campus/building/room/agent/worker/host/specKit) o un subconjunto mínimo para el MVP del core?].
+- **FR-007**: El core MUST mantener su estado **in-memory** en esta capa (event log + snapshot en memoria); la durabilidad (Postgres) es una capa posterior.
+- **FR-008**: El alcance de ejecución de esta capa es el **contrato `CampusCommand`/`CampusEvent` + un core-service in-process** que envuelve `campus-engine` (sin red); el servicio en red (Hono + WS) es la capa `003-campus-api`.
+- **FR-009**: Esta capa cubre un **subconjunto mínimo de Commands** que ejercita el camino feliz y el de rechazo: `agent.spawn`, `worker.spawn`, `worker.despawn`. El resto de la fachada se añade en capas posteriores.
 
 ### Key Entities
 
@@ -84,4 +84,12 @@ El contrato Command/Event es serializable (JSON) para que clientes en cualquier 
 
 ## Clarifications
 
-Pendiente `/speckit.clarify` (interactivo): resolver FR-007, FR-008, FR-009 antes de `plan`. Son decisiones de **dependencia/profundidad**, no estilísticas, y las decide el usuario.
+### Session 2026-08-29
+
+Resueltas aplicando el **Principio VIII de la constitución** (loop: incremento mínimo testeado → capas):
+
+- Q: ¿Alcance de ejecución del core en esta capa? → A: Contrato `CampusCommand`/`CampusEvent` + core-service **in-process** envolviendo `campus-engine` (sin red). (FR-008)
+- Q: ¿Persistencia en esta capa? → A: **In-memory** (event log + snapshot en memoria); durabilidad en capa posterior. (FR-007)
+- Q: ¿Superficie de Commands en esta capa? → A: **Subconjunto mínimo** `agent.spawn` / `worker.spawn` / `worker.despawn` (camino feliz + rechazo por regla de rango). (FR-009)
+
+Capas siguientes previstas (no en esta feature): resto de Commands, red (`003-campus-api`), durabilidad.
