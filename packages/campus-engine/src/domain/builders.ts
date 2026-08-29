@@ -63,3 +63,21 @@ export function buildAgent(input: {
   if (input.supervisorId !== undefined) agent.supervisorId = input.supervisorId;
   return agent;
 }
+
+export function buildWorker(input: {
+  id: Id;
+  buildingId: Id;
+  roomId: Id;
+  spawnedById: Id;
+  name?: string;
+}): AgentInstance {
+  return {
+    id: input.id,
+    name: input.name ?? "Worker",
+    kind: "anonymous_worker",
+    buildingId: input.buildingId,
+    roomId: input.roomId,
+    rankKey: "ic",
+    spawnedById: input.spawnedById,
+  };
+}

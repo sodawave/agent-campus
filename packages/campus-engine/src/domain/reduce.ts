@@ -60,6 +60,18 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "worker.entered": {
+      const { worker } = event;
+      if (state.workers.some((w) => w.id === worker.id)) return state;
+      return { ...state, workers: [...state.workers, worker] };
+    }
+
+    case "worker.exited": {
+      const { workerId } = event;
+      if (!state.workers.some((w) => w.id === workerId)) return state;
+      return { ...state, workers: state.workers.filter((w) => w.id !== workerId) };
+    }
+
     default:
       return state;
   }

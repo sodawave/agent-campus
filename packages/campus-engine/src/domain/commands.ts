@@ -13,6 +13,7 @@ import type {
   Room,
   State,
 } from "./types";
+import { WORKER_SPAWNER_RANK_KEY } from "./types";
 
 /** Requests from a client/host to the core (validable, rejectable). */
 export type CampusCommand =
@@ -21,7 +22,9 @@ export type CampusCommand =
   | { type: "room.spawn"; room: Room }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
-  | { type: "room.assignHead"; roomId: Id; agentId: Id };
+  | { type: "room.assignHead"; roomId: Id; agentId: Id }
+  | { type: "worker.spawn"; actorId: Id; worker: AgentInstance }
+  | { type: "worker.despawn"; actorId: Id; workerId: Id };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -34,7 +37,11 @@ export type RejectionReason =
   | "supervisor_not_found"
   | "self_supervision"
   | "room_not_found"
-  | "agent_not_in_room";
+  | "agent_not_in_room"
+  | "actor_not_found"
+  | "rank_not_allowed"
+  | "worker_not_found"
+  | "not_worker_spawner";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -105,6 +112,33 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (!agent) return reject("agent_not_found");
       if (agent.roomId !== roomId) return reject("agent_not_in_room");
       return accept({ type: "room.head.assigned", roomId, agentId });
+    }
+
+    case "worker.spawn": {
+      const { actorId, worker } = command;
+      const actor = state.agents.find((a) => a.id === actorId);
+      if (!actor) return reject("actor_not_found");
+      if (actor.rankKey !== WORKER_SPAWNER_RANK_KEY) return reject("rank_not_allowed");
+      if (!state.buildings.some((b) => b.id === worker.buildingId)) {
+        return reject("building_not_found");
+      }
+      const roomOk = state.rooms.some(
+        (r) => r.id === worker.roomId && r.buildingId === worker.buildingId,
+      );
+      if (!roomOk) return reject("room_not_found_in_building");
+      const dup =
+        state.workers.some((w) => w.id === worker.id) ||
+        state.agents.some((a) => a.id === worker.id);
+      if (dup) return reject("duplicate_id");
+      return accept({ type: "worker.entered", worker: { ...worker, spawnedById: actorId } });
+    }
+
+    case "worker.despawn": {
+      const { actorId, workerId } = command;
+      const worker = state.workers.find((w) => w.id === workerId);
+      if (!worker) return reject("worker_not_found");
+      if (worker.spawnedById !== actorId) return reject("not_worker_spawner");
+      return accept({ type: "worker.exited", workerId });
     }
   }
 }

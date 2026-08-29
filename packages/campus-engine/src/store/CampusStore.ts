@@ -4,7 +4,7 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildRoom } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildRoom, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
 import { EMPTY_STATE, type CampusEvent, type Id, type State } from "../domain/types";
@@ -91,5 +91,28 @@ export class CampusStore {
         agentId: input.agentId,
         supervisorId: input.supervisorId,
       }),
+  };
+
+  readonly worker = {
+    spawn: (input: {
+      id: Id;
+      actorId: Id;
+      buildingId: Id;
+      roomId: Id;
+      name?: string;
+    }): CommandResult =>
+      this.dispatch({
+        type: "worker.spawn",
+        actorId: input.actorId,
+        worker: buildWorker({
+          id: input.id,
+          buildingId: input.buildingId,
+          roomId: input.roomId,
+          spawnedById: input.actorId,
+          name: input.name,
+        }),
+      }),
+    despawn: (input: { actorId: Id; workerId: Id }): CommandResult =>
+      this.dispatch({ type: "worker.despawn", actorId: input.actorId, workerId: input.workerId }),
   };
 }

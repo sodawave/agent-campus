@@ -39,7 +39,7 @@ export interface Room {
 export interface AgentInstance {
   id: Id;
   name: string;
-  kind: "named";
+  kind: "named" | "anonymous_worker";
   buildingId: Id;
   roomId: Id;
   /** Rank key (e.g. "ic", "lead", "head"). Optional until set. */
@@ -48,7 +48,12 @@ export interface AgentInstance {
   skillKey?: string;
   /** Direct supervisor in the org chart. */
   supervisorId?: Id | null;
+  /** For anonymous workers: the named agent that spawned it. */
+  spawnedById?: Id;
 }
+
+/** Only agents of this rank may spawn/despawn anonymous workers (Constitución VI). */
+export const WORKER_SPAWNER_RANK_KEY = "ic";
 
 /**
  * Facts emitted by the core, consumed by any client (JSON-serializable,
@@ -60,7 +65,9 @@ export type CampusEvent =
   | { type: "room.spawned"; room: Room }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
-  | { type: "room.head.assigned"; roomId: Id; agentId: Id };
+  | { type: "room.head.assigned"; roomId: Id; agentId: Id }
+  | { type: "worker.entered"; worker: AgentInstance }
+  | { type: "worker.exited"; workerId: Id };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -68,6 +75,8 @@ export interface State {
   buildings: Building[];
   rooms: Room[];
   agents: AgentInstance[];
+  /** Anonymous workers currently in the campus (ephemeral). */
+  workers: AgentInstance[];
 }
 
 /** Canonical empty projection. */
@@ -76,4 +85,5 @@ export const EMPTY_STATE: State = {
   buildings: [],
   rooms: [],
   agents: [],
+  workers: [],
 };
