@@ -10,7 +10,9 @@ import type {
   Campus,
   CampusEvent,
   DebateSession,
+  DocClassification,
   Id,
+  LibraryDocument,
   MemoryRecord,
   Room,
   SpecKitArtifact,
@@ -48,7 +50,9 @@ export type CampusCommand =
   | { type: "host.join"; id: Id; label: string }
   | { type: "host.leave"; hostId: Id }
   | { type: "runtime.start"; id: Id; hostId: Id; agentId: Id; workingDir?: string }
-  | { type: "runtime.stop"; runtimeId: Id };
+  | { type: "runtime.stop"; runtimeId: Id }
+  | { type: "library.addClassification"; classification: DocClassification }
+  | { type: "library.addDocument"; document: LibraryDocument };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -84,7 +88,8 @@ export type RejectionReason =
   | "host_not_found"
   | "host_offline"
   | "agent_already_live"
-  | "runtime_not_found";
+  | "runtime_not_found"
+  | "classification_not_found";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -363,6 +368,21 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       const runtime = state.runtimes.find((r) => r.id === runtimeId);
       if (!runtime || runtime.status !== "running") return reject("runtime_not_found");
       return accept({ type: "runtime.stopped", runtimeId });
+    }
+
+    case "library.addClassification": {
+      // Upsert semantics: add or replace by id.
+      return accept({ type: "library.classification.upserted", classification: command.classification });
+    }
+
+    case "library.addDocument": {
+      const { document } = command;
+      for (const cid of document.classificationIds) {
+        if (!state.classifications.some((c) => c.id === cid)) {
+          return reject("classification_not_found");
+        }
+      }
+      return accept({ type: "library.document.upserted", document });
     }
   }
 }

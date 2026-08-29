@@ -142,6 +142,30 @@ export interface SpecKitArtifact {
   title: string;
 }
 
+/** Kind of library material. */
+export type DocKind = "code" | "law" | "manual" | "policy" | "research" | "other";
+
+/**
+ * A campus-scoped classification bound to crafts (skillKeys). Documents are
+ * associated to agents by oficio, not by instance id.
+ */
+export interface DocClassification {
+  id: Id;
+  key: string;
+  label: string;
+  vectorNamespace: string;
+  skillKeys: string[];
+}
+
+/** A library document classified by one or more classifications. */
+export interface LibraryDocument {
+  id: Id;
+  title: string;
+  kind: DocKind;
+  classificationIds: Id[];
+  sourceUri?: string;
+}
+
 /** Memory scope: an agent's private drawer, or a building's shared project wing. */
 export type MemoryScope = "agent" | "project";
 
@@ -199,7 +223,9 @@ export type CampusEvent =
   | { type: "host.joined"; host: AgentHost }
   | { type: "host.left"; hostId: Id }
   | { type: "runtime.started"; runtime: AgentRuntime }
-  | { type: "runtime.stopped"; runtimeId: Id };
+  | { type: "runtime.stopped"; runtimeId: Id }
+  | { type: "library.classification.upserted"; classification: DocClassification }
+  | { type: "library.document.upserted"; document: LibraryDocument };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -217,6 +243,8 @@ export interface State {
   specArtifacts: SpecKitArtifact[];
   hosts: AgentHost[];
   runtimes: AgentRuntime[];
+  classifications: DocClassification[];
+  documents: LibraryDocument[];
 }
 
 /** Canonical empty projection. */
@@ -234,4 +262,6 @@ export const EMPTY_STATE: State = {
   specArtifacts: [],
   hosts: [],
   runtimes: [],
+  classifications: [],
+  documents: [],
 };

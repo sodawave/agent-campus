@@ -247,6 +247,28 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "library.classification.upserted": {
+      const { classification } = event;
+      const exists = state.classifications.some((c) => c.id === classification.id);
+      return {
+        ...state,
+        classifications: exists
+          ? state.classifications.map((c) => (c.id === classification.id ? classification : c))
+          : [...state.classifications, classification],
+      };
+    }
+
+    case "library.document.upserted": {
+      const { document } = event;
+      const exists = state.documents.some((d) => d.id === document.id);
+      return {
+        ...state,
+        documents: exists
+          ? state.documents.map((d) => (d.id === document.id ? document : d))
+          : [...state.documents, document],
+      };
+    }
+
     default:
       return state;
   }

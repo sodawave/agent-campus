@@ -4,11 +4,12 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildDebate, buildMemory, buildRoom, buildSpecKitArtifact, buildTask, buildWorker } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildClassification, buildDebate, buildDocument, buildMemory, buildRoom, buildSpecKitArtifact, buildTask, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
 import { recallForAgent } from "../domain/memory";
-import { EMPTY_STATE, type CampusEvent, type Id, type MemoryRecord, type MemoryScope, type State, type TaskVerdict } from "../domain/types";
+import { documentsForSkill } from "../domain/library";
+import { EMPTY_STATE, type CampusEvent, type DocKind, type Id, type LibraryDocument, type MemoryRecord, type MemoryScope, type State, type TaskVerdict } from "../domain/types";
 
 type Listener = (state: State) => void;
 
@@ -185,5 +186,14 @@ export class CampusStore {
       }),
     stop: (input: { runtimeId: Id }): CommandResult =>
       this.dispatch({ type: "runtime.stop", runtimeId: input.runtimeId }),
+  };
+
+  readonly library = {
+    addClassification: (input: { id: Id; key: string; label: string; vectorNamespace?: string; skillKeys: string[] }): CommandResult =>
+      this.dispatch({ type: "library.addClassification", classification: buildClassification(input) }),
+    addDocument: (input: { id: Id; title: string; kind: DocKind; classificationIds: Id[]; sourceUri?: string }): CommandResult =>
+      this.dispatch({ type: "library.addDocument", document: buildDocument(input) }),
+    /** Read-only: documents reachable by a craft/oficio key. */
+    forSkill: (skillKey: string): LibraryDocument[] => documentsForSkill(this.#state, skillKey),
   };
 }
