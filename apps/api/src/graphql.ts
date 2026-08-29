@@ -9,7 +9,14 @@ import type { CommandResult } from "@agent-campus/campus-engine";
 import type { CampusLink } from "./link";
 
 export const schema = buildSchema(`
-  type Config { language: String!, timezone: String! }
+  type Provider { id: ID!, name: String!, models: [String!]! }
+  type ModelRef { providerId: ID!, model: String! }
+  type Config {
+    language: String!
+    timezone: String!
+    providers: [Provider!]!
+    defaultModel: ModelRef
+  }
   type Building { id: ID!, name: String!, leaderAgentId: ID }
   type Agent { id: ID!, name: String!, rankKey: String, live: Boolean! }
   type Project { id: ID!, name: String!, buildingId: ID!, status: String! }
@@ -29,6 +36,9 @@ export const schema = buildSchema(`
     setConfig(language: String, timezone: String): CommandResult!
     spawnBuilding(id: ID!, name: String!): CommandResult!
     createProject(id: ID!, buildingId: ID!, name: String!): CommandResult!
+    addProvider(id: ID!, name: String!, models: [String!]!): CommandResult!
+    removeProvider(providerId: ID!): CommandResult!
+    setDefaultModel(providerId: ID!, model: String!): CommandResult!
   }
 `);
 
@@ -66,6 +76,12 @@ export function createRoot(link: CampusLink) {
       toResult(
         await link.send({ type: "project.create", project: { id: args.id, buildingId: args.buildingId, name: args.name, status: "active" } }),
       ),
+    addProvider: async (args: { id: string; name: string; models: string[] }) =>
+      toResult(await link.send({ type: "campus.addProvider", provider: { id: args.id, name: args.name, models: args.models } })),
+    removeProvider: async (args: { providerId: string }) =>
+      toResult(await link.send({ type: "campus.removeProvider", providerId: args.providerId })),
+    setDefaultModel: async (args: { providerId: string; model: string }) =>
+      toResult(await link.send({ type: "campus.setDefaultModel", providerId: args.providerId, model: args.model })),
   };
 }
 
