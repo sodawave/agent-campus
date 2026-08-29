@@ -39,6 +39,10 @@ app.innerHTML = `
       <h2>Command results</h2>
       <div class="log" id="log"></div>
     </div>
+    <div class="panel"><h2>Workers</h2><div id="workers"></div></div>
+    <div class="panel"><h2>Tasks</h2><div id="tasks"></div></div>
+    <div class="panel"><h2>Execution — hosts / runtimes</h2><div id="exec"></div></div>
+    <div class="panel"><h2>SDD &amp; Library</h2><div id="sdd"></div></div>
   </div>
 `;
 
@@ -47,6 +51,12 @@ const sub = document.getElementById("sub")!;
 const view = document.getElementById("view")!;
 const controls = document.getElementById("controls")!;
 const logEl = document.getElementById("log")!;
+const workersEl = document.getElementById("workers")!;
+const tasksEl = document.getElementById("tasks")!;
+const execEl = document.getElementById("exec")!;
+const sddEl = document.getElementById("sdd")!;
+
+const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
 
 let status: "connecting" | "open" | "closed" = "connecting";
 let seq = 0;
@@ -74,24 +84,78 @@ function renderStatus(): void {
 function render(state: State = client.state()): void {
   if (!state.campus) {
     view.innerHTML = `<span class="muted">no campus loaded</span>`;
+    workersEl.innerHTML = tasksEl.innerHTML = execEl.innerHTML = sddEl.innerHTML = "";
     return;
   }
+
   const buildings = state.buildings
     .map((b) => {
+      const sk = state.specKits.find((s) => s.buildingId === b.id);
+      const phase = sk ? `<span class="badge">SDD: ${sk.phase}</span>` : "";
       const rooms = state.rooms.filter((r) => r.buildingId === b.id);
       const roomsHtml = rooms
         .map((r) => {
           const agents = state.agents
             .filter((a) => a.roomId === r.id)
-            .map((a) => `<span class="agent">${a.name}</span>`)
+            .map((a) => {
+              const live = a.hostId != null && a.runtimeId != null;
+              const rank = a.rankKey ? `·${esc(a.rankKey)}` : "";
+              const head = r.headAgentId === a.id ? " ★" : "";
+              const liveDot = live ? `<span class="live" title="live runtime">●</span>` : "";
+              return `<span class="agent">${liveDot}${esc(a.name)}<span class="muted">${rank}</span>${head}</span>`;
+            })
             .join("");
-          return `<div class="room">· ${r.key} ${agents}</div>`;
+          return `<div class="room">· ${esc(r.key)} ${agents || '<span class="muted">(empty)</span>'}</div>`;
         })
         .join("");
-      return `<div class="building"><div class="name">${b.name}</div>${roomsHtml}</div>`;
+      return `<div class="building"><div class="name">${esc(b.name)} ${phase}</div>${roomsHtml}</div>`;
     })
     .join("");
-  view.innerHTML = `<div class="muted">${state.campus.name} — ${state.buildings.length} buildings, ${state.agents.length} agents</div>${buildings}`;
+  view.innerHTML = `<div class="muted">${esc(state.campus.name)} — ${state.buildings.length} buildings · ${state.agents.length} agents · ${state.workers.length} workers</div>${buildings}`;
+
+  // Workers
+  workersEl.innerHTML =
+    state.workers.length === 0
+      ? `<span class="muted">none</span>`
+      : state.workers
+          .map((w) => {
+            const room = state.rooms.find((r) => r.id === w.roomId)?.key ?? w.roomId;
+            return `<div class="row-item"><span class="agent">${esc(w.name)}</span> <span class="muted">@ ${esc(room)} · by ${esc(w.spawnedById ?? "?")}</span></div>`;
+          })
+          .join("");
+
+  // Tasks
+  tasksEl.innerHTML =
+    state.tasks.length === 0
+      ? `<span class="muted">none</span>`
+      : state.tasks
+          .map(
+            (t) =>
+              `<div class="row-item">${esc(t.title)} <span class="badge status-${t.status}">${t.status}</span> <span class="muted">→ ${esc(t.assigneeId)}</span></div>`,
+          )
+          .join("");
+
+  // Execution
+  const hosts = state.hosts
+    .map((h) => `<div class="row-item">🖥 ${esc(h.label)} <span class="muted">(${h.status})</span></div>`)
+    .join("");
+  const runtimes = state.runtimes
+    .map(
+      (rt) =>
+        `<div class="row-item"><span class="badge status-${rt.status}">${rt.status}</span> ${esc(rt.agentId)} <span class="muted">${rt.workingDir ? "· " + esc(rt.workingDir) : ""}</span></div>`,
+    )
+    .join("");
+  execEl.innerHTML =
+    state.hosts.length === 0 && state.runtimes.length === 0
+      ? `<span class="muted">none</span>`
+      : `${hosts}${runtimes}`;
+
+  // SDD & Library
+  const docs = state.documents
+    .map((d) => `<div class="row-item">📄 ${esc(d.title)} <span class="muted">(${esc(d.kind)})</span></div>`)
+    .join("");
+  sddEl.innerHTML =
+    `<div class="muted">${state.classifications.length} classifications · ${state.documents.length} documents</div>${docs || ""}`;
 }
 
 function log(result: CommandResult, label: string): void {

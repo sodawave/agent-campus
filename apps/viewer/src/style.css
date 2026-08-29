@@ -62,3 +62,12 @@ button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
 .log .ok { color: #3fb950; }
 .log .err { color: #f85149; }
 .muted { color: #8b949e; }
+
+.row-item { padding: 3px 0; font-size: 13px; border-bottom: 1px solid #1b2028; }
+.row-item:last-child { border-bottom: 0; }
+.live { color: #3fb950; margin-right: 4px; }
+.badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #30363d; color: #adbac7; }
+.badge.status-running, .badge.status-under_review { background: #1f6feb33; color: #79c0ff; }
+.badge.status-succeeded { background: #23863633; color: #56d364; }
+.badge.status-needs_revision, .badge.status-stopped { background: #f8514933; color: #ff7b72; }
+.badge.status-queued { background: #30363d; color: #adbac7; }

@@ -28,8 +28,30 @@ function seed(server: CampusServer): void {
   s.building.spawn({ id: "b-alpha", name: "Project Alpha" });
   s.room.spawn({ id: "r-mkt", buildingId: "b-alpha", key: "marketing" });
   s.room.spawn({ id: "r-dev", buildingId: "b-alpha", key: "engineering" });
-  s.agent.instantiate({ id: "a-mia", name: "Mia", buildingId: "b-alpha", roomId: "r-mkt" });
-  s.agent.instantiate({ id: "a-ivan", name: "Ivan", buildingId: "b-alpha", roomId: "r-dev" });
+
+  // Named agents with roles + org line.
+  s.agent.instantiate({ id: "a-mia", name: "Mia", buildingId: "b-alpha", roomId: "r-mkt", rankKey: "lead", skillKey: "marketing" });
+  s.agent.instantiate({ id: "a-ivan", name: "Ivan", buildingId: "b-alpha", roomId: "r-dev", rankKey: "ic", skillKey: "software-eng" });
+  s.agent.assignSupervisor({ agentId: "a-ivan", supervisorId: "a-mia" });
+  s.room.assignHead({ roomId: "r-mkt", agentId: "a-mia" });
+
+  // Anonymous worker spawned by an ic agent.
+  s.worker.spawn({ id: "w-1", actorId: "a-ivan", buildingId: "b-alpha", roomId: "r-dev" });
+
+  // A task walking the test-gate up to review.
+  s.task.assign({ id: "t-1", title: "Ship onboarding", assigneeId: "a-ivan", orderedById: "a-mia" });
+  s.task.start({ taskId: "t-1" });
+  s.task.submit({ taskId: "t-1" });
+
+  // Execution plane: a host runs Mia.
+  s.host.join({ id: "h-laptop", label: "laptop-ana" });
+  s.runtime.start({ id: "rt-1", hostId: "h-laptop", agentId: "a-mia", workingDir: "/repo/alpha" });
+
+  // SDD on the building + a library classification/doc.
+  s.specKit.enable({ buildingId: "b-alpha" });
+  s.specKit.advancePhase({ buildingId: "b-alpha" }); // -> specify
+  s.library.addClassification({ id: "cl-eng", key: "eng", label: "Engineering", skillKeys: ["software-eng"] });
+  s.library.addDocument({ id: "doc-1", title: "Style Guide", kind: "manual", classificationIds: ["cl-eng"] });
 }
 
 const server = new CampusServer();
