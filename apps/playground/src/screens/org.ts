@@ -1,9 +1,28 @@
 import {
   canCommunicate,
   type AgentInstance,
+  type SpecKitArtifactKind,
+  type SpecKitPhase,
 } from "@agent-campus/campus-engine";
 import { activeBuilding, store } from "../app";
 import { clear, colorFromString, h, initials } from "../util";
+
+const SPEC_PHASES: SpecKitPhase[] = [
+  "constitution",
+  "specify",
+  "plan",
+  "tasks",
+  "implement",
+  "converge",
+];
+
+const SPEC_ARTIFACT_KINDS: SpecKitArtifactKind[] = [
+  "constitution",
+  "spec",
+  "plan",
+  "tasks",
+  "convergence_report",
+];
 
 function node(agent: AgentInstance, all: AgentInstance[]): HTMLElement {
   const children = all.filter((a) => a.supervisorId === agent.id);
@@ -94,6 +113,9 @@ export function createOrg(): { root: HTMLElement; render: () => void } {
       ]),
     );
 
+    // Spec Kit (SDD) — per building
+    if (b) main.append(specKitPanel(b.id));
+
     // Issue order (enforced by org.canCommunicate)
     const fromSel = h(
       "select",
@@ -157,4 +179,122 @@ export function createOrg(): { root: HTMLElement; render: () => void } {
 
   render();
   return { root, render };
+}
+
+/** Spec Kit (SDD) panel for one building. */
+function specKitPanel(buildingId: string): HTMLElement {
+  const sk = store.specKitOf(buildingId);
+
+  if (!sk) {
+    return h("div", { class: "panel" }, [
+      h("h2", {}, ["Spec Kit (SDD)"]),
+      h("p", { class: "hint" }, [
+        "Spec-Driven Development per building. Not enabled yet.",
+      ]),
+      h(
+        "button",
+        {
+          class: "btn primary",
+          onclick: () => store.building.specKit.enable(buildingId),
+        },
+        ["Enable Spec Kit"],
+      ),
+    ]);
+  }
+
+  // Phase stepper
+  const stepper = h(
+    "div",
+    { class: "row tight", style: "flex-wrap:wrap" },
+    SPEC_PHASES.flatMap((p, i) => {
+      const chip = h(
+        "span",
+        { class: `chip${p === sk.phase ? " rank" : ""}` },
+        [p],
+      );
+      return i < SPEC_PHASES.length - 1
+        ? [chip, h("span", { class: "hint", style: "margin:0 2px" }, ["→"])]
+        : [chip];
+    }),
+  );
+
+  const convClass =
+    sk.convergence === "converged"
+      ? "succeeded"
+      : sk.convergence === "in_progress"
+        ? "running"
+        : "queued";
+  const advance = h(
+    "button",
+    {
+      class: "btn",
+      disabled: sk.phase === "converge",
+      onclick: () => store.building.specKit.advancePhase(buildingId),
+    },
+    ["Advance phase"],
+  );
+
+  // Artifacts
+  const artifacts = store.specArtifactsOf(buildingId);
+  const artifactRows = artifacts.length
+    ? artifacts.map((a) =>
+        h("div", { class: "task" }, [
+          h("span", { class: "chip" }, [a.kind]),
+          h("span", {}, [a.title]),
+          h("span", { class: "status queued", style: "margin-left:auto" }, [
+            a.status,
+          ]),
+        ]),
+      )
+    : [h("div", { class: "empty" }, ["No artifacts yet."])];
+
+  // Add-artifact form
+  const kindSel = h(
+    "select",
+    {},
+    SPEC_ARTIFACT_KINDS.map((k) => h("option", { value: k }, [k])),
+  );
+  const titleInput = document.createElement("input");
+  titleInput.type = "text";
+  titleInput.placeholder = "Artifact title";
+  const uriInput = document.createElement("input");
+  uriInput.type = "text";
+  uriInput.placeholder = "uri (e.g. specs/mvp/spec.md)";
+  const addBtn = h(
+    "button",
+    {
+      class: "btn",
+      onclick: () => {
+        store.building.specKit.addArtifact({
+          buildingId,
+          kind: kindSel.value as SpecKitArtifactKind,
+          title: titleInput.value.trim() || "Untitled",
+          uri: uriInput.value.trim() || "specs/untitled.md",
+        });
+        titleInput.value = "";
+        uriInput.value = "";
+      },
+    },
+    ["Add artifact"],
+  );
+
+  return h("div", { class: "panel" }, [
+    h("div", { class: "row", style: "justify-content:space-between" }, [
+      h("h2", { style: "margin:0" }, ["Spec Kit (SDD)"]),
+      h("span", { class: `status ${convClass}` }, [sk.convergence]),
+    ]),
+    h("div", { class: "row", style: "margin:8px 0" }, [stepper]),
+    h("div", { class: "row" }, [advance]),
+    sk.extensions.length
+      ? h("p", { class: "hint" }, [`extensions: ${sk.extensions.join(", ")}`])
+      : null,
+    h("h2", { style: "margin-top:14px" }, ["Artifacts"]),
+    h("div", {}, artifactRows),
+    h("div", { class: "row", style: "margin-top:10px" }, [
+      kindSel,
+      titleInput,
+      uriInput,
+      addBtn,
+    ]),
+  ]);
 }

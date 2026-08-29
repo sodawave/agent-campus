@@ -27,6 +27,11 @@ import {
   tasksForAgent,
 } from "../domain/tasks";
 import { canDestroyWorker, spawnAnonymousWorker } from "../domain/workers";
+import {
+  createSpecKitArtifact,
+  initProjectSpecKit,
+  nextSpecKitPhase,
+} from "../domain/speckit";
 import type {
   AgentArchetype,
   AgentInstance,
@@ -44,9 +49,14 @@ import type {
   LibraryDocument,
   Project,
   ProjectCall,
+  ProjectSpecKit,
   Run,
   RunStatus,
   Skill,
+  SpecKitArtifact,
+  SpecKitArtifactKind,
+  SpecKitConvergenceStatus,
+  SpecKitPhase,
   Workspace,
   WorkspaceRole,
 } from "../domain/types";
@@ -67,6 +77,8 @@ export interface CampusState {
   tasks: AgentTask[];
   /** Inter-building loans (ProjectCall) in flight. */
   calls: ProjectCall[];
+  /** Spec Kit (SDD) artifacts, per building (`projectId`). */
+  specArtifacts: SpecKitArtifact[];
 }
 
 export interface LoadCampusInput {
@@ -135,6 +147,7 @@ const EMPTY_STATE: CampusState = {
   orders: [],
   tasks: [],
   calls: [],
+  specArtifacts: [],
 };
 
 export class CampusStore {
@@ -203,6 +216,16 @@ export class CampusStore {
     return tasksForAgent(this.state.tasks, agentId);
   }
 
+  /** Spec Kit (SDD) binding for a building, if enabled. */
+  specKitOf(buildingId: Id): ProjectSpecKit | undefined {
+    return this.getBuilding(buildingId)?.specKit;
+  }
+
+  /** Spec Kit artifacts belonging to a building. */
+  specArtifactsOf(buildingId: Id): SpecKitArtifact[] {
+    return this.state.specArtifacts.filter((a) => a.projectId === buildingId);
+  }
+
   // ---- Event plumbing ----
 
   /** Apply an event to the state (idempotent) and notify listeners. */
@@ -230,6 +253,20 @@ export class CampusStore {
         projectId: buildingId,
         context,
       }),
+    /** Spec-Driven Development (Spec Kit) — per building. */
+    specKit: {
+      enable: (buildingId: Id, overrides?: Partial<ProjectSpecKit>): void =>
+        this.enableSpecKit(buildingId, overrides),
+      advancePhase: (buildingId: Id): void =>
+        this.advanceSpecKitPhase(buildingId),
+      setPhase: (
+        buildingId: Id,
+        phase: SpecKitPhase,
+        convergence?: SpecKitConvergenceStatus,
+      ): void => this.setSpecKitPhase(buildingId, phase, convergence),
+      addArtifact: (input: AddSpecArtifactInput): SpecKitArtifact =>
+        this.addSpecArtifact(input),
+    },
   };
 
   readonly room = {
@@ -323,6 +360,51 @@ export class CampusStore {
     });
     this.dispatch({ type: "room.spawned", workspace });
     return workspace;
+  }
+
+  private enableSpecKit(
+    buildingId: Id,
+    overrides?: Partial<ProjectSpecKit>,
+  ): void {
+    const specKit = initProjectSpecKit(overrides);
+    this.dispatch({ type: "speckit.enabled", projectId: buildingId, specKit });
+  }
+
+  private advanceSpecKitPhase(buildingId: Id): void {
+    const current = this.specKitOf(buildingId);
+    const phase = nextSpecKitPhase(current?.phase ?? "constitution");
+    const convergence: SpecKitConvergenceStatus =
+      phase === "converge" ? "converged" : "in_progress";
+    this.setSpecKitPhase(buildingId, phase, convergence);
+  }
+
+  private setSpecKitPhase(
+    buildingId: Id,
+    phase: SpecKitPhase,
+    convergence?: SpecKitConvergenceStatus,
+  ): void {
+    const resolved: SpecKitConvergenceStatus =
+      convergence ?? (phase === "converge" ? "converged" : "in_progress");
+    this.dispatch({
+      type: "speckit.phase.changed",
+      projectId: buildingId,
+      phase,
+      convergence: resolved,
+    });
+  }
+
+  private addSpecArtifact(input: AddSpecArtifactInput): SpecKitArtifact {
+    const artifact = createSpecKitArtifact({
+      id: nextId("spec"),
+      projectId: input.buildingId,
+      kind: input.kind,
+      title: input.title,
+      uri: input.uri,
+      slug: input.slug,
+      authorAgentId: input.authorAgentId,
+    });
+    this.dispatch({ type: "speckit.artifact.upserted", artifact });
+    return artifact;
   }
 
   private instantiateAgent(request: InstantiateRequest): AgentInstance {
@@ -519,6 +601,15 @@ export interface AddTaskInput {
   orderedById?: Id;
 }
 
+export interface AddSpecArtifactInput {
+  buildingId: Id;
+  kind: SpecKitArtifactKind;
+  title: string;
+  uri: string;
+  slug?: string;
+  authorAgentId?: Id;
+}
+
 /** Pure reducer: (state, event) -> state. Unknown events are no-ops. */
 export function reduce(state: CampusState, event: CampusEvent): CampusState {
   switch (event.type) {
@@ -679,6 +770,37 @@ export function reduce(state: CampusState, event: CampusEvent): CampusState {
         workspaces: state.workspaces.map((w) =>
           w.id === event.workspaceId ? { ...w, context: event.context } : w,
         ),
+      };
+
+    case "speckit.enabled":
+      return {
+        ...state,
+        buildings: state.buildings.map((b) =>
+          b.id === event.projectId ? { ...b, specKit: event.specKit } : b,
+        ),
+      };
+
+    case "speckit.phase.changed":
+      return {
+        ...state,
+        buildings: state.buildings.map((b) => {
+          if (b.id !== event.projectId) return b;
+          const specKit = b.specKit ?? initProjectSpecKit();
+          return {
+            ...b,
+            specKit: {
+              ...specKit,
+              phase: event.phase,
+              convergence: event.convergence,
+            },
+          };
+        }),
+      };
+
+    case "speckit.artifact.upserted":
+      return {
+        ...state,
+        specArtifacts: upsertById(state.specArtifacts, event.artifact),
       };
 
     case "task.inventory.updated": {

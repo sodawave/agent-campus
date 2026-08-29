@@ -136,6 +136,24 @@ export function bootstrap(): void {
     instruction: "Draft the launch announcement",
   });
 
+  // Spec-Driven Development on the demo building (Spec Kit).
+  store.building.specKit.enable(demoId);
+  store.building.specKit.advancePhase(demoId); // → specify
+  store.building.specKit.addArtifact({
+    buildingId: demoId,
+    kind: "constitution",
+    title: "Campus constitution",
+    uri: "specs/constitution.md",
+    authorAgentId: nadia.id,
+  });
+  store.building.specKit.addArtifact({
+    buildingId: demoId,
+    kind: "spec",
+    title: "Agent Campus MVP spec",
+    uri: "specs/mvp/spec.md",
+    authorAgentId: ada.id,
+  });
+
   // Default selections.
   ui.activeBuildingId = demoId;
   ui.actorId = mia.id; // ic marketer → can spawn workers

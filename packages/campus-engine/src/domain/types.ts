@@ -724,6 +724,11 @@ export type CampusEvent =
       drawer: MemoryDrawer;
     }
   | {
+      type: "speckit.enabled";
+      projectId: Id;
+      specKit: ProjectSpecKit;
+    }
+  | {
       type: "speckit.phase.changed";
       projectId: Id;
       phase: SpecKitPhase;
