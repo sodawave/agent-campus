@@ -21,6 +21,12 @@ export interface AiProvider {
   id: Id;
   name: string;
   models: string[];
+  /**
+   * Whether a token/API key is configured for this provider. Presence indicator
+   * ONLY — the secret value lives outside the state (server-side secret store),
+   * never in the event log or broadcast projection.
+   */
+  hasToken?: boolean;
 }
 
 /** A reference to a specific model of a provider. */
@@ -294,6 +300,7 @@ export type CampusEvent =
   | { type: "campus.config.updated"; config: CampusConfig }
   | { type: "campus.provider.upserted"; provider: AiProvider }
   | { type: "campus.provider.removed"; providerId: Id }
+  | { type: "campus.provider.tokenSet"; providerId: Id; hasToken: boolean }
   | { type: "campus.defaultModel.set"; model: ModelRef }
   | { type: "building.spawned"; building: Building; leaderRoom?: Room; leaderAgent?: AgentInstance }
   | { type: "building.context.updated"; buildingId: Id; context: string }

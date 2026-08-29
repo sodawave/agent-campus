@@ -13,6 +13,7 @@ interface Provider {
   id: string;
   name: string;
   models: string[];
+  hasToken: boolean;
 }
 interface Config {
   language: string;
@@ -57,7 +58,7 @@ app.innerHTML = `
         <button type="submit">Save config</button>
         <div id="msg"></div>
       </form>
-      <p class="muted" style="margin-top:14px">Coming next: connection token, AI providers &amp; models.</p>
+      <p class="muted" style="margin-top:14px">Coming next: Control Panel authentication.</p>
     </div>
     <div class="panel">
       <h2>Campus overview</h2>
@@ -84,6 +85,14 @@ app.innerHTML = `
         <button type="submit">Set default model</button>
         <div id="d-msg"></div>
       </form>
+      <form id="token-form">
+        <label for="t-provider">Provider token — provider id</label>
+        <input id="t-provider" placeholder="openai" />
+        <label for="t-token">Token (write-only; leave empty to clear)</label>
+        <input id="t-token" type="password" placeholder="sk-…" autocomplete="off" />
+        <button type="submit">Save token</button>
+        <div id="t-msg"></div>
+      </form>
     </div>
   </div>
 `;
@@ -102,13 +111,16 @@ const pName = document.getElementById("p-name") as HTMLInputElement;
 const pModels = document.getElementById("p-models") as HTMLInputElement;
 const dProvider = document.getElementById("d-provider") as HTMLInputElement;
 const dModel = document.getElementById("d-model") as HTMLInputElement;
+const tMsg = document.getElementById("t-msg")!;
+const tProvider = document.getElementById("t-provider") as HTMLInputElement;
+const tToken = document.getElementById("t-token") as HTMLInputElement;
 
 const QUERY = `{
   campus {
     name
     config {
       language timezone
-      providers { id name models }
+      providers { id name models hasToken }
       defaultModel { providerId model }
     }
     buildings { id name }
@@ -137,7 +149,12 @@ async function load(): Promise<void> {
       (c.config.providers.length === 0
         ? `<div class="row-item muted">no providers</div>`
         : c.config.providers
-            .map((p) => `<div class="row-item"><b>${p.name}</b> <span class="muted">(${p.id})</span>: ${p.models.join(", ") || "-"}</div>`)
+            .map((p) => {
+              const token = p.hasToken
+                ? `<span class="ok">🔑 token set</span>`
+                : `<span class="muted">no token</span>`;
+              return `<div class="row-item"><b>${p.name}</b> <span class="muted">(${p.id})</span>: ${p.models.join(", ") || "-"} — ${token}</div>`;
+            })
             .join(""));
   } catch (err) {
     dot.className = "dot closed";
@@ -209,6 +226,29 @@ document.getElementById("default-form")!.addEventListener("submit", async (e) =>
   } catch (err) {
     dMsg.className = "err";
     dMsg.textContent = `✗ ${err instanceof Error ? err.message : String(err)}`;
+  }
+});
+
+document.getElementById("token-form")!.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  tMsg.textContent = "";
+  try {
+    const data = await gql<{ setProviderToken: { ok: boolean; reason?: string } }>(
+      `mutation($p: ID!, $t: String!) { setProviderToken(providerId: $p, token: $t) { ok reason } }`,
+      { p: tProvider.value, t: tToken.value },
+    );
+    if (data.setProviderToken.ok) {
+      tMsg.className = "ok";
+      tMsg.textContent = tToken.value ? "✓ token saved" : "✓ token cleared";
+      tToken.value = "";
+      await load();
+    } else {
+      tMsg.className = "err";
+      tMsg.textContent = `✗ ${data.setProviderToken.reason}`;
+    }
+  } catch (err) {
+    tMsg.className = "err";
+    tMsg.textContent = `✗ ${err instanceof Error ? err.message : String(err)}`;
   }
 });
 

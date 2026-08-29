@@ -5,13 +5,15 @@
 
 import { createServer } from "node:http";
 import { createWsCampusLink } from "./link";
-import { executeGraphql } from "./graphql";
+import { executeGraphql, type SecretStore } from "./graphql";
 
 const URL = process.env.CAMPUS_URL ?? "ws://localhost:8787";
 const PORT = Number(process.env.GRAPHQL_PORT ?? 8788);
 
 async function main(): Promise<void> {
   const link = await createWsCampusLink(URL);
+  // Provider tokens live here (server memory), never in the campus state/log.
+  const secrets: SecretStore = new Map();
 
   const cors = {
     "access-control-allow-origin": "*",
@@ -33,7 +35,7 @@ async function main(): Promise<void> {
     req.on("end", async () => {
       try {
         const { query, variables } = JSON.parse(body || "{}");
-        const result = await executeGraphql(link, query, variables);
+        const result = await executeGraphql(link, query, variables, secrets);
         res.writeHead(200, { "content-type": "application/json", ...cors });
         res.end(JSON.stringify(result));
       } catch (err) {
