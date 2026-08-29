@@ -13,12 +13,14 @@ import type {
   Id,
   MemoryRecord,
   Room,
+  SpecKitArtifact,
   State,
   Task,
   TaskVerdict,
 } from "./types";
 import { WORKER_SPAWNER_RANK_KEY } from "./types";
 import { canDebate } from "./org";
+import { nextSpecKitPhase } from "./speckit";
 
 /** Requests from a client/host to the core (validable, rejectable). */
 export type CampusCommand =
@@ -38,7 +40,10 @@ export type CampusCommand =
   | { type: "debate.close"; debateId: Id }
   | { type: "project.call"; id: Id; agentId: Id; toBuildingId: Id; toRoomId: Id }
   | { type: "project.returnHome"; agentId: Id }
-  | { type: "memory.remember"; record: MemoryRecord };
+  | { type: "memory.remember"; record: MemoryRecord }
+  | { type: "speckit.enable"; buildingId: Id }
+  | { type: "speckit.advancePhase"; buildingId: Id }
+  | { type: "speckit.addArtifact"; artifact: SpecKitArtifact };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -67,7 +72,10 @@ export type RejectionReason =
   | "debate_not_found"
   | "already_closed"
   | "already_on_call"
-  | "not_on_call";
+  | "not_on_call"
+  | "speckit_already_enabled"
+  | "speckit_not_enabled"
+  | "no_next_phase";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -281,6 +289,37 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         }
       }
       return accept({ type: "memory.remembered", record });
+    }
+
+    case "speckit.enable": {
+      const { buildingId } = command;
+      if (!state.buildings.some((b) => b.id === buildingId)) {
+        return reject("building_not_found");
+      }
+      if (state.specKits.some((s) => s.buildingId === buildingId)) {
+        return reject("speckit_already_enabled");
+      }
+      return accept({ type: "speckit.enabled", buildingId, phase: "constitution" });
+    }
+
+    case "speckit.advancePhase": {
+      const { buildingId } = command;
+      const sk = state.specKits.find((s) => s.buildingId === buildingId);
+      if (!sk) return reject("speckit_not_enabled");
+      const next = nextSpecKitPhase(sk.phase);
+      if (!next) return reject("no_next_phase");
+      return accept({ type: "speckit.phase.changed", buildingId, phase: next });
+    }
+
+    case "speckit.addArtifact": {
+      const { artifact } = command;
+      if (!state.specKits.some((s) => s.buildingId === artifact.buildingId)) {
+        return reject("speckit_not_enabled");
+      }
+      if (state.specArtifacts.some((a) => a.id === artifact.id)) {
+        return reject("duplicate_id");
+      }
+      return accept({ type: "speckit.artifact.upserted", artifact });
     }
   }
 }

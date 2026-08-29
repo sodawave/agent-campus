@@ -163,6 +163,34 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, memories: [...state.memories, record] };
     }
 
+    case "speckit.enabled": {
+      const { buildingId, phase } = event;
+      if (state.specKits.some((s) => s.buildingId === buildingId)) return state;
+      return { ...state, specKits: [...state.specKits, { buildingId, phase }] };
+    }
+
+    case "speckit.phase.changed": {
+      const { buildingId, phase } = event;
+      if (!state.specKits.some((s) => s.buildingId === buildingId)) return state;
+      return {
+        ...state,
+        specKits: state.specKits.map((s) =>
+          s.buildingId === buildingId ? { ...s, phase } : s,
+        ),
+      };
+    }
+
+    case "speckit.artifact.upserted": {
+      const { artifact } = event;
+      const exists = state.specArtifacts.some((a) => a.id === artifact.id);
+      return {
+        ...state,
+        specArtifacts: exists
+          ? state.specArtifacts.map((a) => (a.id === artifact.id ? artifact : a))
+          : [...state.specArtifacts, artifact],
+      };
+    }
+
     default:
       return state;
   }

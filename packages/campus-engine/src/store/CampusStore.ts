@@ -4,7 +4,7 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildDebate, buildMemory, buildRoom, buildTask, buildWorker } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildDebate, buildMemory, buildRoom, buildSpecKitArtifact, buildTask, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
 import { recallForAgent } from "../domain/memory";
@@ -73,6 +73,16 @@ export class CampusStore {
       this.dispatch({ type: "room.spawn", room: buildRoom(input) }),
     assignHead: (input: { roomId: Id; agentId: Id }): CommandResult =>
       this.dispatch({ type: "room.assignHead", roomId: input.roomId, agentId: input.agentId }),
+  };
+
+  /** Spec Kit (SDD) per building. */
+  readonly specKit = {
+    enable: (input: { buildingId: Id }): CommandResult =>
+      this.dispatch({ type: "speckit.enable", buildingId: input.buildingId }),
+    advancePhase: (input: { buildingId: Id }): CommandResult =>
+      this.dispatch({ type: "speckit.advancePhase", buildingId: input.buildingId }),
+    addArtifact: (input: { id: Id; buildingId: Id; kind: string; title: string }): CommandResult =>
+      this.dispatch({ type: "speckit.addArtifact", artifact: buildSpecKitArtifact(input) }),
   };
 
   readonly agent = {

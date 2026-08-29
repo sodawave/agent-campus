@@ -4,3 +4,4 @@ export * from "./reduce";
 export * from "./commands";
 export * from "./org";
 export * from "./memory";
+export * from "./speckit";

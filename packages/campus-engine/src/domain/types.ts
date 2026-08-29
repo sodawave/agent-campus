@@ -88,6 +88,39 @@ export interface DebateSession {
   status: "open" | "closed";
 }
 
+/** Spec-Driven Development phases per building (github/spec-kit). */
+export type SpecKitPhase =
+  | "constitution"
+  | "specify"
+  | "plan"
+  | "tasks"
+  | "implement"
+  | "converge";
+
+/** Ordered SDD phases. */
+export const SPECKIT_PHASES: readonly SpecKitPhase[] = [
+  "constitution",
+  "specify",
+  "plan",
+  "tasks",
+  "implement",
+  "converge",
+];
+
+/** Per-building Spec Kit state. */
+export interface BuildingSpecKit {
+  buildingId: Id;
+  phase: SpecKitPhase;
+}
+
+/** An SDD artifact produced within a building's Spec Kit. */
+export interface SpecKitArtifact {
+  id: Id;
+  buildingId: Id;
+  kind: string;
+  title: string;
+}
+
 /** Memory scope: an agent's private drawer, or a building's shared project wing. */
 export type MemoryScope = "agent" | "project";
 
@@ -138,7 +171,10 @@ export type CampusEvent =
   | { type: "debate.closed"; debateId: Id }
   | { type: "project.call.issued"; call: ProjectCall }
   | { type: "project.call.closed"; callId: Id; agentId: Id }
-  | { type: "memory.remembered"; record: MemoryRecord };
+  | { type: "memory.remembered"; record: MemoryRecord }
+  | { type: "speckit.enabled"; buildingId: Id; phase: SpecKitPhase }
+  | { type: "speckit.phase.changed"; buildingId: Id; phase: SpecKitPhase }
+  | { type: "speckit.artifact.upserted"; artifact: SpecKitArtifact };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -152,6 +188,8 @@ export interface State {
   debates: DebateSession[];
   calls: ProjectCall[];
   memories: MemoryRecord[];
+  specKits: BuildingSpecKit[];
+  specArtifacts: SpecKitArtifact[];
 }
 
 /** Canonical empty projection. */
@@ -165,4 +203,6 @@ export const EMPTY_STATE: State = {
   debates: [],
   calls: [],
   memories: [],
+  specKits: [],
+  specArtifacts: [],
 };
