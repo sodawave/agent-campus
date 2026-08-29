@@ -8,12 +8,14 @@
   },
   "scripts": {
     "mcp": "tsx src/main.ts",
+    "graphql": "tsx src/graphql-main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@agent-campus/campus-engine": "*",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "graphql": "^16.9.0",
     "ws": "^8.18.0",
     "zod": "^3.23.8"
   },
