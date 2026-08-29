@@ -542,9 +542,11 @@ interface AgentArchetype {
 interface Building {            // antes "Project (= Building)"; ahora Building = Entorno
   campusId: Id;
   context: BuildingContext;     // "quiénes somos" / normas del entorno
-  ranks: Rank[];
-  campusLeadAgentId?: Id;       // jefe del entorno (Boss)
+  campusLeadAgentId?: Id;       // jefe del entorno (Boss, agente auto-creado con el building)
 }
+// El rango NO cuelga del entorno: es una etiqueta libre en el agente (agent.rankKey,
+// p. ej. "boss"/"ic"/"lead"). Un escalafón formal, si se quiere, vivirá en el Project o el
+// Campus, no en el Building.
 
 // Nueva sub-entidad: vive en el inventario del building (room del Boss).
 interface Project {
