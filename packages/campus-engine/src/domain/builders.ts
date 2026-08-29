@@ -1,0 +1,42 @@
+/**
+ * Pure builders for the layer-1 entities. IDs are provided by the caller so
+ * fixtures and tests stay deterministic. Same input -> structurally equal output.
+ */
+
+import type { Building, Campus, Id, Room } from "./types";
+
+export function buildCampus(input: {
+  id: Id;
+  name: string;
+  buildingIds?: Id[];
+}): Campus {
+  return {
+    id: input.id,
+    name: input.name,
+    buildingIds: input.buildingIds ? [...input.buildingIds] : [],
+  };
+}
+
+export function buildBuilding(input: {
+  id: Id;
+  campusId: Id;
+  name: string;
+}): Building {
+  return {
+    id: input.id,
+    campusId: input.campusId,
+    name: input.name,
+  };
+}
+
+export function buildRoom(input: {
+  id: Id;
+  buildingId: Id;
+  key: string;
+}): Room {
+  return {
+    id: input.id,
+    buildingId: input.buildingId,
+    key: input.key,
+  };
+}
