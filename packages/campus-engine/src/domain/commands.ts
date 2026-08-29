@@ -9,6 +9,7 @@ import type {
   Building,
   Campus,
   CampusEvent,
+  Id,
   Room,
   State,
 } from "./types";
@@ -18,7 +19,9 @@ export type CampusCommand =
   | { type: "campus.load"; campus: Campus }
   | { type: "building.spawn"; building: Building }
   | { type: "room.spawn"; room: Room }
-  | { type: "agent.instantiate"; agent: AgentInstance };
+  | { type: "agent.instantiate"; agent: AgentInstance }
+  | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
+  | { type: "room.assignHead"; roomId: Id; agentId: Id };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -26,7 +29,12 @@ export type RejectionReason =
   | "campus_mismatch"
   | "building_not_found"
   | "room_not_found_in_building"
-  | "duplicate_id";
+  | "duplicate_id"
+  | "agent_not_found"
+  | "supervisor_not_found"
+  | "self_supervision"
+  | "room_not_found"
+  | "agent_not_in_room";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -75,6 +83,28 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (!roomOk) return reject("room_not_found_in_building");
       if (state.agents.some((a) => a.id === agent.id)) return reject("duplicate_id");
       return accept({ type: "agent.instantiated", agent });
+    }
+
+    case "agent.assignSupervisor": {
+      const { agentId, supervisorId } = command;
+      if (!state.agents.some((a) => a.id === agentId)) return reject("agent_not_found");
+      if (supervisorId !== null) {
+        if (supervisorId === agentId) return reject("self_supervision");
+        if (!state.agents.some((a) => a.id === supervisorId)) {
+          return reject("supervisor_not_found");
+        }
+      }
+      return accept({ type: "agent.supervisor.assigned", agentId, supervisorId });
+    }
+
+    case "room.assignHead": {
+      const { roomId, agentId } = command;
+      const room = state.rooms.find((r) => r.id === roomId);
+      if (!room) return reject("room_not_found");
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) return reject("agent_not_found");
+      if (agent.roomId !== roomId) return reject("agent_not_in_room");
+      return accept({ type: "room.head.assigned", roomId, agentId });
     }
   }
 }

@@ -46,12 +46,20 @@ export function buildAgent(input: {
   name: string;
   buildingId: Id;
   roomId: Id;
+  rankKey?: string;
+  skillKey?: string;
+  supervisorId?: Id | null;
 }): AgentInstance {
-  return {
+  const agent: AgentInstance = {
     id: input.id,
     name: input.name,
     kind: "named",
     buildingId: input.buildingId,
     roomId: input.roomId,
   };
+  // Include role fields only when provided (keeps earlier fixtures unchanged).
+  if (input.rankKey !== undefined) agent.rankKey = input.rankKey;
+  if (input.skillKey !== undefined) agent.skillKey = input.skillKey;
+  if (input.supervisorId !== undefined) agent.supervisorId = input.supervisorId;
+  return agent;
 }

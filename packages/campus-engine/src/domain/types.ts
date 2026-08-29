@@ -28,11 +28,13 @@ export interface Room {
   id: Id;
   buildingId: Id;
   key: string;
+  /** Department head (an agent in this room). Assigned in layer 6. */
+  headAgentId?: Id;
 }
 
 /**
- * A named agent instance, represented in a room of a building (layer 2, minimal).
- * Rich fields (rank, harness, skill, supervisor) arrive in later layers.
+ * A named agent instance, represented in a room of a building.
+ * Role fields (rank/skill/supervisor) are optional and populated in layer 6+.
  */
 export interface AgentInstance {
   id: Id;
@@ -40,6 +42,12 @@ export interface AgentInstance {
   kind: "named";
   buildingId: Id;
   roomId: Id;
+  /** Rank key (e.g. "ic", "lead", "head"). Optional until set. */
+  rankKey?: string;
+  /** Craft / oficio key (binds to library classifications later). */
+  skillKey?: string;
+  /** Direct supervisor in the org chart. */
+  supervisorId?: Id | null;
 }
 
 /**
@@ -50,7 +58,9 @@ export type CampusEvent =
   | { type: "campus.loaded"; campus: Campus }
   | { type: "building.spawned"; building: Building }
   | { type: "room.spawned"; room: Room }
-  | { type: "agent.instantiated"; agent: AgentInstance };
+  | { type: "agent.instantiated"; agent: AgentInstance }
+  | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }
+  | { type: "room.head.assigned"; roomId: Id; agentId: Id };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {

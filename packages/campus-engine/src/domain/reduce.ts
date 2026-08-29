@@ -38,6 +38,28 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, agents: [...state.agents, agent] };
     }
 
+    case "agent.supervisor.assigned": {
+      const { agentId, supervisorId } = event;
+      if (!state.agents.some((a) => a.id === agentId)) return state;
+      return {
+        ...state,
+        agents: state.agents.map((a) =>
+          a.id === agentId ? { ...a, supervisorId } : a,
+        ),
+      };
+    }
+
+    case "room.head.assigned": {
+      const { roomId, agentId } = event;
+      if (!state.rooms.some((r) => r.id === roomId)) return state;
+      return {
+        ...state,
+        rooms: state.rooms.map((r) =>
+          r.id === roomId ? { ...r, headAgentId: agentId } : r,
+        ),
+      };
+    }
+
     default:
       return state;
   }

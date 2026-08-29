@@ -70,6 +70,8 @@ export class CampusStore {
   readonly room = {
     spawn: (input: { id: Id; buildingId: Id; key: string }): CommandResult =>
       this.dispatch({ type: "room.spawn", room: buildRoom(input) }),
+    assignHead: (input: { roomId: Id; agentId: Id }): CommandResult =>
+      this.dispatch({ type: "room.assignHead", roomId: input.roomId, agentId: input.agentId }),
   };
 
   readonly agent = {
@@ -78,7 +80,16 @@ export class CampusStore {
       name: string;
       buildingId: Id;
       roomId: Id;
+      rankKey?: string;
+      skillKey?: string;
+      supervisorId?: Id | null;
     }): CommandResult =>
       this.dispatch({ type: "agent.instantiate", agent: buildAgent(input) }),
+    assignSupervisor: (input: { agentId: Id; supervisorId: Id | null }): CommandResult =>
+      this.dispatch({
+        type: "agent.assignSupervisor",
+        agentId: input.agentId,
+        supervisorId: input.supervisorId,
+      }),
   };
 }
