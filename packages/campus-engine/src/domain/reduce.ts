@@ -27,6 +27,17 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, rooms: [...state.rooms, room] };
     }
 
+    case "agent.instantiated": {
+      const { agent } = event;
+      if (!state.buildings.some((b) => b.id === agent.buildingId)) return state;
+      const roomOk = state.rooms.some(
+        (r) => r.id === agent.roomId && r.buildingId === agent.buildingId,
+      );
+      if (!roomOk) return state;
+      if (state.agents.some((a) => a.id === agent.id)) return state;
+      return { ...state, agents: [...state.agents, agent] };
+    }
+
     default:
       return state;
   }

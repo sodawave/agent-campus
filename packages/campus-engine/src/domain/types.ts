@@ -31,19 +31,33 @@ export interface Room {
 }
 
 /**
+ * A named agent instance, represented in a room of a building (layer 2, minimal).
+ * Rich fields (rank, harness, skill, supervisor) arrive in later layers.
+ */
+export interface AgentInstance {
+  id: Id;
+  name: string;
+  kind: "named";
+  buildingId: Id;
+  roomId: Id;
+}
+
+/**
  * Facts emitted by the core, consumed by any client (JSON-serializable,
  * language-neutral). Named `entity.pastTense`.
  */
 export type CampusEvent =
   | { type: "campus.loaded"; campus: Campus }
   | { type: "building.spawned"; building: Building }
-  | { type: "room.spawned"; room: Room };
+  | { type: "room.spawned"; room: Room }
+  | { type: "agent.instantiated"; agent: AgentInstance };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
   campus: Campus | null;
   buildings: Building[];
   rooms: Room[];
+  agents: AgentInstance[];
 }
 
 /** Canonical empty projection. */
@@ -51,4 +65,5 @@ export const EMPTY_STATE: State = {
   campus: null,
   buildings: [],
   rooms: [],
+  agents: [],
 };

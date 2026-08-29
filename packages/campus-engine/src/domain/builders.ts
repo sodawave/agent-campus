@@ -3,7 +3,7 @@
  * fixtures and tests stay deterministic. Same input -> structurally equal output.
  */
 
-import type { Building, Campus, Id, Room } from "./types";
+import type { AgentInstance, Building, Campus, Id, Room } from "./types";
 
 export function buildCampus(input: {
   id: Id;
@@ -38,5 +38,20 @@ export function buildRoom(input: {
     id: input.id,
     buildingId: input.buildingId,
     key: input.key,
+  };
+}
+
+export function buildAgent(input: {
+  id: Id;
+  name: string;
+  buildingId: Id;
+  roomId: Id;
+}): AgentInstance {
+  return {
+    id: input.id,
+    name: input.name,
+    kind: "named",
+    buildingId: input.buildingId,
+    roomId: input.roomId,
   };
 }
