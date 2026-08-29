@@ -1,0 +1,31 @@
+---
+description: Agent Campus core architecture invariants, development premises, and the one-branch-per-spec workflow. Always applied.
+alwaysApply: true
+---
+
+# Agent Campus — reglas siempre activas
+
+Contexto completo: `AGENTS.md` y `docs/TECH_SPEC.md`.
+
+## Arquitectura (invariantes)
+
+- Tres planos: **Control (core/servidor)** = autoridad + reglas + secuencia; **Ejecución (host/CLI)** = proceso vivo con ficheros locales; **Presentación (cliente Godot/web)** = solo proyección.
+- **El runtime propone; el core dispone; los clientes proyectan.**
+- Clientes = solo-lectura: aplican `reduce(state, event)` idempotente y emiten **Commands** al core; nunca mutan estado local ni contienen reglas de negocio.
+- **Command** (validable/rechazable) ≠ **Event** (`CampusEvent`, hecho secuenciado). `CampusEvent` es JSON serializable (contrato neutral de lenguaje).
+- `CampusStore` es **campus-scoped** con **fachada por entidad** (`campus/building/room/agent/worker`, `building.specKit`). Nueva acción = constructor puro en `domain/` + método en el namespace + case en `reduce`.
+- Multi-edificio: `campus → buildings[] → rooms`. Un agente no se clona; se **presta** con `ProjectCall` (`agent.callToBuilding`/`returnHome`); el préstamo mueve `projectId`, no `hostId`.
+
+## Premisas
+
+- **Task test-gate:** hecho = 100% + test verde.
+- **Worker = bucle acotado** hasta el 100%, luego sale (`worker.exited`).
+- Coherencia estructural, sin espagueti, refactor recurrente. `domain/` sin imports de render/store.
+
+## Workflow (obligatorio)
+
+- **1 spec = 1 rama = 1 PR.** Rama `cursor/spec-<slug>-<suffix>`.
+- No mezclar specs en una rama; un commit por cambio lógico.
+- Antes de PR: `npm run typecheck && npm test && npm run build` en verde.
+- Cerrar spec en fase `converge` → PR a `main` → merge. `main` estable.
+- Cada unidad nueva de dominio/store se acompaña de tests (Vitest).
