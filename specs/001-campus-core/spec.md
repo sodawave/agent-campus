@@ -157,11 +157,10 @@ sin efectos secundarios (misma entrada → misma salida).
 - IDs son **strings opacos provistos por el caller** (determinismo en tests).
 - Nombres de eventos en formato `entidad.hechoEnPasado` (`building.spawned`).
 - El paquete vivirá en `packages/campus-engine` (ruta canónica del plano de Control),
-  reconstruido limpio. [NEEDS CLARIFICATION: ¿mismo nombre de paquete o uno nuevo para
-  romper con la base anterior?].
-- Las specs del enfoque descartado se han **deprecado** a `specs/_deprecated/`
-  (`001-host-runtime` … `005-ws-transport`). Esta spec es la **001 real** del proyecto
-  reconstruido.
+  reconstruido limpio. Se usan los nombres que corresponden por dominio (sin arrastre de
+  la base anterior); el nombre no es un punto de decisión.
+- Las specs del enfoque descartado se han **eliminado**. Esta es la **001 real** del
+  proyecto reconstruido; la numeración arranca aquí.
 
 ---
 
@@ -176,7 +175,6 @@ sin efectos secundarios (misma entrada → misma salida).
    un subconjunto concreto del dominio anterior tras auditarlo?
 4. **Política del reducer ante eventos inconsistentes** (campusId/buildingId inexistente):
    ¿ignorar sin mutar (propuesta), lanzar, o registrar inconsistencia?
-5. **Paquete**: ¿reutilizamos el nombre `@agent-campus/campus-engine` o creamos uno nuevo?
 
-> Al aprobar respuestas a estas 5, paso a `/plan` (capa 1) y solo entonces implemento +
+> Al aprobar respuestas a estas 4, paso a `/plan` (capa 1) y solo entonces implemento +
 > testeo. Una spec = una rama (`cursor/spec-001-campus-core-7599`) = un PR.
