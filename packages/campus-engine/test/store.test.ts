@@ -15,7 +15,8 @@ describe("CampusStore — facade dispatch (US1)", () => {
     const s = store.state();
     expect(s.campus?.id).toBe("c1");
     expect(s.buildings.map((b) => b.id)).toEqual(["b1"]);
-    expect(s.rooms.map((r) => r.id)).toEqual(["r1"]);
+    // building.spawn is composite: it also creates the Boss office ("b1-boss").
+    expect(s.rooms.map((r) => r.id)).toEqual(["b1-boss", "r1"]);
     expect(store.log().map((e) => e.type)).toEqual([
       "campus.loaded",
       "building.spawned",
@@ -27,7 +28,8 @@ describe("CampusStore — facade dispatch (US1)", () => {
     const store = seeded();
     const res = store.agent.instantiate({ id: "a1", name: "Mia", buildingId: "b1", roomId: "r1" });
     expect(res.ok).toBe(true);
-    expect(store.state().agents.map((a) => a.id)).toEqual(["a1"]);
+    // building.spawn also created the boss agent ("b1-boss-agent").
+    expect(store.state().agents.map((a) => a.id)).toEqual(["b1-boss-agent", "a1"]);
   });
 
   it("rejected command does not mutate state nor grow the log", () => {
