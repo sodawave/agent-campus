@@ -3,7 +3,7 @@ import type {
   CampusEvent,
   RoomDef,
 } from "@agent-campus/campus-engine";
-import { building, store, ui } from "../app";
+import { activeBuilding, building, store, ui } from "../app";
 import { clear, colorFromString, h, initials } from "../util";
 
 const TILE = 24;
@@ -42,9 +42,10 @@ function gate(): Pt {
   return { x: w / 2, y: h - PAD };
 }
 
-/** roomId -> workspace label(s). */
+/** roomId -> workspace label(s) for the active building. */
 function roomLabels(): Map<string, string> {
-  const { workspaces } = store.getState();
+  const b = activeBuilding();
+  const workspaces = b ? store.workspacesOf(b.id) : [];
   const map = new Map<string, string[]>();
   for (const w of workspaces) {
     const list = map.get(w.roomId) ?? [];
@@ -63,9 +64,12 @@ function titleize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Where each agent should be, in pixels. */
+/** Where each agent should be, in pixels — scoped to the active building. */
 function targets(): Map<string, Pt> {
-  const { agents, workspaces } = store.getState();
+  const b = activeBuilding();
+  if (!b) return new Map();
+  const workspaces = store.workspacesOf(b.id);
+  const agents = store.agentsInBuilding(b.id);
   const roomOf = (a: AgentInstance): string | null => {
     const ws = workspaces.find((w) => w.id === a.workspaceId);
     return ws?.roomId ?? null;
@@ -278,10 +282,12 @@ export function createGamification(): {
   const ctx = canvas.getContext("2d")!;
 
   const canvasWrap = h("div", { class: "canvas-wrap" }, [canvas]);
+  const switcherBar = h("div", { class: "row", style: "margin-bottom:12px" });
   const main = h("div", { class: "main" }, [
     h("p", { class: "hint" }, [
-      "Named agents stay in their home office. Only lowest-rank (ic) agents can spawn/destroy anonymous workers, which walk in and out through the campus gate.",
+      "The campus holds several buildings (projects). Pick a building to enter it. Named agents stay in their home office; ic agents spawn/remove anonymous workers; a named agent can be loaned to another building (ProjectCall) without being cloned.",
     ]),
+    switcherBar,
     canvasWrap,
   ]);
 
@@ -300,7 +306,29 @@ export function createGamification(): {
 
   const render = () => {
     clear(sidebar);
+    clear(switcherBar);
     const state = store.getState();
+    const current = activeBuilding();
+
+    // Building switcher — the campus shows its active buildings.
+    switcherBar.append(
+      h("span", { class: "chip", style: "align-self:center" }, ["Campus:"]),
+      ...state.buildings.map((b) => {
+        const count = store.agentsInBuilding(b.id).length;
+        return h(
+          "button",
+          {
+            class: `tab${b.id === current?.id ? " active" : ""}`,
+            onclick: () => {
+              ui.activeBuildingId = b.id;
+              render();
+            },
+          },
+          [`${b.name} · ${count}`],
+        );
+      }),
+    );
+
     const named = store.namedAgents();
     const actor = named.find((a) => a.id === ui.actorId) ?? named[0] ?? null;
     if (actor) ui.actorId = actor.id;
@@ -331,7 +359,7 @@ export function createGamification(): {
         disabled: !actor,
         onclick: () => {
           if (!actor) return;
-          store.spawnWorker({ actorId: actor.id, label: "Worker" });
+          store.worker.spawn({ actorId: actor.id, label: "Worker" });
         },
       },
       ["Spawn worker"],
@@ -348,7 +376,8 @@ export function createGamification(): {
         onclick: () => {
           if (!actor) return;
           const last = myWorkers[myWorkers.length - 1];
-          if (last) store.destroyWorker({ actorId: actor.id, workerId: last.id });
+          if (last)
+            store.worker.despawn({ actorId: actor.id, workerId: last.id });
         },
       },
       ["Remove worker"],
@@ -365,7 +394,13 @@ export function createGamification(): {
       ]),
       h("div", { class: "row", style: "margin-top:10px" }, [spawnBtn, removeBtn]),
       h("p", { class: "hint" }, [
-        `Live workers: ${store.workers().length}`,
+        `Live workers (this building): ${
+          current
+            ? store
+                .agentsInBuilding(current.id)
+                .filter((a) => a.kind === "anonymous_worker").length
+            : 0
+        }`,
       ]),
     ]);
 
@@ -386,12 +421,14 @@ export function createGamification(): {
         class: "btn",
         onclick: () => {
           const name = nameInput.value.trim() || "New Agent";
-          const agent = store.instantiateAgent({
-            projectId: state.project!.id,
+          const b = activeBuilding();
+          if (!b) return;
+          const agent = store.agent.spawn({
+            projectId: b.id,
             archetypeId: archSelect.value,
             name,
           });
-          store.completeIntroduction(agent.id);
+          store.agent.introduce(agent.id);
           nameInput.value = "";
         },
       },
@@ -405,6 +442,73 @@ export function createGamification(): {
       h("label", { class: "field" }, ["Name"]),
       nameInput,
       h("div", { class: "row", style: "margin-top:10px" }, [addBtn]),
+    ]);
+
+    // Transfer a named agent to another building (ProjectCall — no cloning)
+    const otherBuildings = state.buildings.filter((b) => b.id !== current?.id);
+    const transferables = current
+      ? store
+          .agentsInBuilding(current.id)
+          .filter((a) => a.kind === "named" && a.activeCallId === null)
+      : [];
+    const transferAgentSel = h(
+      "select",
+      {},
+      transferables.map((a) =>
+        h("option", { value: a.id }, [`${a.name} — ${a.skill.label}`]),
+      ),
+    );
+    const destSel = h(
+      "select",
+      {},
+      otherBuildings.map((b) => h("option", { value: b.id }, [b.name])),
+    );
+    const sendBtn = h(
+      "button",
+      {
+        class: "btn primary",
+        disabled: transferables.length === 0 || otherBuildings.length === 0,
+        onclick: () => {
+          if (!transferAgentSel.value || !destSel.value) return;
+          store.agent.callToBuilding({
+            agentId: transferAgentSel.value,
+            toBuildingId: destSel.value,
+            reason: "cross-building work",
+          });
+        },
+      },
+      ["Send to building"],
+    );
+
+    const away = store.agentsAwayFromHome();
+    const awayRows = away.map((a) => {
+      const dest = store.getBuilding(a.projectId);
+      return h("div", { class: "row", style: "margin-top:6px" }, [
+        h("span", { class: "chip" }, [`${a.name} → ${dest?.name ?? "?"}`]),
+        h(
+          "button",
+          {
+            class: "btn",
+            onclick: () => store.agent.returnHome(a.id),
+          },
+          ["Return home"],
+        ),
+      ]);
+    });
+
+    const transfer = h("div", { class: "panel" }, [
+      h("h2", {}, ["Loan agent to building"]),
+      h("label", { class: "field" }, ["Agent (in this building)"]),
+      transferAgentSel,
+      h("label", { class: "field" }, ["Destination building"]),
+      destSel,
+      h("div", { class: "row", style: "margin-top:10px" }, [sendBtn]),
+      away.length
+        ? h("div", {}, [
+            h("p", { class: "hint" }, ["On loan (away from home):"]),
+            ...awayRows,
+          ])
+        : h("p", { class: "hint" }, ["No agents on loan."]),
     ]);
 
     // Event log
@@ -422,7 +526,7 @@ export function createGamification(): {
       log,
     ]);
 
-    sidebar.append(controls, hire, logPanel);
+    sidebar.append(controls, transfer, hire, logPanel);
   };
 
   render();
@@ -452,6 +556,16 @@ function summarize(ev: CampusEvent): string {
       return short(ev.headAgentId);
     case "order.issued":
       return ev.order.instruction;
+    case "building.spawned":
+      return ev.project.name;
+    case "room.spawned":
+      return ev.workspace.name;
+    case "project.call.issued":
+      return `${short(ev.call.agentId)} → ${short(ev.call.fromProjectId)}`;
+    case "agent.building.entered":
+      return `${short(ev.agentId)} → ${short(ev.projectId)}`;
+    case "agent.returned_home":
+      return short(ev.agentId);
     default:
       return "";
   }

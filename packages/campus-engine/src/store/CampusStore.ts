@@ -1,29 +1,41 @@
 /**
- * CampusStore — client-side source of truth.
+ * CampusStore — campus-scoped projection + command facade.
  *
- * Holds the loaded project, catalog, library and the live agent instances,
- * and applies {@link CampusEvent}s idempotently. Higher-level command helpers
- * build events with the pure domain functions and dispatch them, so the UI
- * never encodes business rules itself (see TECH_SPEC §4).
+ * The store is organized as an **entity-namespaced command facade**
+ * (`campus.*`, `building.*`, `room.*`, `agent.*`, `worker.*`). Each action
+ * builds a {@link CampusEvent} with the pure domain functions and dispatches it;
+ * the pure {@link reduce} applies events to state. Business rules live in the
+ * domain, never in the UI (TECH_SPEC §4).
+ *
+ * Campus-scoped: the campus holds several **buildings** (projects), each
+ * transversal to its **rooms** (departments/oficios). Agents are single
+ * instances — to work for another building they are loaned via a ProjectCall
+ * (`agent.callToBuilding` / `agent.returnHome`), never cloned.
  */
 
-import { buildAgentInstance } from "../domain/context";
+import {
+  acceptProjectCall,
+  buildAgentInstance,
+  issueProjectCall,
+  returnHomeFromCall,
+} from "../domain/context";
+import { buildProject, buildWorkspace, withWorkspace } from "../domain/campus";
 import {
   createTask,
   issueOrder as buildOrder,
   orderCreatesTask,
   tasksForAgent,
 } from "../domain/tasks";
-import {
-  canDestroyWorker,
-  spawnAnonymousWorker,
-} from "../domain/workers";
+import { canDestroyWorker, spawnAnonymousWorker } from "../domain/workers";
 import type {
   AgentArchetype,
   AgentInstance,
   AgentOrder,
   AgentTask,
+  BuildingContext,
+  Campus,
   CampusEvent,
+  DepartmentContext,
   DocClassification,
   HarnessParams,
   Id,
@@ -31,14 +43,19 @@ import type {
   Library,
   LibraryDocument,
   Project,
+  ProjectCall,
   Run,
   RunStatus,
   Skill,
   Workspace,
+  WorkspaceRole,
 } from "../domain/types";
 
 export interface CampusState {
-  project: Project | null;
+  campus: Campus | null;
+  /** All buildings (projects) active on the campus. */
+  buildings: Project[];
+  /** All rooms (workspaces) across every building; each has `projectId`. */
   workspaces: Workspace[];
   catalog: AgentArchetype[];
   library: Library | null;
@@ -48,9 +65,13 @@ export interface CampusState {
   runs: Run[];
   orders: AgentOrder[];
   tasks: AgentTask[];
+  /** Inter-building loans (ProjectCall) in flight. */
+  calls: ProjectCall[];
 }
 
-export interface LoadProjectInput {
+export interface LoadCampusInput {
+  campus?: Campus | null;
+  /** Initial building to load. */
   project: Project;
   workspaces: Workspace[];
   catalog: AgentArchetype[];
@@ -59,6 +80,22 @@ export interface LoadProjectInput {
   documents?: LibraryDocument[];
   agents?: AgentInstance[];
   runs?: Run[];
+}
+
+export interface SpawnBuildingInput {
+  name: string;
+  buildingId?: string;
+  context?: BuildingContext;
+}
+
+export interface SpawnRoomInput {
+  buildingId: Id;
+  key: string;
+  name: string;
+  roomId?: string;
+  themeColor?: string;
+  role?: WorkspaceRole;
+  context?: DepartmentContext;
 }
 
 type Listener = (state: CampusState, event: CampusEvent | null) => void;
@@ -71,28 +108,41 @@ export type DestroyWorkerResult =
   | { ok: true; workerId: Id }
   | { ok: false; reason: "not_allowed" | "unknown" };
 
+export type CallResult =
+  | { ok: true; call: ProjectCall }
+  | { ok: false; reason: "unknown_agent" | "unknown_building" | "same_as_home" };
+
+export type ReturnHomeResult =
+  | { ok: true; agentId: Id }
+  | { ok: false; reason: "unknown_agent" | "not_on_call" };
+
 let idCounter = 0;
 function nextId(prefix: string): Id {
   idCounter += 1;
   return `${prefix}-${Date.now().toString(36)}-${idCounter.toString(36)}`;
 }
 
-export class CampusStore {
-  private state: CampusState = {
-    project: null,
-    workspaces: [],
-    catalog: [],
-    library: null,
-    classifications: [],
-    documents: [],
-    agents: [],
-    runs: [],
-    orders: [],
-    tasks: [],
-  };
+const EMPTY_STATE: CampusState = {
+  campus: null,
+  buildings: [],
+  workspaces: [],
+  catalog: [],
+  library: null,
+  classifications: [],
+  documents: [],
+  agents: [],
+  runs: [],
+  orders: [],
+  tasks: [],
+  calls: [],
+};
 
+export class CampusStore {
+  private state: CampusState = EMPTY_STATE;
   private readonly listeners = new Set<Listener>();
   private readonly log: CampusEvent[] = [];
+
+  // ---- Reads ----
 
   getState(): CampusState {
     return this.state;
@@ -113,6 +163,18 @@ export class CampusStore {
     return this.state.agents.find((a) => a.id === id);
   }
 
+  getBuilding(id: Id): Project | undefined {
+    return this.state.buildings.find((b) => b.id === id);
+  }
+
+  firstBuilding(): Project | undefined {
+    return this.state.buildings[0];
+  }
+
+  workspacesOf(buildingId: Id): Workspace[] {
+    return this.state.workspaces.filter((w) => w.projectId === buildingId);
+  }
+
   namedAgents(): AgentInstance[] {
     return this.state.agents.filter((a) => a.kind === "named");
   }
@@ -125,9 +187,23 @@ export class CampusStore {
     return this.state.agents.filter((a) => a.workspaceId === workspaceId);
   }
 
+  /** Agents currently physically present in a building (home or on loan). */
+  agentsInBuilding(buildingId: Id): AgentInstance[] {
+    return this.state.agents.filter((a) => a.projectId === buildingId);
+  }
+
+  /** Agents currently away from their home building on an active call. */
+  agentsAwayFromHome(): AgentInstance[] {
+    return this.state.agents.filter(
+      (a) => a.activeCallId !== null && a.projectId !== a.homeProjectId,
+    );
+  }
+
   tasksForAgent(agentId: Id): AgentTask[] {
     return tasksForAgent(this.state.tasks, agentId);
   }
+
+  // ---- Event plumbing ----
 
   /** Apply an event to the state (idempotent) and notify listeners. */
   dispatch(event: CampusEvent): void {
@@ -140,9 +216,70 @@ export class CampusStore {
     for (const listener of this.listeners) listener(this.state, event);
   }
 
-  // --- Command helpers (build events via pure domain functions) ---
+  // ---- Entity-namespaced command facade ----
 
-  loadProject(input: LoadProjectInput): void {
+  readonly campus = {
+    load: (input: LoadCampusInput): void => this.loadCampus(input),
+  };
+
+  readonly building = {
+    spawn: (input: SpawnBuildingInput): Project => this.spawnBuilding(input),
+    updateContext: (buildingId: Id, context: BuildingContext): void =>
+      this.dispatch({
+        type: "building.context.updated",
+        projectId: buildingId,
+        context,
+      }),
+  };
+
+  readonly room = {
+    spawn: (input: SpawnRoomInput): Workspace => this.spawnRoom(input),
+    assignHead: (workspaceId: Id, headAgentId: Id): void =>
+      this.dispatch({ type: "org.head.assigned", workspaceId, headAgentId }),
+    updateContext: (workspaceId: Id, context: DepartmentContext): void =>
+      this.dispatch({
+        type: "department.context.updated",
+        workspaceId,
+        context,
+      }),
+  };
+
+  readonly agent = {
+    spawn: (request: InstantiateRequest): AgentInstance =>
+      this.instantiateAgent(request),
+    introduce: (agentId: Id): void =>
+      this.dispatch({ type: "agent.introduction.completed", agentId }),
+    setHarness: (agentId: Id, harness: HarnessParams): void =>
+      this.dispatch({ type: "agent.harness.updated", agentId, harness }),
+    order: (input: OrderInput): AgentOrder => this.issueOrder(input),
+    addTask: (input: AddTaskInput): AgentTask => this.addTask(input),
+    /** Loan the agent to another building for its craft (ProjectCall). */
+    callToBuilding: (input: {
+      agentId: Id;
+      toBuildingId: Id;
+      reason?: string;
+    }): CallResult => this.callAgentToBuilding(input),
+    returnHome: (agentId: Id): ReturnHomeResult =>
+      this.returnAgentHome(agentId),
+  };
+
+  readonly worker = {
+    spawn: (input: {
+      actorId: Id;
+      skill?: Skill;
+      label?: string;
+      spriteKey?: string;
+    }): SpawnWorkerResult => this.spawnWorker(input),
+    despawn: (input: { actorId: Id; workerId: Id }): DestroyWorkerResult =>
+      this.destroyWorker(input),
+  };
+
+  // ---- Command implementations ----
+
+  private loadCampus(input: LoadCampusInput): void {
+    if (input.campus) {
+      this.dispatch({ type: "campus.loaded", campus: input.campus });
+    }
     this.dispatch({
       type: "project.loaded",
       project: input.project,
@@ -161,8 +298,38 @@ export class CampusStore {
     }
   }
 
-  instantiateAgent(request: InstantiateRequest): AgentInstance {
-    const project = this.requireProject();
+  private spawnBuilding(input: SpawnBuildingInput): Project {
+    const project = buildProject({
+      id: nextId("building"),
+      campusId: this.state.campus?.id ?? "campus",
+      name: input.name,
+      buildingId: input.buildingId,
+      context: input.context,
+    });
+    this.dispatch({ type: "building.spawned", project });
+    return project;
+  }
+
+  private spawnRoom(input: SpawnRoomInput): Workspace {
+    const workspace = buildWorkspace({
+      id: nextId("room"),
+      projectId: input.buildingId,
+      key: input.key,
+      name: input.name,
+      roomId: input.roomId,
+      themeColor: input.themeColor,
+      role: input.role,
+      context: input.context,
+    });
+    this.dispatch({ type: "room.spawned", workspace });
+    return workspace;
+  }
+
+  private instantiateAgent(request: InstantiateRequest): AgentInstance {
+    const building =
+      this.getBuilding(request.projectId) ?? this.firstBuilding();
+    if (!building) throw new Error("no_building_loaded");
+
     const archetype = this.state.catalog.find(
       (a) => a.id === request.archetypeId,
     );
@@ -171,8 +338,8 @@ export class CampusStore {
     const agent = buildAgentInstance({
       id: nextId("agent"),
       archetype,
-      project,
-      workspaces: this.state.workspaces,
+      project: building,
+      workspaces: this.workspacesOf(building.id),
       name: request.name,
       spawnWorkspaceId: request.workspaceId,
       stayInRoom: request.stayInRoom,
@@ -189,25 +356,22 @@ export class CampusStore {
     return agent;
   }
 
-  completeIntroduction(agentId: Id): void {
-    this.dispatch({ type: "agent.introduction.completed", agentId });
-  }
-
-  spawnWorker(input: {
+  private spawnWorker(input: {
     actorId: Id;
     skill?: Skill;
     label?: string;
     spriteKey?: string;
   }): SpawnWorkerResult {
-    const project = this.requireProject();
     const actor = this.getAgent(input.actorId);
     if (!actor) return { ok: false, reason: "unknown_actor" };
+    const building = this.getBuilding(actor.projectId) ?? this.firstBuilding();
+    if (!building) return { ok: false, reason: "unknown_actor" };
 
     const result = spawnAnonymousWorker({
       id: nextId("worker"),
       actor,
-      project,
-      workspaces: this.state.workspaces,
+      project: building,
+      workspaces: this.workspacesOf(building.id),
       skill: input.skill ?? actor.skill,
       label: input.label,
       spriteKey: input.spriteKey,
@@ -230,7 +394,10 @@ export class CampusStore {
     return { ok: true, worker: result.worker };
   }
 
-  destroyWorker(input: { actorId: Id; workerId: Id }): DestroyWorkerResult {
+  private destroyWorker(input: {
+    actorId: Id;
+    workerId: Id;
+  }): DestroyWorkerResult {
     const actor = this.getAgent(input.actorId);
     const worker = this.getAgent(input.workerId);
     if (!actor || !worker) return { ok: false, reason: "unknown" };
@@ -245,20 +412,62 @@ export class CampusStore {
     return { ok: true, workerId: worker.id };
   }
 
-  updateHarness(agentId: Id, harness: HarnessParams): void {
-    this.dispatch({ type: "agent.harness.updated", agentId, harness });
+  private callAgentToBuilding(input: {
+    agentId: Id;
+    toBuildingId: Id;
+    reason?: string;
+  }): CallResult {
+    const agent = this.getAgent(input.agentId);
+    if (!agent) return { ok: false, reason: "unknown_agent" };
+    const destination = this.getBuilding(input.toBuildingId);
+    if (!destination) return { ok: false, reason: "unknown_building" };
+    if (destination.id === agent.homeProjectId) {
+      return { ok: false, reason: "same_as_home" };
+    }
+
+    const call = issueProjectCall({
+      id: nextId("call"),
+      fromProjectId: destination.id,
+      agent,
+      reason: input.reason,
+    });
+    this.dispatch({ type: "project.call.issued", call });
+
+    const moved = acceptProjectCall(
+      agent,
+      call,
+      destination,
+      this.workspacesOf(destination.id),
+    );
+    this.dispatch({ type: "project.call.accepted", callId: call.id, agentId: agent.id });
+    this.dispatch({
+      type: "agent.building.entered",
+      agentId: agent.id,
+      projectId: destination.id,
+      workspaceId: moved.workspaceId,
+      callId: call.id,
+      correspondingOfficeFound: moved.workspaceId !== null,
+    });
+    return { ok: true, call };
   }
 
-  assignHead(workspaceId: Id, headAgentId: Id): void {
-    this.dispatch({ type: "org.head.assigned", workspaceId, headAgentId });
+  private returnAgentHome(agentId: Id): ReturnHomeResult {
+    const agent = this.getAgent(agentId);
+    if (!agent) return { ok: false, reason: "unknown_agent" };
+    if (!agent.activeCallId) return { ok: false, reason: "not_on_call" };
+
+    const home = returnHomeFromCall(agent);
+    this.dispatch({
+      type: "agent.returned_home",
+      agentId: agent.id,
+      homeProjectId: home.homeProjectId,
+      homeWorkspaceId: home.homeWorkspaceId,
+      callId: agent.activeCallId,
+    });
+    return { ok: true, agentId: agent.id };
   }
 
-  issueOrder(input: {
-    toAgentId: Id;
-    fromActorId: Id;
-    fromKind: "human" | "agent";
-    instruction: string;
-  }): AgentOrder {
+  private issueOrder(input: OrderInput): AgentOrder {
     const order = buildOrder({
       id: nextId("order"),
       toAgentId: input.toAgentId,
@@ -278,12 +487,7 @@ export class CampusStore {
     return order;
   }
 
-  addTask(input: {
-    agentId: Id;
-    title: string;
-    status?: RunStatus;
-    orderedById?: Id;
-  }): AgentTask {
+  private addTask(input: AddTaskInput): AgentTask {
     const task = createTask({
       id: nextId("task"),
       agentId: input.agentId,
@@ -299,24 +503,50 @@ export class CampusStore {
     });
     return task;
   }
+}
 
-  private requireProject(): Project {
-    if (!this.state.project) throw new Error("no_project_loaded");
-    return this.state.project;
-  }
+export interface OrderInput {
+  toAgentId: Id;
+  fromActorId: Id;
+  fromKind: "human" | "agent";
+  instruction: string;
+}
+
+export interface AddTaskInput {
+  agentId: Id;
+  title: string;
+  status?: RunStatus;
+  orderedById?: Id;
 }
 
 /** Pure reducer: (state, event) -> state. Unknown events are no-ops. */
 export function reduce(state: CampusState, event: CampusEvent): CampusState {
   switch (event.type) {
+    case "campus.loaded":
+      return { ...state, campus: event.campus };
+
     case "project.loaded":
       return {
         ...state,
-        project: event.project,
-        workspaces: event.workspaces,
+        buildings: upsertById(state.buildings, event.project),
+        workspaces: dedupeById([...state.workspaces, ...event.workspaces]),
         catalog: event.catalog,
         agents: dedupeById([...state.agents, ...event.agents]),
         runs: event.runs,
+      };
+
+    case "building.spawned":
+      return { ...state, buildings: upsertById(state.buildings, event.project) };
+
+    case "room.spawned":
+      return {
+        ...state,
+        workspaces: [...state.workspaces, event.workspace],
+        buildings: state.buildings.map((b) =>
+          b.id === event.workspace.projectId
+            ? withWorkspace(b, event.workspace.id)
+            : b,
+        ),
       };
 
     case "catalog.loaded":
@@ -385,6 +615,40 @@ export function reduce(state: CampusState, event: CampusEvent): CampusState {
         }),
       };
 
+    case "project.call.issued":
+      return { ...state, calls: [...state.calls, event.call] };
+
+    case "project.call.accepted":
+      return {
+        ...state,
+        calls: state.calls.map((c) =>
+          c.id === event.callId ? { ...c, status: "active" } : c,
+        ),
+      };
+
+    case "agent.building.entered":
+      return {
+        ...state,
+        agents: patchAgent(state.agents, event.agentId, {
+          projectId: event.projectId,
+          workspaceId: event.workspaceId,
+          activeCallId: event.callId,
+        }),
+      };
+
+    case "agent.returned_home":
+      return {
+        ...state,
+        agents: patchAgent(state.agents, event.agentId, {
+          projectId: event.homeProjectId,
+          workspaceId: event.homeWorkspaceId,
+          activeCallId: null,
+        }),
+        calls: state.calls.map((c) =>
+          c.id === event.callId ? { ...c, status: "completed" } : c,
+        ),
+      };
+
     case "agent.despawned":
     case "worker.exited": {
       const id = event.type === "worker.exited" ? event.workerId : event.agentId;
@@ -398,6 +662,22 @@ export function reduce(state: CampusState, event: CampusEvent): CampusState {
           w.id === event.workspaceId
             ? { ...w, headAgentId: event.headAgentId }
             : w,
+        ),
+      };
+
+    case "building.context.updated":
+      return {
+        ...state,
+        buildings: state.buildings.map((b) =>
+          b.id === event.projectId ? { ...b, context: event.context } : b,
+        ),
+      };
+
+    case "department.context.updated":
+      return {
+        ...state,
+        workspaces: state.workspaces.map((w) =>
+          w.id === event.workspaceId ? { ...w, context: event.context } : w,
         ),
       };
 
@@ -418,16 +698,10 @@ export function reduce(state: CampusState, event: CampusEvent): CampusState {
       };
 
     case "run.upserted":
-      return {
-        ...state,
-        runs: upsertById(state.runs, event.run),
-      };
+      return { ...state, runs: upsertById(state.runs, event.run) };
 
     case "run.removed":
-      return {
-        ...state,
-        runs: state.runs.filter((r) => r.id !== event.runId),
-      };
+      return { ...state, runs: state.runs.filter((r) => r.id !== event.runId) };
 
     case "library.document.upserted":
       return {
@@ -471,5 +745,7 @@ function dedupeById<T extends { id: Id }>(items: T[]): T[] {
 
 function upsertById<T extends { id: Id }>(items: T[], item: T): T[] {
   const exists = items.some((i) => i.id === item.id);
-  return exists ? items.map((i) => (i.id === item.id ? item : i)) : [...items, item];
+  return exists
+    ? items.map((i) => (i.id === item.id ? item : i))
+    : [...items, item];
 }

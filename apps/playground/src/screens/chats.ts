@@ -54,16 +54,18 @@ export function createChats(): { root: HTMLElement; render: () => void } {
     }
 
     const agent = named.find((a) => a.id === ui.chatAgentId) ?? named[0] ?? null;
-    if (!agent || !state.project) {
+    const currentBuilding = agent ? store.getBuilding(agent.projectId) : undefined;
+    if (!agent || !currentBuilding) {
       main.append(h("div", { class: "empty" }, ["Select an agent to chat."]));
       return;
     }
     ui.chatAgentId = agent.id;
 
+    // Effective context uses the agent's CURRENT building (may be on loan).
     const ctx = resolveEffectiveContext(
       agent,
-      state.project,
-      state.workspaces,
+      currentBuilding,
+      store.workspacesOf(currentBuilding.id),
       state.classifications,
     );
 

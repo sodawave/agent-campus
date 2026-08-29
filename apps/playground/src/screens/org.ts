@@ -2,7 +2,7 @@ import {
   canCommunicate,
   type AgentInstance,
 } from "@agent-campus/campus-engine";
-import { store } from "../app";
+import { activeBuilding, store } from "../app";
 import { clear, colorFromString, h, initials } from "../util";
 
 function node(agent: AgentInstance, all: AgentInstance[]): HTMLElement {
@@ -46,13 +46,13 @@ export function createOrg(): { root: HTMLElement; render: () => void } {
   const render = () => {
     clear(main);
     clear(sidebar);
-    const state = store.getState();
-    const agents = state.agents;
+    const b = activeBuilding();
+    const agents = b ? store.agentsInBuilding(b.id) : [];
     const roots = agents.filter(
       (a) => !a.supervisorId || !agents.some((x) => x.id === a.supervisorId),
     );
 
-    // Org chart
+    // Org chart (scoped to the active building)
     const chart = h("div", { class: "org" }, [
       h(
         "ul",
@@ -62,10 +62,10 @@ export function createOrg(): { root: HTMLElement; render: () => void } {
     ]);
     main.append(
       h("div", { class: "panel" }, [
-        h("h2", {}, ["Organigram (supervisor edges)"]),
+        h("h2", {}, [`Organigram — ${b?.name ?? "—"} (supervisor edges)`]),
         agents.length
           ? chart
-          : h("div", { class: "empty" }, ["No agents yet."]),
+          : h("div", { class: "empty" }, ["No agents in this building yet."]),
       ]),
     );
 
@@ -118,17 +118,15 @@ export function createOrg(): { root: HTMLElement; render: () => void } {
         onclick: () => {
           const from = fromSel.value;
           const to = toSel.value;
-          const check =
-            state.project &&
-            canCommunicate(state.project, agents, from, to);
+          const check = b && canCommunicate(b, agents, from, to);
           if (!check || !check.ok) {
             status.textContent = `Rejected: ${
-              check && !check.ok ? check.reason : "no_project"
+              check && !check.ok ? check.reason : "no_building"
             }`;
             status.style.color = "var(--danger)";
             return;
           }
-          store.issueOrder({
+          store.agent.order({
             toAgentId: to,
             fromActorId: from,
             fromKind: "agent",

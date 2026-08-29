@@ -1,5 +1,6 @@
 export * from "./types";
 export * from "./layout";
+export * from "./campus";
 export * from "./context";
 export * from "./org";
 export * from "./library";
