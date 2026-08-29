@@ -32,6 +32,8 @@ import {
   initProjectSpecKit,
   nextSpecKitPhase,
 } from "../domain/speckit";
+import { buildAgentHost, buildAgentRuntime } from "../domain/host";
+import type { AgentHost, AgentRuntime } from "../domain/host";
 import type {
   AgentArchetype,
   AgentInstance,
@@ -79,6 +81,10 @@ export interface CampusState {
   calls: ProjectCall[];
   /** Spec Kit (SDD) artifacts, per building (`projectId`). */
   specArtifacts: SpecKitArtifact[];
+  /** Execution plane: machines that run agent runtimes. */
+  hosts: AgentHost[];
+  /** Execution plane: live runtimes (one per alive agent). */
+  runtimes: AgentRuntime[];
 }
 
 export interface LoadCampusInput {
@@ -128,6 +134,27 @@ export type ReturnHomeResult =
   | { ok: true; agentId: Id }
   | { ok: false; reason: "unknown_agent" | "not_on_call" };
 
+export type SpawnRuntimeResult =
+  | { ok: true; runtime: AgentRuntime }
+  | {
+      ok: false;
+      reason: "unknown_host" | "unknown_agent" | "host_offline" | "already_running";
+    };
+
+export type StopRuntimeResult =
+  | { ok: true; runtimeId: Id }
+  | { ok: false; reason: "unknown_runtime" };
+
+export interface HostJoinInput {
+  label: string;
+  campusUrl?: string;
+  machineId?: string;
+  allowedRankKeys?: string[];
+  allowedSkillKeys?: string[];
+  version?: string;
+  token?: string;
+}
+
 let idCounter = 0;
 function nextId(prefix: string): Id {
   idCounter += 1;
@@ -148,6 +175,8 @@ const EMPTY_STATE: CampusState = {
   tasks: [],
   calls: [],
   specArtifacts: [],
+  hosts: [],
+  runtimes: [],
 };
 
 export class CampusStore {
@@ -224,6 +253,33 @@ export class CampusStore {
   /** Spec Kit artifacts belonging to a building. */
   specArtifactsOf(buildingId: Id): SpecKitArtifact[] {
     return this.state.specArtifacts.filter((a) => a.projectId === buildingId);
+  }
+
+  // ---- Execution plane (hosts / runtimes) ----
+
+  hosts(): AgentHost[] {
+    return this.state.hosts;
+  }
+
+  getHost(id: Id): AgentHost | undefined {
+    return this.state.hosts.find((h) => h.id === id);
+  }
+
+  runtimes(): AgentRuntime[] {
+    return this.state.runtimes;
+  }
+
+  runtimesOf(hostId: Id): AgentRuntime[] {
+    return this.state.runtimes.filter((r) => r.hostId === hostId);
+  }
+
+  /** Agents that are currently "alive" (bound to a runtime on a host). */
+  liveAgents(): AgentInstance[] {
+    return this.state.agents.filter((a) => a.runtimeId != null);
+  }
+
+  isAlive(agentId: Id): boolean {
+    return this.getAgent(agentId)?.runtimeId != null;
   }
 
   // ---- Event plumbing ----
@@ -309,6 +365,25 @@ export class CampusStore {
     }): SpawnWorkerResult => this.spawnWorker(input),
     despawn: (input: { actorId: Id; workerId: Id }): DestroyWorkerResult =>
       this.destroyWorker(input),
+  };
+
+  /** Execution plane: machines that keep agents alive (host/CLI). */
+  readonly host = {
+    join: (input: HostJoinInput): AgentHost => this.hostJoin(input),
+    heartbeat: (hostId: Id): void =>
+      this.dispatch({
+        type: "host.heartbeat",
+        hostId,
+        at: new Date().toISOString(),
+      }),
+    leave: (hostId: Id): void => this.dispatch({ type: "host.left", hostId }),
+    spawnRuntime: (input: {
+      hostId: Id;
+      agentId: Id;
+      workingDir?: string;
+    }): SpawnRuntimeResult => this.spawnRuntime(input),
+    stopRuntime: (runtimeId: Id): StopRuntimeResult =>
+      this.stopRuntime(runtimeId),
   };
 
   // ---- Command implementations ----
@@ -547,6 +622,54 @@ export class CampusStore {
       callId: agent.activeCallId,
     });
     return { ok: true, agentId: agent.id };
+  }
+
+  private hostJoin(input: HostJoinInput): AgentHost {
+    const host = buildAgentHost({
+      id: nextId("host"),
+      label: input.label,
+      campusUrl: input.campusUrl,
+      machineId: input.machineId,
+      allowedRankKeys: input.allowedRankKeys,
+      allowedSkillKeys: input.allowedSkillKeys,
+      version: input.version,
+    });
+    this.dispatch({ type: "host.joined", host });
+    return host;
+  }
+
+  private spawnRuntime(input: {
+    hostId: Id;
+    agentId: Id;
+    workingDir?: string;
+  }): SpawnRuntimeResult {
+    const host = this.getHost(input.hostId);
+    if (!host) return { ok: false, reason: "unknown_host" };
+    if (host.status !== "online") return { ok: false, reason: "host_offline" };
+    const agent = this.getAgent(input.agentId);
+    if (!agent) return { ok: false, reason: "unknown_agent" };
+    if (agent.runtimeId != null) return { ok: false, reason: "already_running" };
+
+    const runtime = buildAgentRuntime({
+      id: nextId("runtime"),
+      host,
+      agent,
+      workingDir: input.workingDir,
+    });
+    this.dispatch({ type: "runtime.started", runtime });
+    return { ok: true, runtime };
+  }
+
+  private stopRuntime(runtimeId: Id): StopRuntimeResult {
+    const runtime = this.state.runtimes.find((r) => r.id === runtimeId);
+    if (!runtime) return { ok: false, reason: "unknown_runtime" };
+    this.dispatch({
+      type: "runtime.stopped",
+      runtimeId: runtime.id,
+      agentId: runtime.agentId,
+      hostId: runtime.hostId,
+    });
+    return { ok: true, runtimeId: runtime.id };
   }
 
   private issueOrder(input: OrderInput): AgentOrder {
@@ -801,6 +924,56 @@ export function reduce(state: CampusState, event: CampusEvent): CampusState {
       return {
         ...state,
         specArtifacts: upsertById(state.specArtifacts, event.artifact),
+      };
+
+    case "host.joined":
+      return { ...state, hosts: upsertById(state.hosts, event.host) };
+
+    case "host.heartbeat":
+      return {
+        ...state,
+        hosts: state.hosts.map((h) =>
+          h.id === event.hostId
+            ? { ...h, lastSeenAt: event.at, status: "online" }
+            : h,
+        ),
+      };
+
+    case "host.left": {
+      const goneRuntimes = state.runtimes.filter(
+        (r) => r.hostId === event.hostId,
+      );
+      const goneAgentIds = new Set(goneRuntimes.map((r) => r.agentId));
+      return {
+        ...state,
+        hosts: state.hosts.map((h) =>
+          h.id === event.hostId ? { ...h, status: "offline" } : h,
+        ),
+        runtimes: state.runtimes.filter((r) => r.hostId !== event.hostId),
+        agents: state.agents.map((a) =>
+          goneAgentIds.has(a.id) ? { ...a, hostId: null, runtimeId: null } : a,
+        ),
+      };
+    }
+
+    case "runtime.started":
+      return {
+        ...state,
+        runtimes: upsertById(state.runtimes, event.runtime),
+        agents: patchAgent(state.agents, event.runtime.agentId, {
+          hostId: event.runtime.hostId,
+          runtimeId: event.runtime.id,
+        }),
+      };
+
+    case "runtime.stopped":
+      return {
+        ...state,
+        runtimes: state.runtimes.filter((r) => r.id !== event.runtimeId),
+        agents: patchAgent(state.agents, event.agentId, {
+          hostId: null,
+          runtimeId: null,
+        }),
       };
 
     case "task.inventory.updated": {

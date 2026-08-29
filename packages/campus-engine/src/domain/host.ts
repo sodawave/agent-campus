@@ -8,7 +8,7 @@
  * Inspired in spirit by buzz-cli (agent-first JSON I/O) but campus-native.
  */
 
-import type { HarnessParams, Id } from "./types";
+import type { AgentInstance, HarnessParams, Id } from "./types";
 
 /** A machine/process that can run one or more agent runtimes. */
 export interface AgentHost {
@@ -42,6 +42,11 @@ export interface AgentRuntime {
   harness: HarnessParams;
   status: "starting" | "running" | "paused" | "stopping" | "dead";
   startedAt: string;
+  /**
+   * Host-local working directory that feeds this runtime (files/tools it may
+   * access). Metadata/manifest only — the core never owns the bytes.
+   */
+  workingDir?: string;
 }
 
 /** CLI join payload — host announces itself to campus. */
@@ -67,6 +72,8 @@ export interface HostSpawnRequest {
   harness?: Partial<HarnessParams>;
   /** If true, stay in spawn room; else home to natural office. */
   stayInRoom?: boolean;
+  /** Host-local working directory the runtime is allowed to use. */
+  workingDir?: string;
 }
 
 export interface CampusCliPort {
@@ -76,6 +83,52 @@ export interface CampusCliPort {
   spawn(req: HostSpawnRequest): Promise<AgentRuntime>;
   stop(runtimeId: Id): Promise<void>;
   listRuntimes(hostId: Id): Promise<AgentRuntime[]>;
+}
+
+/** Build a host record from a join payload (pure). */
+export function buildAgentHost(input: {
+  id: Id;
+  label: string;
+  campusUrl?: string;
+  machineId?: string;
+  allowedRankKeys?: string[];
+  allowedSkillKeys?: string[];
+  version?: string;
+  now?: string;
+}): AgentHost {
+  return {
+    id: input.id,
+    label: input.label,
+    machineId: input.machineId,
+    allowedRankKeys: input.allowedRankKeys,
+    allowedSkillKeys: input.allowedSkillKeys,
+    campusUrl: input.campusUrl ?? "local://campus",
+    status: "online",
+    lastSeenAt: input.now ?? new Date().toISOString(),
+    version: input.version,
+  };
+}
+
+/** Build a live runtime for an agent on a host (pure). */
+export function buildAgentRuntime(input: {
+  id: Id;
+  host: AgentHost;
+  agent: AgentInstance;
+  workingDir?: string;
+  now?: string;
+}): AgentRuntime {
+  return {
+    id: input.id,
+    hostId: input.host.id,
+    agentId: input.agent.id,
+    projectId: input.agent.projectId,
+    rankKey: input.agent.rankKey,
+    skillKey: input.agent.skill.key,
+    harness: input.agent.harness,
+    status: "running",
+    startedAt: input.now ?? new Date().toISOString(),
+    workingDir: input.workingDir,
+  };
 }
 
 /** Suggested CLI surface (documented; implementation later). */
