@@ -23,6 +23,7 @@ import type {
 } from "./types";
 import { WORKER_SPAWNER_RANK_KEY, LEADER_RANK_KEY, LEADER_ROOM_ROLE } from "./types";
 import { canDebate } from "./org";
+import { isLeaderRoom } from "./building";
 import { nextSpecKitPhase } from "./speckit";
 import { liveRuntimeForAgent } from "./host";
 
@@ -41,6 +42,7 @@ export type CampusCommand =
   | { type: "building.assignLead"; buildingId: Id; agentId: Id }
   | { type: "room.spawn"; room: Room }
   | { type: "room.updateContext"; roomId: Id; context: string }
+  | { type: "room.delete"; roomId: Id }
   | { type: "project.create"; project: Project }
   | { type: "project.archive"; projectId: Id }
   | { type: "project.assign"; agentId: Id; projectId: Id }
@@ -86,6 +88,8 @@ export type RejectionReason =
   | "project_not_in_building"
   | "already_assigned"
   | "not_assigned"
+  | "leader_room_not_deletable"
+  | "room_not_empty"
   | "actor_not_found"
   | "rank_not_allowed"
   | "worker_not_found"
@@ -189,6 +193,15 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       const { roomId, context } = command;
       if (!state.rooms.some((r) => r.id === roomId)) return reject("room_not_found");
       return accept({ type: "room.context.updated", roomId, context });
+    }
+
+    case "room.delete": {
+      const { roomId } = command;
+      const room = state.rooms.find((r) => r.id === roomId);
+      if (!room) return reject("room_not_found");
+      if (isLeaderRoom(room)) return reject("leader_room_not_deletable");
+      if (state.agents.some((a) => a.roomId === roomId)) return reject("room_not_empty");
+      return accept({ type: "room.deleted", roomId });
     }
 
     case "project.create": {

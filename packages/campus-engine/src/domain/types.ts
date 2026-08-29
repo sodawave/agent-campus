@@ -243,6 +243,7 @@ export type CampusEvent =
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
   | { type: "room.spawned"; room: Room }
   | { type: "room.context.updated"; roomId: Id; context: string }
+  | { type: "room.deleted"; roomId: Id }
   | { type: "project.created"; project: Project }
   | { type: "project.archived"; projectId: Id }
   | { type: "project.assigned"; agentId: Id; projectId: Id }

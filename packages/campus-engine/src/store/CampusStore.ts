@@ -83,6 +83,8 @@ export class CampusStore {
       this.dispatch({ type: "room.assignHead", roomId: input.roomId, agentId: input.agentId }),
     updateContext: (input: { roomId: Id; context: string }): CommandResult =>
       this.dispatch({ type: "room.updateContext", roomId: input.roomId, context: input.context }),
+    delete: (input: { roomId: Id }): CommandResult =>
+      this.dispatch({ type: "room.delete", roomId: input.roomId }),
   };
 
   /** Projects: the inventory of a building. */

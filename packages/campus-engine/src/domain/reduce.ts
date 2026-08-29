@@ -75,6 +75,12 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "room.deleted": {
+      const { roomId } = event;
+      if (!state.rooms.some((r) => r.id === roomId)) return state;
+      return { ...state, rooms: state.rooms.filter((r) => r.id !== roomId) };
+    }
+
     case "project.created": {
       const { project } = event;
       if (!state.buildings.some((b) => b.id === project.buildingId)) return state;
