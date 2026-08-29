@@ -20,7 +20,7 @@ import type {
   Task,
   TaskVerdict,
 } from "./types";
-import { WORKER_SPAWNER_RANK_KEY } from "./types";
+import { WORKER_SPAWNER_RANK_KEY, BOSS_RANK_KEY, BOSS_ROOM_ROLE } from "./types";
 import { canDebate } from "./org";
 import { nextSpecKitPhase } from "./speckit";
 import { liveRuntimeForAgent } from "./host";
@@ -28,7 +28,16 @@ import { liveRuntimeForAgent } from "./host";
 /** Requests from a client/host to the core (validable, rejectable). */
 export type CampusCommand =
   | { type: "campus.load"; campus: Campus }
-  | { type: "building.spawn"; building: Building }
+  | {
+      type: "building.spawn";
+      building: Building;
+      bossRoomId?: Id;
+      bossRoomKey?: string;
+      bossAgentId?: Id;
+      bossName?: string;
+    }
+  | { type: "building.updateContext"; buildingId: Id; context: string }
+  | { type: "building.assignLead"; buildingId: Id; agentId: Id }
   | { type: "room.spawn"; room: Room }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
@@ -66,6 +75,7 @@ export type RejectionReason =
   | "self_supervision"
   | "room_not_found"
   | "agent_not_in_room"
+  | "agent_not_in_building"
   | "actor_not_found"
   | "rank_not_allowed"
   | "worker_not_found"
@@ -115,7 +125,45 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       if (state.buildings.some((b) => b.id === building.id)) {
         return reject("duplicate_id");
       }
-      return accept({ type: "building.spawned", building });
+      // Composite: every building (environment) gets a Boss office + a boss agent,
+      // and the boss agent becomes the environment lead.
+      const bossRoomId = command.bossRoomId ?? `${building.id}-boss`;
+      const bossAgentId = command.bossAgentId ?? `${building.id}-boss-agent`;
+      const bossRoom: Room = {
+        id: bossRoomId,
+        buildingId: building.id,
+        key: command.bossRoomKey ?? "boss",
+        role: BOSS_ROOM_ROLE,
+      };
+      const bossAgent: AgentInstance = {
+        id: bossAgentId,
+        name: command.bossName ?? "Boss",
+        kind: "named",
+        buildingId: building.id,
+        roomId: bossRoomId,
+        rankKey: BOSS_RANK_KEY,
+      };
+      return accept({
+        type: "building.spawned",
+        building: { ...building, campusLeadAgentId: bossAgentId },
+        bossRoom,
+        bossAgent,
+      });
+    }
+
+    case "building.updateContext": {
+      const { buildingId, context } = command;
+      if (!state.buildings.some((b) => b.id === buildingId)) return reject("building_not_found");
+      return accept({ type: "building.context.updated", buildingId, context });
+    }
+
+    case "building.assignLead": {
+      const { buildingId, agentId } = command;
+      if (!state.buildings.some((b) => b.id === buildingId)) return reject("building_not_found");
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) return reject("agent_not_found");
+      if (agent.buildingId !== buildingId) return reject("agent_not_in_building");
+      return accept({ type: "building.lead.assigned", buildingId, agentId });
     }
 
     case "room.spawn": {

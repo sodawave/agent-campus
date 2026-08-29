@@ -58,7 +58,7 @@ export class CampusStore {
   };
 
   readonly building = {
-    spawn: (input: { id: Id; name: string }): CommandResult =>
+    spawn: (input: { id: Id; name: string; bossRoomId?: Id; bossAgentId?: Id; bossName?: string }): CommandResult =>
       this.dispatch({
         type: "building.spawn",
         building: buildBuilding({
@@ -66,7 +66,14 @@ export class CampusStore {
           name: input.name,
           campusId: this.#state.campus?.id ?? "",
         }),
+        ...(input.bossRoomId !== undefined ? { bossRoomId: input.bossRoomId } : {}),
+        ...(input.bossAgentId !== undefined ? { bossAgentId: input.bossAgentId } : {}),
+        ...(input.bossName !== undefined ? { bossName: input.bossName } : {}),
       }),
+    updateContext: (input: { buildingId: Id; context: string }): CommandResult =>
+      this.dispatch({ type: "building.updateContext", buildingId: input.buildingId, context: input.context }),
+    assignLead: (input: { buildingId: Id; agentId: Id }): CommandResult =>
+      this.dispatch({ type: "building.assignLead", buildingId: input.buildingId, agentId: input.agentId }),
   };
 
   readonly room = {

@@ -16,11 +16,15 @@ export interface Campus {
   buildingIds: Id[];
 }
 
-/** A building (= project) belongs to a campus. */
+/** A building (= environment: Casa, Empresa A…) belongs to a campus. */
 export interface Building {
   id: Id;
   campusId: Id;
   name: string;
+  /** "Who we are" / environment norms (context for agents). */
+  context?: string;
+  /** The environment lead (Boss). Defaults to the auto-created boss agent. */
+  campusLeadAgentId?: Id | null;
 }
 
 /** A room (= workspace/office) belongs to a building. */
@@ -30,7 +34,15 @@ export interface Room {
   key: string;
   /** Department head (an agent in this room). Assigned in layer 6. */
   headAgentId?: Id;
+  /** Room role, e.g. "boss" (the boss office is non-deletable). */
+  role?: string;
 }
+
+/** Rank key of the auto-created boss agent that heads a building (environment). */
+export const BOSS_RANK_KEY = "boss";
+
+/** Role marking the boss office room (created with the building; non-deletable). */
+export const BOSS_ROOM_ROLE = "boss";
 
 /**
  * A named agent instance, represented in a room of a building.
@@ -201,7 +213,9 @@ export interface ProjectCall {
  */
 export type CampusEvent =
   | { type: "campus.loaded"; campus: Campus }
-  | { type: "building.spawned"; building: Building }
+  | { type: "building.spawned"; building: Building; bossRoom?: Room; bossAgent?: AgentInstance }
+  | { type: "building.context.updated"; buildingId: Id; context: string }
+  | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
   | { type: "room.spawned"; room: Room }
   | { type: "agent.instantiated"; agent: AgentInstance }
   | { type: "agent.supervisor.assigned"; agentId: Id; supervisorId: Id | null }

@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./builders";
 export * from "./reduce";
 export * from "./commands";
+export * from "./building";
 export * from "./org";
 export * from "./memory";
 export * from "./speckit";

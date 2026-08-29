@@ -23,10 +23,40 @@ export function reduce(state: State, event: CampusEvent): State {
     }
 
     case "building.spawned": {
-      const { building } = event;
+      const { building, bossRoom, bossAgent } = event;
       if (!state.campus || building.campusId !== state.campus.id) return state;
       if (state.buildings.some((b) => b.id === building.id)) return state;
-      return { ...state, buildings: [...state.buildings, building] };
+      const rooms =
+        bossRoom && !state.rooms.some((r) => r.id === bossRoom.id)
+          ? [...state.rooms, bossRoom]
+          : state.rooms;
+      const agents =
+        bossAgent && !state.agents.some((a) => a.id === bossAgent.id)
+          ? [...state.agents, bossAgent]
+          : state.agents;
+      return { ...state, buildings: [...state.buildings, building], rooms, agents };
+    }
+
+    case "building.context.updated": {
+      const { buildingId, context } = event;
+      if (!state.buildings.some((b) => b.id === buildingId)) return state;
+      return {
+        ...state,
+        buildings: state.buildings.map((b) =>
+          b.id === buildingId ? { ...b, context } : b,
+        ),
+      };
+    }
+
+    case "building.lead.assigned": {
+      const { buildingId, agentId } = event;
+      if (!state.buildings.some((b) => b.id === buildingId)) return state;
+      return {
+        ...state,
+        buildings: state.buildings.map((b) =>
+          b.id === buildingId ? { ...b, campusLeadAgentId: agentId } : b,
+        ),
+      };
     }
 
     case "room.spawned": {
