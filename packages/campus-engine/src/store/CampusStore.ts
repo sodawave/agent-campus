@@ -55,6 +55,12 @@ export class CampusStore {
   readonly campus = {
     load: (input: { id: Id; name: string; buildingIds?: Id[] }): CommandResult =>
       this.dispatch({ type: "campus.load", campus: buildCampus(input) }),
+    setConfig: (input: { language?: string; timezone?: string }): CommandResult =>
+      this.dispatch({
+        type: "campus.setConfig",
+        ...(input.language !== undefined ? { language: input.language } : {}),
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+      }),
   };
 
   readonly building = {

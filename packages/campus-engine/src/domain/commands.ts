@@ -31,6 +31,7 @@ import { liveRuntimeForAgent } from "./host";
 /** Requests from a client/host to the core (validable, rejectable). */
 export type CampusCommand =
   | { type: "campus.load"; campus: Campus }
+  | { type: "campus.setConfig"; language?: string; timezone?: string }
   | {
       type: "building.spawn";
       building: Building;
@@ -132,6 +133,15 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         return reject("campus_already_loaded");
       }
       return accept({ type: "campus.loaded", campus: command.campus });
+    }
+
+    case "campus.setConfig": {
+      if (!state.campus) return reject("campus_not_loaded");
+      const config = {
+        language: command.language ?? state.config.language,
+        timezone: command.timezone ?? state.config.timezone,
+      };
+      return accept({ type: "campus.config.updated", config });
     }
 
     case "building.spawn": {

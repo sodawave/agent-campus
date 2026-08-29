@@ -16,6 +16,15 @@ export interface Campus {
   buildingIds: Id[];
 }
 
+/** Campus/system configuration (managed by the future Control Panel). */
+export interface CampusConfig {
+  language: string;
+  timezone: string;
+}
+
+/** Default campus configuration. */
+export const DEFAULT_CONFIG: CampusConfig = { language: "en", timezone: "UTC" };
+
 /** A building (= environment: Casa, Empresa A…) belongs to a campus. */
 export interface Building {
   id: Id;
@@ -249,6 +258,7 @@ export interface ProjectCall {
  */
 export type CampusEvent =
   | { type: "campus.loaded"; campus: Campus }
+  | { type: "campus.config.updated"; config: CampusConfig }
   | { type: "building.spawned"; building: Building; leaderRoom?: Room; leaderAgent?: AgentInstance }
   | { type: "building.context.updated"; buildingId: Id; context: string }
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
@@ -287,6 +297,7 @@ export type CampusEvent =
 /** Read-only projection reconstructed from the event log. */
 export interface State {
   campus: Campus | null;
+  config: CampusConfig;
   buildings: Building[];
   rooms: Room[];
   agents: AgentInstance[];
@@ -310,6 +321,7 @@ export interface State {
 /** Canonical empty projection. */
 export const EMPTY_STATE: State = {
   campus: null,
+  config: DEFAULT_CONFIG,
   buildings: [],
   rooms: [],
   agents: [],

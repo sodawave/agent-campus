@@ -22,6 +22,10 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, campus: event.campus };
     }
 
+    case "campus.config.updated": {
+      return { ...state, config: event.config };
+    }
+
     case "building.spawned": {
       const { building, leaderRoom, leaderAgent } = event;
       if (!state.campus || building.campusId !== state.campus.id) return state;
