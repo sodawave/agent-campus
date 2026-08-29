@@ -8,4 +8,5 @@
 
 export * from "./domain";
 export * from "./store";
+export * from "./core";
 export * from "./samples";

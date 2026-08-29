@@ -805,3 +805,21 @@ export type CampusEvent =
     }
   | { type: "run.upserted"; run: Run }
   | { type: "run.removed"; runId: Id };
+
+/**
+ * Command = a *request* to the core (validable, rejectable), as opposed to a
+ * {@link CampusEvent} which is a *fact* the core has sequenced. Plain data,
+ * JSON-serializable, so any client/host (Godot/GDScript, web/TS, CLI) can build
+ * one from the schema without sharing code. Minimal subset for the core's first
+ * layer (constitution VIII); more commands are added in later layers.
+ */
+export type CampusCommand =
+  | { type: "agent.spawn"; request: InstantiateRequest }
+  | {
+      type: "worker.spawn";
+      actorId: Id;
+      skill?: Skill;
+      label?: string;
+      spriteKey?: string;
+    }
+  | { type: "worker.despawn"; actorId: Id; workerId: Id };
