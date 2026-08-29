@@ -22,6 +22,7 @@ const AGENT_COLS := 2
 const AGENT_CELL_W := 120.0
 const AGENT_CELL_H := 48.0
 const AGENT_R := 15.0
+const WORKER_ROW_H := 26.0
 
 var _client = CampusClientScript.new()
 var _font: Font
@@ -56,16 +57,27 @@ func _agents_of(rid: String) -> Array:
 			out.append(a)
 	return out
 
-func _room_height(n: int) -> float:
-	var rows: int = max(1, int(ceil(n / float(AGENT_COLS))))
-	return ROOM_HEADER_H + rows * AGENT_CELL_H + ROOM_PAD
+func _workers_of(rid: String) -> Array:
+	var out: Array = []
+	for w in _client.workers:
+		if String(w.get("roomId", "")) == rid:
+			out.append(w)
+	return out
+
+func _room_height(n_agents: int, n_workers: int) -> float:
+	var rows: int = max(1, int(ceil(n_agents / float(AGENT_COLS))))
+	var h := ROOM_HEADER_H + rows * AGENT_CELL_H + ROOM_PAD
+	if n_workers > 0:
+		h += WORKER_ROW_H
+	return h
 
 func _block_height(rooms: Array, avail_right: float) -> float:
 	var x := PAD
 	var y := 0.0
 	var row_max := 0.0
 	for r in rooms:
-		var h := _room_height(_agents_of(String(r.get("id", ""))).size())
+		var rid := String(r.get("id", ""))
+		var h := _room_height(_agents_of(rid).size(), _workers_of(rid).size())
 		if x + ROOM_W > avail_right and x > PAD:
 			x = PAD
 			y += row_max + ROOM_GAP
@@ -107,18 +119,20 @@ func _draw() -> void:
 		var ry := y + B_HEADER_H
 		var row_max := 0.0
 		for r in rooms:
-			var agents := _agents_of(String(r.get("id", "")))
-			var h := _room_height(agents.size())
+			var rid := String(r.get("id", ""))
+			var agents := _agents_of(rid)
+			var workers := _workers_of(rid)
+			var h := _room_height(agents.size(), workers.size())
 			if x + ROOM_W > avail_right and x > PAD:
 				x = PAD
 				ry += row_max + ROOM_GAP
 				row_max = 0.0
-			_draw_room(Rect2(x, ry, ROOM_W, h), r, agents, heads)
+			_draw_room(Rect2(x, ry, ROOM_W, h), r, agents, workers, heads)
 			row_max = max(row_max, h)
 			x += ROOM_W + ROOM_GAP
 		y += B_HEADER_H + block_h + 22
 
-	var status := "core: %s   ·   %d buildings · %d rooms · %d agents" % [_ws_state_text(), _client.buildings.size(), _client.rooms.size(), _client.agents.size()]
+	var status := "core: %s   ·   %d buildings · %d rooms · %d agents · %d workers" % [_ws_state_text(), _client.buildings.size(), _client.rooms.size(), _client.agents.size(), _client.workers.size()]
 	draw_string(_font, Vector2(PAD, vh - 14), status, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.5, 0.55, 0.65))
 
 func _draw_building_icon(p: Vector2) -> void:
@@ -127,7 +141,7 @@ func _draw_building_icon(p: Vector2) -> void:
 		for wy in [3, 8]:
 			draw_rect(Rect2(p.x + wx, p.y + wy, 3, 3), Color(0.12, 0.15, 0.21), true)
 
-func _draw_room(rect: Rect2, r: Dictionary, agents: Array, heads: Dictionary) -> void:
+func _draw_room(rect: Rect2, r: Dictionary, agents: Array, workers: Array, heads: Dictionary) -> void:
 	var is_leader := String(r.get("role", "")) == "leader"
 	var floor_col := Color(0.24, 0.19, 0.10) if is_leader else Color(0.16, 0.19, 0.25)
 	var header_col := Color(0.30, 0.24, 0.13) if is_leader else Color(0.20, 0.24, 0.31)
@@ -149,9 +163,18 @@ func _draw_room(rect: Rect2, r: Dictionary, agents: Array, heads: Dictionary) ->
 		var row := i / AGENT_COLS
 		var cx := ax0 + col * AGENT_CELL_W + AGENT_R
 		var cy := ay0 + row * AGENT_CELL_H + AGENT_R
-		_draw_agent(Vector2(cx, cy), a, heads.has(String(a.get("id", ""))))
+		var aid := String(a.get("id", ""))
+		_draw_agent(Vector2(cx, cy), a, heads.has(aid), _client.is_live(aid))
 
-func _draw_agent(c: Vector2, a: Dictionary, is_head: bool) -> void:
+	if workers.size() > 0:
+		var wy := rect.position.y + rect.size.y - WORKER_ROW_H + 8
+		var wx := rect.position.x + ROOM_PAD + 6
+		for _w in workers:
+			draw_circle(Vector2(wx, wy), 6.0, Color(0.55, 0.58, 0.66))
+			wx += 16
+		draw_string(_font, Vector2(wx + 4, wy + 4), "%d worker(s)" % workers.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.64, 0.72))
+
+func _draw_agent(c: Vector2, a: Dictionary, is_head: bool, is_live: bool) -> void:
 	var is_leader := String(a.get("rankKey", "")) == "leader"
 	if is_head:
 		draw_circle(c, AGENT_R + 3.0, Color(0.42, 0.62, 1.0))
@@ -159,6 +182,10 @@ func _draw_agent(c: Vector2, a: Dictionary, is_head: bool) -> void:
 	draw_circle(c, AGENT_R, body)
 	draw_circle(c + Vector2(-5, -4), 2.5, Color(0.10, 0.12, 0.16))
 	draw_circle(c + Vector2(5, -4), 2.5, Color(0.10, 0.12, 0.16))
+	# Execution plane: a "live" agent (running runtime) gets a green status dot.
+	if is_live:
+		draw_circle(c + Vector2(AGENT_R - 2, -(AGENT_R - 2)), 4.0, Color(0.10, 0.12, 0.16))
+		draw_circle(c + Vector2(AGENT_R - 2, -(AGENT_R - 2)), 3.0, Color(0.35, 0.95, 0.45))
 
 	var tx := c.x + AGENT_R + 8
 	draw_string(_font, Vector2(tx, c.y - 1), String(a.get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.96, 0.97, 1.0))

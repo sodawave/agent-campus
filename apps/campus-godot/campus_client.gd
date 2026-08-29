@@ -13,8 +13,10 @@ signal changed
 var has_campus := false
 var campus_name := ""
 var buildings: Array = []  # [{ id, name }]
-var rooms: Array = []      # [{ id, buildingId, key, role }]
+var rooms: Array = []      # [{ id, buildingId, key, role, headAgentId }]
 var agents: Array = []     # [{ id, name, buildingId, roomId, rankKey, skillKey }]
+var workers: Array = []    # [{ id, name, buildingId, roomId }] (anonymous, ephemeral)
+var runtimes: Array = []   # [{ id, hostId, agentId, status }] (execution plane -> liveness)
 
 var _ws := WebSocketPeer.new()
 var _last_state := WebSocketPeer.STATE_CLOSED
@@ -77,8 +79,34 @@ func _reduce(ev) -> void:
 					rooms[i]["headAgentId"] = String(ev.get("agentId", ""))
 		"agent.instantiated":
 			_upsert(agents, _agent(ev.get("agent", {})))
+		"worker.entered":
+			_upsert(workers, _worker(ev.get("worker", {})))
+		"worker.exited":
+			_remove(workers, String(ev.get("workerId", "")))
+		"runtime.started":
+			var rt = ev.get("runtime", {})
+			_upsert(runtimes, {
+				"id": String(rt.get("id", "")),
+				"hostId": String(rt.get("hostId", "")),
+				"agentId": String(rt.get("agentId", "")),
+				"status": "running",
+			})
+		"runtime.stopped":
+			_set_runtime_status(String(ev.get("runtimeId", "")), "stopped")
+		"host.left":
+			var hid := String(ev.get("hostId", ""))
+			for i in runtimes.size():
+				if String(runtimes[i].get("hostId", "")) == hid:
+					runtimes[i]["status"] = "stopped"
 		_:
 			pass
+
+## Execution plane: an agent is "live" while it has a running runtime.
+func is_live(agent_id: String) -> bool:
+	for rt in runtimes:
+		if String(rt.get("agentId", "")) == agent_id and String(rt.get("status", "")) == "running":
+			return true
+	return false
 
 func _room(r) -> Dictionary:
 	return {
@@ -98,6 +126,26 @@ func _agent(a) -> Dictionary:
 		"rankKey": String(a.get("rankKey", "")),
 		"skillKey": String(a.get("skillKey", "")),
 	}
+
+func _worker(w) -> Dictionary:
+	return {
+		"id": String(w.get("id", "")),
+		"name": String(w.get("name", "")),
+		"buildingId": String(w.get("buildingId", "")),
+		"roomId": String(w.get("roomId", "")),
+	}
+
+func _set_runtime_status(rid: String, status: String) -> void:
+	for i in runtimes.size():
+		if String(runtimes[i].get("id", "")) == rid:
+			runtimes[i]["status"] = status
+			return
+
+func _remove(arr: Array, id: String) -> void:
+	for i in arr.size():
+		if String(arr[i].get("id", "")) == id:
+			arr.remove_at(i)
+			return
 
 func _upsert(arr: Array, item: Dictionary) -> void:
 	for i in arr.size():
