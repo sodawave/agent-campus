@@ -35,6 +35,20 @@ function seed(server: CampusServer): void {
   s.agent.assignSupervisor({ agentId: "a-ivan", supervisorId: "a-mia" });
   s.room.assignHead({ roomId: "r-mkt", agentId: "a-mia" });
 
+  // Second building: a tower with its own crew.
+  s.building.spawn({ id: "b-beta", name: "Beta Tower" });
+  s.room.spawn({ id: "r-ops", buildingId: "b-beta", key: "operations" });
+  s.room.spawn({ id: "r-fin", buildingId: "b-beta", key: "finance" });
+  s.agent.instantiate({ id: "a-joy", name: "Joy", buildingId: "b-beta", roomId: "r-ops", rankKey: "lead", skillKey: "operations" });
+  s.agent.instantiate({ id: "a-kev", name: "Kevin", buildingId: "b-beta", roomId: "r-fin", rankKey: "ic", skillKey: "finance" });
+  s.room.assignHead({ roomId: "r-ops", agentId: "a-joy" });
+
+  // Third building: a small studio.
+  s.building.spawn({ id: "b-gamma", name: "Gamma Studio" });
+  s.room.spawn({ id: "r-lab2", buildingId: "b-gamma", key: "research" });
+  s.agent.instantiate({ id: "a-luz", name: "Luz", buildingId: "b-gamma", roomId: "r-lab2", rankKey: "lead", skillKey: "research" });
+  s.room.assignHead({ roomId: "r-lab2", agentId: "a-luz" });
+
   // Anonymous worker spawned by an ic agent.
   s.worker.spawn({ id: "w-1", actorId: "a-ivan", buildingId: "b-alpha", roomId: "r-dev" });
 
@@ -53,18 +67,28 @@ function seed(server: CampusServer): void {
   s.library.addClassification({ id: "cl-eng", key: "eng", label: "Engineering", skillKeys: ["software-eng"] });
   s.library.addDocument({ id: "doc-1", title: "Style Guide", kind: "manual", classificationIds: ["cl-eng"] });
 
-  // Skin catalog (visual assets).
-  s.skin.register({ id: "s-hq", kind: "building", key: "hq-office", name: "HQ Office", palette: { floor: "#1a1a2e", wall: "#16213e", header: "#0f3460", accent: "#e94560" }, size: { w: 10, h: 8 } });
-  s.skin.register({ id: "s-room-office", kind: "room", key: "office", name: "Office Room", palette: { floor: "#313244", wall: "#26263a", header: "#424549", accent: "#7aa2f7" } });
-  s.skin.register({ id: "s-room-lab", kind: "room", key: "lab", name: "Lab Room", palette: { floor: "#2d2a3a", wall: "#25242b", header: "#3c3a42", accent: "#f4d03f" } });
-  s.skin.register({ id: "s-agent-staff", kind: "agent", key: "staff", name: "Staff", palette: { floor: "#64849b", wall: "#4a6376", header: "#8ba4bb", accent: "#b6e2a8" } });
+  // Skin catalog (visual assets). Clay palettes: {floor, wall, header, accent}.
+  s.skin.register({ id: "s-hq", kind: "building", key: "hq-office", name: "HQ Office", palette: { floor: "#e6d3b8", wall: "#c9a97c", header: "#f4e3c6", accent: "#a67b4f" }, size: { w: 10, h: 8 } });
+  s.skin.register({ id: "s-building-tower", kind: "building", key: "tower", name: "Beta Tower", palette: { floor: "#e8dce8", wall: "#b9a7ce", header: "#efe3f2", accent: "#8e7ba8" }, size: { w: 6, h: 6 } });
+  s.skin.register({ id: "s-building-garden", kind: "building", key: "studio", name: "Gamma Studio", palette: { floor: "#e4edda", wall: "#a9c79a", header: "#e6f0dc", accent: "#6f9b66" }, size: { w: 8, h: 6 } });
+  s.skin.register({ id: "s-room-office", kind: "room", key: "office", name: "Office Room", palette: { floor: "#eadfcb", wall: "#aec6d8", header: "#e2eef4", accent: "#7e9cb4" } });
+  s.skin.register({ id: "s-room-lab", kind: "room", key: "lab", name: "Lab Room", palette: { floor: "#ede0d6", wall: "#d8a8bc", header: "#f5e7ec", accent: "#a86e82" } });
+  s.skin.register({ id: "s-agent-staff", kind: "agent", key: "staff", name: "Staff", palette: { floor: "#efe5ce", wall: "#c9c99b", header: "#f2edc9", accent: "#8f9b6c" } });
 
-  // Apply appearance to seed entities.
+  // Apply appearance to seed entities (coords in world tiles for the campus diorama).
   s.building.setAppearance({ buildingId: "b-alpha", appearance: { skinKey: "hq-office", x: 2, y: 2, facing: "down" } });
+  s.building.setAppearance({ buildingId: "b-beta", appearance: { skinKey: "tower", x: 9, y: 2, facing: "down" } });
+  s.building.setAppearance({ buildingId: "b-gamma", appearance: { skinKey: "studio", x: 2, y: 9, facing: "down" } });
   s.room.setAppearance({ roomId: "r-mkt", appearance: { skinKey: "office", x: 0, y: 0 } });
-  s.room.setAppearance({ roomId: "r-dev", appearance: { skinKey: "lab", x: 0, y: 0 } });
+  s.room.setAppearance({ roomId: "r-dev", appearance: { skinKey: "lab", x: 2, y: 0 } });
+  s.room.setAppearance({ roomId: "r-ops", appearance: { skinKey: "office", x: 0, y: 0 } });
+  s.room.setAppearance({ roomId: "r-fin", appearance: { skinKey: "lab", x: 2, y: 0 } });
+  s.room.setAppearance({ roomId: "r-lab2", appearance: { skinKey: "lab", x: 1, y: 1 } });
   s.agent.setAppearance({ agentId: "a-mia", appearance: { skinKey: "staff", x: 1, y: 1 } });
-  s.agent.setAppearance({ agentId: "a-ivan", appearance: { skinKey: "staff", x: 0, y: 0 } });
+  s.agent.setAppearance({ agentId: "a-ivan", appearance: { skinKey: "staff", x: 2, y: 2 } });
+  s.agent.setAppearance({ agentId: "a-joy", appearance: { skinKey: "staff", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "a-kev", appearance: { skinKey: "staff", x: 2, y: 2 } });
+  s.agent.setAppearance({ agentId: "a-luz", appearance: { skinKey: "staff", x: 1, y: 1 } });
 
   // A project in the building inventory + an agent assigned to it.
   s.project.create({ id: "p-onboarding", buildingId: "b-alpha", name: "Onboarding" });
