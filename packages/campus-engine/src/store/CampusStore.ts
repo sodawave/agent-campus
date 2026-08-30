@@ -4,7 +4,7 @@
  * Rejected commands do not mutate state nor grow the log; the reason is returned.
  */
 
-import { buildAgent, buildBuilding, buildCampus, buildChatMessage, buildClassification, buildDebate, buildDocument, buildMemory, buildProject, buildRoom, buildSpecKitArtifact, buildTask, buildWorker } from "../domain/builders";
+import { buildAgent, buildBuilding, buildCampus, buildChatMessage, buildClassification, buildDebate, buildDocument, buildMemory, buildProject, buildRoom, buildSkin, buildSpecKitArtifact, buildTask, buildWorker } from "../domain/builders";
 import { execute, type CampusCommand, type CommandResult } from "../domain/commands";
 import { reduce } from "../domain/reduce";
 import { recallForAgent } from "../domain/memory";
@@ -70,13 +70,14 @@ export class CampusStore {
   };
 
   readonly building = {
-    spawn: (input: { id: Id; name: string; leaderRoomId?: Id; leaderAgentId?: Id; leaderName?: string }): CommandResult =>
+    spawn: (input: { id: Id; name: string; leaderRoomId?: Id; leaderAgentId?: Id; leaderName?: string; appearance?: import("../domain/types").Appearance }): CommandResult =>
       this.dispatch({
         type: "building.spawn",
         building: buildBuilding({
           id: input.id,
           name: input.name,
           campusId: this.#state.campus?.id ?? "",
+          ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
         }),
         ...(input.leaderRoomId !== undefined ? { leaderRoomId: input.leaderRoomId } : {}),
         ...(input.leaderAgentId !== undefined ? { leaderAgentId: input.leaderAgentId } : {}),
@@ -86,10 +87,12 @@ export class CampusStore {
       this.dispatch({ type: "building.updateContext", buildingId: input.buildingId, context: input.context }),
     assignLead: (input: { buildingId: Id; agentId: Id }): CommandResult =>
       this.dispatch({ type: "building.assignLead", buildingId: input.buildingId, agentId: input.agentId }),
+    setAppearance: (input: { buildingId: Id; appearance: Partial<import("../domain/types").Appearance> }): CommandResult =>
+      this.dispatch({ type: "building.setAppearance", buildingId: input.buildingId, appearance: input.appearance }),
   };
 
   readonly room = {
-    spawn: (input: { id: Id; buildingId: Id; key: string; role?: RoomRole; context?: string }): CommandResult =>
+    spawn: (input: { id: Id; buildingId: Id; key: string; role?: RoomRole; context?: string; appearance?: import("../domain/types").Appearance }): CommandResult =>
       this.dispatch({ type: "room.spawn", room: buildRoom(input) }),
     assignHead: (input: { roomId: Id; agentId: Id }): CommandResult =>
       this.dispatch({ type: "room.assignHead", roomId: input.roomId, agentId: input.agentId }),
@@ -97,6 +100,8 @@ export class CampusStore {
       this.dispatch({ type: "room.updateContext", roomId: input.roomId, context: input.context }),
     delete: (input: { roomId: Id }): CommandResult =>
       this.dispatch({ type: "room.delete", roomId: input.roomId }),
+    setAppearance: (input: { roomId: Id; appearance: Partial<import("../domain/types").Appearance> }): CommandResult =>
+      this.dispatch({ type: "room.setAppearance", roomId: input.roomId, appearance: input.appearance }),
   };
 
   /** Projects: the inventory of a building. */
@@ -148,6 +153,8 @@ export class CampusStore {
         ...(input.effort !== undefined ? { effort: input.effort } : {}),
         ...(input.maxTokens !== undefined ? { maxTokens: input.maxTokens } : {}),
       }),
+    setAppearance: (input: { agentId: Id; appearance: Partial<import("../domain/types").Appearance> }): CommandResult =>
+      this.dispatch({ type: "agent.setAppearance", agentId: input.agentId, appearance: input.appearance }),
     callToBuilding: (input: { id: Id; agentId: Id; toBuildingId: Id; toRoomId: Id }): CommandResult =>
       this.dispatch({
         type: "project.call",
@@ -246,4 +253,10 @@ export class CampusStore {
     /** Read-only: documents reachable by a craft/oficio key. */
     forSkill: (skillKey: string): LibraryDocument[] => documentsForSkill(this.#state, skillKey),
   };
+
+  readonly skin = {
+    register: (input: { id: Id; kind: "building" | "room" | "agent"; key: string; name: string; assetUrl?: string; palette?: { floor?: string; wall?: string; header?: string; accent?: string }; size?: { w: number; h: number } }): CommandResult =>
+      this.dispatch({ type: "skin.register", skin: buildSkin(input) }),
+  };
 }
+

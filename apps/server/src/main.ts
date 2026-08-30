@@ -53,6 +53,19 @@ function seed(server: CampusServer): void {
   s.library.addClassification({ id: "cl-eng", key: "eng", label: "Engineering", skillKeys: ["software-eng"] });
   s.library.addDocument({ id: "doc-1", title: "Style Guide", kind: "manual", classificationIds: ["cl-eng"] });
 
+  // Skin catalog (visual assets).
+  s.skin.register({ id: "s-hq", kind: "building", key: "hq-office", name: "HQ Office", palette: { floor: "#1a1a2e", wall: "#16213e", header: "#0f3460", accent: "#e94560" }, size: { w: 10, h: 8 } });
+  s.skin.register({ id: "s-room-office", kind: "room", key: "office", name: "Office Room", palette: { floor: "#313244", wall: "#26263a", header: "#424549", accent: "#7aa2f7" } });
+  s.skin.register({ id: "s-room-lab", kind: "room", key: "lab", name: "Lab Room", palette: { floor: "#2d2a3a", wall: "#25242b", header: "#3c3a42", accent: "#f4d03f" } });
+  s.skin.register({ id: "s-agent-staff", kind: "agent", key: "staff", name: "Staff", palette: { floor: "#64849b", wall: "#4a6376", header: "#8ba4bb", accent: "#b6e2a8" } });
+
+  // Apply appearance to seed entities.
+  s.building.setAppearance({ buildingId: "b-alpha", appearance: { skinKey: "hq-office", x: 2, y: 2, facing: "down" } });
+  s.room.setAppearance({ roomId: "r-mkt", appearance: { skinKey: "office", x: 0, y: 0 } });
+  s.room.setAppearance({ roomId: "r-dev", appearance: { skinKey: "lab", x: 0, y: 0 } });
+  s.agent.setAppearance({ agentId: "a-mia", appearance: { skinKey: "staff", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "a-ivan", appearance: { skinKey: "staff", x: 0, y: 0 } });
+
   // A project in the building inventory + an agent assigned to it.
   s.project.create({ id: "p-onboarding", buildingId: "b-alpha", name: "Onboarding" });
   s.project.assign({ agentId: "a-ivan", projectId: "p-onboarding" });

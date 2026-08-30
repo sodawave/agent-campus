@@ -8,6 +8,7 @@ import type {
   AgentHarness,
   AgentInstance,
   AiProvider,
+  Appearance,
   Building,
   Campus,
   CampusEvent,
@@ -19,6 +20,7 @@ import type {
   MemoryRecord,
   Project,
   Room,
+  Skin,
   SpecKitArtifact,
   State,
   Task,
@@ -78,7 +80,11 @@ export type CampusCommand =
   | { type: "runtime.start"; id: Id; hostId: Id; agentId: Id; workingDir?: string }
   | { type: "runtime.stop"; runtimeId: Id }
   | { type: "library.addClassification"; classification: DocClassification }
-  | { type: "library.addDocument"; document: LibraryDocument };
+  | { type: "library.addDocument"; document: LibraryDocument }
+  | { type: "skin.register"; skin: Skin }
+  | { type: "building.setAppearance"; buildingId: Id; appearance: Partial<Appearance> }
+  | { type: "room.setAppearance"; roomId: Id; appearance: Partial<Appearance> }
+  | { type: "agent.setAppearance"; agentId: Id; appearance: Partial<Appearance> };
 
 export type RejectionReason =
   | "campus_already_loaded"
@@ -124,7 +130,10 @@ export type RejectionReason =
   | "host_offline"
   | "agent_already_live"
   | "runtime_not_found"
-  | "classification_not_found";
+  | "classification_not_found"
+  | "skin_invalid_kind"
+  | "duplicate_key"
+  | "skin_not_found";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -561,6 +570,64 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         }
       }
       return accept({ type: "library.document.upserted", document });
+    }
+
+    case "skin.register": {
+      const { skin } = command;
+      if (!["building", "room", "agent"].includes(skin.kind)) {
+        return reject("skin_invalid_kind");
+      }
+      if (state.skins.some((s) => s.id === skin.id)) return reject("duplicate_id");
+      if (
+        state.skins.some(
+          (s) => s.kind === skin.kind && s.key === skin.key,
+        )
+      ) {
+        return reject("duplicate_key");
+      }
+      return accept({ type: "skin.registered", skin });
+    }
+
+    case "building.setAppearance": {
+      const { buildingId, appearance } = command;
+      if (!state.buildings.some((b) => b.id === buildingId)) {
+        return reject("building_not_found");
+      }
+      if (appearance.skinKey !== undefined) {
+        const skin = state.skins.find(
+          (s) => s.key === appearance.skinKey && s.kind === "building",
+        );
+        if (!skin) return reject("skin_not_found");
+      }
+      return accept({ type: "building.appearance.set", buildingId, appearance });
+    }
+
+    case "room.setAppearance": {
+      const { roomId, appearance } = command;
+      if (!state.rooms.some((r) => r.id === roomId)) {
+        return reject("room_not_found");
+      }
+      if (appearance.skinKey !== undefined) {
+        const skin = state.skins.find(
+          (s) => s.key === appearance.skinKey && s.kind === "room",
+        );
+        if (!skin) return reject("skin_not_found");
+      }
+      return accept({ type: "room.appearance.set", roomId, appearance });
+    }
+
+    case "agent.setAppearance": {
+      const { agentId, appearance } = command;
+      if (!state.agents.some((a) => a.id === agentId)) {
+        return reject("agent_not_found");
+      }
+      if (appearance.skinKey !== undefined) {
+        const skin = state.skins.find(
+          (s) => s.key === appearance.skinKey && s.kind === "agent",
+        );
+        if (!skin) return reject("skin_not_found");
+      }
+      return accept({ type: "agent.appearance.set", agentId, appearance });
     }
   }
 }

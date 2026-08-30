@@ -3,7 +3,7 @@
  * fixtures and tests stay deterministic. Same input -> structurally equal output.
  */
 
-import type { AgentHost, AgentInstance, AgentRuntime, Building, Campus, ChatFrom, ChatMessage, DebateSession, DocClassification, DocKind, Id, LibraryDocument, MemoryRecord, MemoryScope, Project, Room, RoomRole, SpecKitArtifact, Task } from "./types";
+import type { AgentHost, AgentInstance, AgentRuntime, Appearance, Building, Campus, ChatFrom, ChatMessage, DebateSession, DocClassification, DocKind, Id, LibraryDocument, MemoryRecord, MemoryScope, Project, Room, RoomRole, Skin, SkinKind, SpecKitArtifact, Task } from "./types";
 
 export function buildCampus(input: {
   id: Id;
@@ -21,12 +21,15 @@ export function buildBuilding(input: {
   id: Id;
   campusId: Id;
   name: string;
+  appearance?: Appearance;
 }): Building {
-  return {
+  const building: Building = {
     id: input.id,
     campusId: input.campusId,
     name: input.name,
   };
+  if (input.appearance !== undefined) building.appearance = input.appearance;
+  return building;
 }
 
 export function buildRoom(input: {
@@ -35,6 +38,7 @@ export function buildRoom(input: {
   key: string;
   role?: RoomRole;
   context?: string;
+  appearance?: Appearance;
 }): Room {
   const room: Room = {
     id: input.id,
@@ -43,6 +47,7 @@ export function buildRoom(input: {
   };
   if (input.role !== undefined) room.role = input.role;
   if (input.context !== undefined) room.context = input.context;
+  if (input.appearance !== undefined) room.appearance = input.appearance;
   return room;
 }
 
@@ -54,6 +59,7 @@ export function buildAgent(input: {
   rankKey?: string;
   skillKey?: string;
   supervisorId?: Id | null;
+  appearance?: Appearance;
 }): AgentInstance {
   const agent: AgentInstance = {
     id: input.id,
@@ -66,6 +72,7 @@ export function buildAgent(input: {
   if (input.rankKey !== undefined) agent.rankKey = input.rankKey;
   if (input.skillKey !== undefined) agent.skillKey = input.skillKey;
   if (input.supervisorId !== undefined) agent.supervisorId = input.supervisorId;
+  if (input.appearance !== undefined) agent.appearance = input.appearance;
   return agent;
 }
 
@@ -210,4 +217,29 @@ export function buildRuntime(input: {
   };
   if (input.workingDir !== undefined) runtime.workingDir = input.workingDir;
   return runtime;
+}
+
+export function buildSkin(input: {
+  id: Id;
+  kind: SkinKind;
+  key: string;
+  name: string;
+  assetUrl?: string;
+  palette?: {
+    floor?: string;
+    wall?: string;
+    header?: string;
+    accent?: string;
+  };
+  size?: { w: number; h: number };
+}): Skin {
+  return {
+    id: input.id,
+    kind: input.kind,
+    key: input.key,
+    name: input.name,
+    ...(input.assetUrl !== undefined && { assetUrl: input.assetUrl }),
+    ...(input.palette !== undefined && { palette: input.palette }),
+    ...(input.size !== undefined && { size: input.size }),
+  };
 }

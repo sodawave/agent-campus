@@ -404,6 +404,51 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "skin.registered": {
+      const { skin } = event;
+      const exists = state.skins.some((s) => s.id === skin.id);
+      return {
+        ...state,
+        skins: exists ? state.skins.map((s) => (s.id === skin.id ? skin : s)) : [...state.skins, skin],
+      };
+    }
+
+    case "building.appearance.set": {
+      const { buildingId, appearance } = event;
+      return {
+        ...state,
+        buildings: state.buildings.map((b) =>
+          b.id === buildingId
+            ? { ...b, appearance: b.appearance ? { ...b.appearance, ...appearance } : { ...appearance } }
+            : b,
+        ),
+      };
+    }
+
+    case "room.appearance.set": {
+      const { roomId, appearance } = event;
+      return {
+        ...state,
+        rooms: state.rooms.map((r) =>
+          r.id === roomId
+            ? { ...r, appearance: r.appearance ? { ...r.appearance, ...appearance } : { ...appearance } }
+            : r,
+        ),
+      };
+    }
+
+    case "agent.appearance.set": {
+      const { agentId, appearance } = event;
+      return {
+        ...state,
+        agents: state.agents.map((a) =>
+          a.id === agentId
+            ? { ...a, appearance: a.appearance ? { ...a.appearance, ...appearance } : { ...appearance } }
+            : a,
+        ),
+      };
+    }
+
     default:
       return state;
   }
