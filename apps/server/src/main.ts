@@ -25,7 +25,7 @@ function wsConnection(ws: WebSocket): Connection {
 function seed(server: CampusServer): void {
   const s = server.store;
   s.campus.load({ id: "campus-demo", name: "Demo Co" });
-  s.building.spawn({ id: "b-alpha", name: "Project Alpha" });
+  s.building.spawn({ id: "b-alpha", name: "Alpha HQ" });
   s.room.spawn({ id: "r-mkt", buildingId: "b-alpha", key: "marketing" });
   s.room.spawn({ id: "r-dev", buildingId: "b-alpha", key: "engineering" });
 
