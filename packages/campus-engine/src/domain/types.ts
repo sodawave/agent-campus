@@ -65,6 +65,8 @@ export interface Building {
   context?: string;
   /** The environment leader. Defaults to the auto-created leader agent. */
   leaderAgentId?: Id | null;
+  /** Visual appearance (skin + position) for rendering clients. */
+  appearance?: Appearance;
 }
 
 /** Room role/kind. The leader office is non-deletable. */
@@ -79,8 +81,10 @@ export interface Room {
   headAgentId?: Id;
   /** Room role, e.g. "leader" (the leader office is non-deletable). */
   role?: RoomRole;
-  /** Department norms/specialization (feeds the agent's effective context). */
+  /** Room context (notes, norms). */
   context?: string;
+  /** Visual appearance (skin + position) for rendering clients (relative to building). */
+  appearance?: Appearance;
 }
 
 /** Rank key of the auto-created leader agent that heads a building (environment). */
@@ -88,6 +92,33 @@ export const LEADER_RANK_KEY = "leader";
 
 /** Role marking the leader office room (created with the building; non-deletable). */
 export const LEADER_ROOM_ROLE = "leader";
+
+/** Kind of a skin (asset/model) for visual representation. */
+export type SkinKind = "building" | "room" | "agent";
+
+/** A skin (asset/model) for visual representation, shared across instances. */
+export interface Skin {
+  id: Id;
+  kind: SkinKind;
+  key: string;
+  name: string;
+  assetUrl?: string;
+  palette?: {
+    floor?: string;
+    wall?: string;
+    header?: string;
+    accent?: string;
+  };
+  size?: { w: number; h: number };
+}
+
+/** Appearance properties (skin and position) attached to an entity instance. */
+export interface Appearance {
+  skinKey?: string;
+  x?: number;
+  y?: number;
+  facing?: "up" | "down" | "left" | "right";
+}
 
 /** Project lifecycle status. */
 export type ProjectStatus = "active" | "archived";
@@ -146,6 +177,8 @@ export interface AgentInstance {
   runtimeId?: Id | null;
   /** Chosen LLM harness (provider/model from the catalog + knobs). */
   harness?: AgentHarness;
+  /** Visual appearance (skin + position) for rendering clients (relative to room). */
+  appearance?: Appearance;
 }
 
 /** A machine/process joined to the campus that can run agent runtimes. */
@@ -329,7 +362,11 @@ export type CampusEvent =
   | { type: "runtime.started"; runtime: AgentRuntime }
   | { type: "runtime.stopped"; runtimeId: Id }
   | { type: "library.classification.upserted"; classification: DocClassification }
-  | { type: "library.document.upserted"; document: LibraryDocument };
+  | { type: "library.document.upserted"; document: LibraryDocument }
+  | { type: "skin.registered"; skin: Skin }
+  | { type: "building.appearance.set"; buildingId: Id; appearance: Partial<Appearance> }
+  | { type: "room.appearance.set"; roomId: Id; appearance: Partial<Appearance> }
+  | { type: "agent.appearance.set"; agentId: Id; appearance: Partial<Appearance> };
 
 /** Read-only projection reconstructed from the event log. */
 export interface State {
@@ -353,6 +390,7 @@ export interface State {
   projects: Project[];
   assignments: Assignment[];
   messages: ChatMessage[];
+  skins: Skin[];
 }
 
 /** Canonical empty projection. */
@@ -376,4 +414,5 @@ export const EMPTY_STATE: State = {
   projects: [],
   assignments: [],
   messages: [],
+  skins: [],
 };

@@ -12,14 +12,15 @@ signal changed
 
 var has_campus := false
 var campus_name := ""
-var buildings: Array = []    # [{ id, name, leaderAgentId }]
-var rooms: Array = []        # [{ id, buildingId, key, role, headAgentId }]
-var agents: Array = []       # [{ id, name, buildingId, roomId, rankKey, skillKey }]
+var buildings: Array = []    # [{ id, name, leaderAgentId, appearance? }]
+var rooms: Array = []        # [{ id, buildingId, key, role, headAgentId, appearance? }]
+var agents: Array = []       # [{ id, name, buildingId, roomId, rankKey, skillKey, appearance? }]
 var workers: Array = []      # [{ id, name, buildingId, roomId }] (anonymous, ephemeral)
 var runtimes: Array = []     # [{ id, hostId, agentId, status }] (execution plane -> liveness)
 var projects: Array = []     # [{ id, buildingId, name, status }]
 var assignments: Array = []  # [{ agentId, projectId }]
 var tasks: Array = []        # [{ id, title, assigneeId, status }]
+var skins: Array = []        # [{ id, kind, key, name, assetUrl?, palette?, size? }]
 
 var _ws := WebSocketPeer.new()
 var _last_state := WebSocketPeer.STATE_CLOSED
@@ -143,6 +144,14 @@ func _reduce(ev) -> void:
 			_set_task_status(String(ev.get("taskId", "")), "under_review")
 		"task.evaluated":
 			_set_task_status(String(ev.get("taskId", "")), String(ev.get("verdict", "")))
+		"skin.registered":
+			_upsert(skins, _skin(ev.get("skin", {})))
+		"building.appearance.set":
+			_set_building_appearance(String(ev.get("buildingId", "")), ev.get("appearance", {}))
+		"room.appearance.set":
+			_set_room_appearance(String(ev.get("roomId", "")), ev.get("appearance", {}))
+		"agent.appearance.set":
+			_set_agent_appearance(String(ev.get("agentId", "")), ev.get("appearance", {}))
 		_:
 			pass
 
@@ -250,3 +259,47 @@ func _upsert(arr: Array, item: Dictionary) -> void:
 			arr[i] = item
 			return
 	arr.append(item)
+
+func _skin(skin) -> Dictionary:
+	return {
+		"id": String(skin.get("id", "")),
+		"kind": String(skin.get("kind", "")),
+		"key": String(skin.get("key", "")),
+		"name": String(skin.get("name", "")),
+		"assetUrl": String(skin.get("assetUrl", "")),
+	}
+
+func _set_building_appearance(bid: String, appearance: Dictionary) -> void:
+	for i in buildings.size():
+		if String(buildings[i].get("id", "")) == bid:
+			var existing = buildings[i].get("appearance", {})
+			if existing is Dictionary:
+				buildings[i]["appearance"] = _merge(existing, appearance)
+			else:
+				buildings[i]["appearance"] = appearance
+
+func _set_room_appearance(rid: String, appearance: Dictionary) -> void:
+	for i in rooms.size():
+		if String(rooms[i].get("id", "")) == rid:
+			var existing = rooms[i].get("appearance", {})
+			if existing is Dictionary:
+				rooms[i]["appearance"] = _merge(existing, appearance)
+			else:
+				rooms[i]["appearance"] = appearance
+
+func _set_agent_appearance(aid: String, appearance: Dictionary) -> void:
+	for i in agents.size():
+		if String(agents[i].get("id", "")) == aid:
+			var existing = agents[i].get("appearance", {})
+			if existing is Dictionary:
+				agents[i]["appearance"] = _merge(existing, appearance)
+			else:
+				agents[i]["appearance"] = appearance
+
+func _merge(dict: Dictionary, patch: Dictionary) -> Dictionary:
+	var result = dict.duplicate()
+	for k in patch:
+		var v = patch[k]
+		var val = v if typeof(v) != TYPE_ARRAY else v.duplicate()
+		result[k] = val
+	return result
