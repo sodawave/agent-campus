@@ -68,10 +68,12 @@ Ingeniería:
 - Antes de abrir PR: `npm run typecheck && npm test && npm run build` en verde.
 - `main` siempre desplegable/estable.
 
-Metodología SDD con **Spec Kit** (github/spec-kit, integración `cursor-agent`):
+Metodología SDD con **Spec Kit** (github/spec-kit; integraciones `cursor-agent` + `opencode`):
 
 - Principios de gobierno: [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
-- Comandos del agente en `.cursor/skills/speckit-*`: `/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`, `/speckit-converge` (+ `/speckit-analyze`, `/speckit-checklist`).
+- Comandos según entorno:
+  - Cursor: `.cursor/skills/speckit-*` → `/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`, `/speckit-converge` (+ `/speckit-analyze`, `/speckit-checklist`).
+  - opencode: `.opencode/commands/speckit.*.md` → `/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.converge` (+ `/speckit.analyze`, `/speckit.checklist`, `/speckit.constitution`).
 - Artefactos de feature en `specs/<NNN-slug>/` (spec.md, plan.md, tasks.md).
 
 ## Convenciones de código
