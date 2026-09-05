@@ -17,16 +17,16 @@ Query map/scripting via `workadventure-docs`; admin via `workadventure-admin-doc
 
 ---
 
-## Spatial contract (direction — spec 047)
+## Spatial contract (direction — specs 047 / 049)
 
-| Campus concept | WorkAdventure | Notes |
+| Campus concept | WorkAdventure | Core field |
 |---|---|---|
-| **Building** | **Map** (WAM / room URL) | Admin campus will create maps; engine keeps org identity, not tile geometry |
-| **Room** | **Private area / space** in the map editor | Defined in WA editor / map-storage, not as a second spatial engine |
-| **Agent embodiment** | WOKA via `engine/apps/wa-bridge` | Only fleet; no map-script bots |
-| **Ops / tools** | Future MCP over bridge + map-storage | See [`wa-mcp-feasibility.md`](./wa-mcp-feasibility.md) |
+| **Building** | **Map** (WAM / room URL) | `Building.waRoomUrl` |
+| **Room** | **Private area** in the map editor | `Room` id (+ optional `waAreaId`) |
+| **Agent embodiment** | WOKA via `engine/apps/wa-bridge` / `wa-mcp` | — |
+| **Ops / tools** | MCP over bridge + map-storage | [`wa-mcp-feasibility.md`](./wa-mcp-feasibility.md) |
 
-Domain flattening (slim `building`/`room` in `@agent-campus/engine`) = **later specs** after this contract.
+`Appearance` on building/room is **deprecated** (Godot-era); WA owns geometry.
 
 ---
 

@@ -49,8 +49,10 @@ export type CampusCommand =
     }
   | { type: "building.updateContext"; buildingId: Id; context: string }
   | { type: "building.assignLead"; buildingId: Id; agentId: Id }
+  | { type: "building.setWaRoomUrl"; buildingId: Id; waRoomUrl: string | null }
   | { type: "room.spawn"; room: Room }
   | { type: "room.updateContext"; roomId: Id; context: string }
+  | { type: "room.setWaAreaId"; roomId: Id; waAreaId: string | null }
   | { type: "room.delete"; roomId: Id }
   | { type: "project.create"; project: Project }
   | { type: "project.archive"; projectId: Id }
@@ -133,7 +135,9 @@ export type RejectionReason =
   | "classification_not_found"
   | "skin_invalid_kind"
   | "duplicate_key"
-  | "skin_not_found";
+  | "skin_not_found"
+  | "invalid_wa_room_url"
+  | "invalid_wa_area_id";
 
 export type CommandResult =
   | { ok: true; event: CampusEvent }
@@ -231,6 +235,13 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       return accept({ type: "building.lead.assigned", buildingId, agentId });
     }
 
+    case "building.setWaRoomUrl": {
+      const { buildingId, waRoomUrl } = command;
+      if (!state.buildings.some((b) => b.id === buildingId)) return reject("building_not_found");
+      if (waRoomUrl !== null && waRoomUrl.trim() === "") return reject("invalid_wa_room_url");
+      return accept({ type: "building.waRoomUrl.set", buildingId, waRoomUrl });
+    }
+
     case "room.spawn": {
       const { room } = command;
       if (!state.buildings.some((b) => b.id === room.buildingId)) {
@@ -244,6 +255,13 @@ export function execute(state: State, command: CampusCommand): CommandResult {
       const { roomId, context } = command;
       if (!state.rooms.some((r) => r.id === roomId)) return reject("room_not_found");
       return accept({ type: "room.context.updated", roomId, context });
+    }
+
+    case "room.setWaAreaId": {
+      const { roomId, waAreaId } = command;
+      if (!state.rooms.some((r) => r.id === roomId)) return reject("room_not_found");
+      if (waAreaId !== null && waAreaId.trim() === "") return reject("invalid_wa_area_id");
+      return accept({ type: "room.waAreaId.set", roomId, waAreaId });
     }
 
     case "room.delete": {

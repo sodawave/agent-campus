@@ -86,6 +86,17 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "building.waRoomUrl.set": {
+      const { buildingId, waRoomUrl } = event;
+      if (!state.buildings.some((b) => b.id === buildingId)) return state;
+      return {
+        ...state,
+        buildings: state.buildings.map((b) =>
+          b.id === buildingId ? { ...b, waRoomUrl } : b,
+        ),
+      };
+    }
+
     case "room.spawned": {
       const { room } = event;
       if (!state.buildings.some((b) => b.id === room.buildingId)) return state;
@@ -99,6 +110,15 @@ export function reduce(state: State, event: CampusEvent): State {
       return {
         ...state,
         rooms: state.rooms.map((r) => (r.id === roomId ? { ...r, context } : r)),
+      };
+    }
+
+    case "room.waAreaId.set": {
+      const { roomId, waAreaId } = event;
+      if (!state.rooms.some((r) => r.id === roomId)) return state;
+      return {
+        ...state,
+        rooms: state.rooms.map((r) => (r.id === roomId ? { ...r, waAreaId } : r)),
       };
     }
 
