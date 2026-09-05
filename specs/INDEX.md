@@ -16,12 +16,13 @@
 | **051** | [wa-bridge-building-url](./051-wa-bridge-building-url/) | done | wa-bridge join por `Building.waRoomUrl` (fallback env) |
 | **052** | [visual-demo](./052-visual-demo/) | done | Seed + script review; mapa compartido para flota visible |
 | **053** | [unique-leader-names](./053-unique-leader-names/) | done | Seed: leaders Aria/Bruno/Cora (no más "Leader"×3) |
+| **054** | [woka-textures](./054-woka-textures/) | done | Bridge: WOKA distinto por agente (`skinKey` / hash) |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **054** | — | (definir; p.ej. textures WOKA por agente, panel live) |
+| **055** | — | (definir; p.ej. panel live / presence) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 
