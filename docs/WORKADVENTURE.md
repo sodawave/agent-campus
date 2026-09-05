@@ -163,12 +163,13 @@ bash scripts/wa/upload-starter-to-map-storage.sh
 ## Visual demo (shared map)
 
 ```bash
+# One-shot: upload map + core + graphql + wa-bridge + panel
 bash scripts/wa/demo-visual.sh
-# then, from engine/:
-npm run start --workspace @agent-campus/server
-WA_ROOM_URL='http://play.workadventure.localhost/~/campus/starter/map.wam' \
-  npm run start --workspace @agent-campus/wa-bridge
+# or without upload:
+bash scripts/wa/stack-up.sh
+bash scripts/wa/stack-down.sh   # wipe campus procs + logs (not WA Docker)
 ```
 
 Open: http://play.workadventure.localhost/~/campus/starter/map.wam (anonymous).  
+Panel: http://localhost:5174/  
 Seed defaults to **shared** map (`WA_SEED_MAP_MODE=shared`) so the whole named fleet appears in one room. Use `per-building` after uploading `~/b-alpha` etc.

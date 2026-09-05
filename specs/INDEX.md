@@ -18,12 +18,13 @@
 | **053** | [unique-leader-names](./053-unique-leader-names/) | done | Seed: leaders Aria/Bruno/Cora (no más "Leader"×3) |
 | **054** | [woka-textures](./054-woka-textures/) | done | Bridge: WOKA distinto por agente (`skinKey` / hash) |
 | **055** | [panel-live-presence](./055-panel-live-presence/) | done | Panel: poll GraphQL + wa-bridge `/presence` |
+| **056** | [demo-stack](./056-demo-stack/) | done | `stack:up` / `stack:down` (wipe campus procs+logs) |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **056** | — | (definir) |
+| **057** | — | (definir; p.ej. Room.waAreaId en seed/bridge) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 

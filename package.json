@@ -14,7 +14,10 @@
     "build": "npm run build --prefix engine",
     "test": "npm run test --prefix engine",
     "test:watch": "npm run test:watch --prefix engine",
-    "typecheck": "npm run typecheck --prefix engine"
+    "typecheck": "npm run typecheck --prefix engine",
+    "stack:up": "bash scripts/wa/stack-up.sh",
+    "stack:down": "bash scripts/wa/stack-down.sh",
+    "demo:visual": "bash scripts/wa/demo-visual.sh"
   },
   "engines": {
     "node": ">=20"
