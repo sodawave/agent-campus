@@ -1,11 +1,14 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.16 — **Godot 4 = cliente principal**: mobile (iOS/Android) + **desktop** (Windows/macOS/Linux) + web.  
-**Cliente principal:** **Godot 4** (Stardew-like + UI org/chats).  
-**Targets:** iOS · Android · **Desktop** · Web — un solo proyecto `.godot`.  
+**Estado:** v0.17 — **Presentación espacial = WorkAdventure** (+ [`apps/wa-bridge`](../apps/wa-bridge)).  
+**Cliente espacial canónico:** WorkAdventure (play).  
+**Dominio:** TypeScript `campus-engine` + API.  
+**UI no espacial:** control-panel / playground.  
+**Godot (`apps/campus-godot`): DEPRECATED** — solapaba el mapa espacial con WA; ver [`docs/WORKADVENTURE.md`](WORKADVENTURE.md).  
 **Backend:** dominio TS + API Hono + MemPalace + Spec Kit + Compose.  
 **CLI host:** diferido (prioridad baja).  
-**Referencia visual:** Stardew-like; refs en `assets/refs/`.
+
+> Nota histórica: v0.16 asumía Godot 4 Stardew-like como app principal. Esa línea queda deprecada; no nuevas features de mapa en Godot.
 
 ---
 
@@ -70,19 +73,15 @@ Reglas:
 
 
 
-### Clientes: Godot-first (mobile + desktop + web)
+### Clientes: WorkAdventure espacial (+ UI web)
 
+| Plataforma | Cómo |
+| ---------- | ---- |
+| **Espacial (mapa, WOKAs)** | **WorkAdventure** + `apps/wa-bridge` — canónico |
+| **Config / overview** | `apps/control-panel`, `apps/playground` |
+| **~~Godot mobile/desktop/web~~** | **DEPRECATED** — no invertir |
 
-| Plataforma         | Cómo                                              |
-| ------------------ | ------------------------------------------------- |
-| **iOS / Android**  | Export nativo Godot → stores                      |
-| **Desktop**        | Export nativo Godot → **Windows / macOS / Linux** |
-| **Web**            | Export HTML5/WASM del mismo proyecto              |
-| Admin React (opc.) | Consola web si hace falta                         |
-| CLI host           | Prioridad baja                                    |
-
-
-Las **tres pantallas** viven en Godot. Look **Stardew**. Estado en API/TS.
+Las pantallas de **mapa / gamificación espacial** viven en WA. Org/tasks/config: web (control-panel) + eventos del core. Detalle: [`WORKADVENTURE.md`](WORKADVENTURE.md).
 
 ### Memoria (MemPalace) — agente y proyecto
 
@@ -345,49 +344,46 @@ Helpers: `[domain/workers.ts](../packages/campus-engine/src/domain/workers.ts)`.
 
 
 
-## 3. Stack (cerrado v1 — Godot-first)
+## 3. Stack (cerrado v1 — WA espacial + core TS)
 
 
 | Capa                         | Tecnología                                   | Motivo                                                 |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------ |
-| **App (mapa + org + chats)** | **Godot 4 (2D)**                             | Stardew-like; export **iOS · Android · Desktop · Web** |
+| **Espacial (mapa + WOKAs)** | **WorkAdventure** + `apps/wa-bridge`        | Presentación espacial canónica; sin segundo motor mapa |
 | Domain / API                 | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia                              |
 | Memoria                      | **MemPalace**                                | Agente + proyecto                                      |
 | Specs                        | **Spec Kit**                                 | SDD por building                                       |
 | Comms                        | WS + Redis (`AgentCommsPort`)                | Chats, orders, calls                                   |
-| Plugins / MCP                | Host en API + UI Godot (paneles)             | Tools externos sin fork del juego                      |
+| Config / admin UI            | control-panel / playground                   | Sin clonar dashboard SaaS WA                           |
 | Deploy                       | `deploy/compose`                             | api, pg, redis, minio, caddy                           |
 | CLI host                     | diferido                                     | Prioridad baja                                         |
-| React/Expo                   | **opcional** (admin web)                     | No requerido para mobile                               |
+| ~~Godot 4~~                  | **DEPRECATED** (`apps/campus-godot`)         | Solapaba espacial con WA                               |
 
 
+### Por qué WorkAdventure (y no Godot) como espacial
 
-
-### Por qué Godot como app mobile
-
-- Export **nativo** iOS/Android (y web) desde el mismo `.godot`.
-- Ideal para sensación **Stardew** end-to-end en el teléfono.
-- Menos fricción que Expo+WebView+bridge solo para el mapa.
-- Org/chats = escenas Godot (Control/Scroll) sobre el mismo cliente del bus.
+- WA ya resuelve multiplayer, WOKAs, proximidad, zones, Jitsi/Matrix.
+- Un segundo cliente Stardew/Godot duplicaba exactamente esa finalidad.
+- Org/tasks siguen en el core + UI web; embodiment de agentes = wa-bridge.
 
 ```mermaid
 flowchart TB
-  subgraph godotApp [Godot 4 app]
-    Map[Gamification Stardew]
-    Org[Org / tasks]
-    Chat[Chats]
+  subgraph present [Presentación]
+    WA[WorkAdventure play]
+    Bridge[wa-bridge]
+    CP[control-panel / playground]
   end
-  API[Campus API / WS]
-  godotApp -->|HTTP WS| API
-  iOS[iOS]
-  And[Android]
-  Desk[Desktop Win/macOS/Linux]
-  Web[Web]
-  godotApp --> iOS
-  godotApp --> And
-  godotApp --> Desk
-  godotApp --> Web
+  subgraph core [Control]
+    API[Campus API / WS]
+  end
+  Bridge -->|JoinRoom| WA
+  API -->|agent list| Bridge
+  CP -->|GraphQL / WS| API
 ```
+
+> Histórico: la sección “Por qué Godot como app mobile” queda obsoleta; ver v0.16 en git si hace falta.
+
+---
 
 
 
@@ -404,7 +400,7 @@ El sistema se separa en **tres planos**. Ningún plano contiene reglas de otro.
 | ----------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Control** (autoridad)       | **Core** en servidor (VPS o server local expuesto vía VPN)                                        | Identidad, org, binding a campus/edificio, memoria (punteros), reglas y **secuencia** del bus de eventos | `[campus-engine](../packages/campus-engine/src)` + API                                                          |
 | **Ejecución** (cómputo)       | **Host** = cualquier máquina (el servidor, un portátil, un box GPU… incluso **headless por CLI**) | El **proceso vivo** del agente + acceso a **archivos/carpetas locales** y tools de esa máquina           | `[domain/host.ts](../packages/campus-engine/src/domain/host.ts)` (`AgentHost`, `AgentRuntime`, `CampusCliPort`) |
-| **Presentación** (proyección) | **Cliente** en cada dispositivo (Godot / web)                                                     | Solo **renderiza** el estado; no decide negocio                                                          | `apps/campus-godot`, `apps/playground`                                                                          |
+| **Presentación** (proyección) | **Cliente** espacial = WorkAdventure; UI web = control-panel / playground | Solo **renderiza** / proyecta; no decide negocio | `apps/wa-bridge` + WA play; `apps/control-panel`, `apps/playground`; ~~`apps/campus-godot` deprecated~~ |
 
 
 ```mermaid
@@ -632,7 +628,10 @@ El layout de la captura de referencia se modela así:
 
 ## 6. Escenas del cliente (plano de presentación)
 
-> **Plano de presentación** (§4): estas escenas **solo proyectan** el estado; no deciden negocio. Cliente principal = **Godot** (§3); `apps/playground` es un cliente web de referencia (Canvas/Phaser) para validar el contrato. Cualquier interacción del usuario se envía como **Command** al core (nunca muta estado localmente).
+> **Plano de presentación** (§4): solo proyecta estado; no decide negocio.  
+> **Espacial canónico = WorkAdventure** (+ `apps/wa-bridge`).  
+> `apps/playground` / control-panel = UI no espacial.  
+> **Godot espacial deprecated** — las escenas BootScene / CampusScene / HudScene siguientes son **legado histórico** (no roadmap). Ver [`WORKADVENTURE.md`](WORKADVENTURE.md).
 
 
 
@@ -824,11 +823,14 @@ Asset: `[assets/refs/aesthetic-campus-isometric-clay.png](../assets/refs/aesthet
 ```
 /
   docs/TECH_SPEC.md
+  docs/WORKADVENTURE.md       # WA vs campus-engine; Godot deprecated
   deploy/compose/
   packages/campus-engine/     # domain TS (API + clients)
   packages/campus-cli/        # low priority
-  apps/campus-godot/          # app principal: mobile + web + mapa Stardew
-  apps/web-admin/             # opcional React admin
+  apps/wa-bridge/             # embodiment espacial → WorkAdventure
+  apps/control-panel/         # config UI
+  apps/playground/            # proyección web de debug
+  apps/campus-godot/          # DEPRECATED — no nuevas features espaciales
 ```
 
 ---
@@ -939,10 +941,11 @@ Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 
 ## 14. Próximos inputs necesarios (cuando quieras)
 
-1. Scaffold: ¿creamos el proyecto Godot 4 vacío en `apps/campus-godot` ya?
-2. Art: tileset Stardew temporal (asset pack) vs placeholders.
-3. ¿Org/chats 100% en Godot desde el día 1, o mapa primero y UI después?
-4. Plugins MCP: ¿panel in-Godot o solo vía API al inicio?
+1. ~~Scaffold Godot~~ — **cerrado**: Godot espacial deprecated; WA + wa-bridge.
+2. MotionMotor extensible en wa-bridge (directivas move/say/hold).
+3. Org/tasks UI: profundizar control-panel / playground (no mapa paralelo).
+4. Admin API opcional si Pusher debe preguntar a campus.
+5. Limpieza: borrar o archivar `apps/campus-godot` cuando toque.
 
 ---
 

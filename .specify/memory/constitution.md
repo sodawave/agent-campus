@@ -9,13 +9,13 @@ Detalle de diseño: [`docs/TECH_SPEC.md`](../../docs/TECH_SPEC.md). Guía operat
 El **core** (plano de control, en servidor) es la única autoridad: identidad, org, binding a campus/edificio, reglas y **secuencia** del bus de eventos. Nada es canónico hasta que el core lo acepta y le asigna orden. Las reglas de negocio viven solo en `packages/campus-engine`.
 
 ### II. Tres planos, sin fugas
-El sistema se separa en **Control** (core/servidor), **Ejecución** (host/CLI: proceso vivo con ficheros locales) y **Presentación** (cliente Godot/web). **Ningún plano contiene reglas de otro.** `domain/` no importa render ni store; el store no importa cliente.
+El sistema se separa en **Control** (core/servidor), **Ejecución** (host/CLI: proceso vivo con ficheros locales) y **Presentación** (WorkAdventure espacial vía `wa-bridge` + UI web; Godot espacial **deprecated**). **Ningún plano contiene reglas de otro.** `domain/` no importa render ni store; el store no importa cliente.
 
 ### III. El runtime propone, el core dispone, los clientes proyectan
 Los hosts/runtimes **producen** eventos de actividad y **piden** comandos gobernados; el core **valida, ordena y decide**; los clientes **solo renderizan**. Ninguna interacción de cliente muta estado local.
 
 ### IV. Contrato Command vs Event (neutral de lenguaje)
-**Command** (cliente/host → core) es validable y rechazable. **Event** (`CampusEvent`, core → clientes) es hecho consumado y secuenciado, **JSON serializable** para que cualquier cliente (Godot/GDScript, web/TS, CLI) lo consuma sin compartir código. Los clientes aplican `reduce(state, event)` **idempotente** (proyección de solo-lectura).
+**Command** (cliente/host → core) es validable y rechazable. **Event** (`CampusEvent`, core → clientes) es hecho consumado y secuenciado, **JSON serializable** para que cualquier cliente (WA bridge/TS, web, CLI) lo consuma sin compartir código. Los clientes aplican `reduce(state, event)` **idempotente** (proyección de solo-lectura).
 
 ### V. Fachada por entidad + agentes no se clonan
 El `CampusStore` es **campus-scoped** y expone una **fachada por entidad** (`campus/building/room/agent/worker`, `building.specKit`). Añadir acción = constructor puro en `domain/` + método en su namespace + case en `reduce`. Campus **multi-edificio** (`campus → buildings[] → rooms`); un agente es una sola instancia y se **presta** a otro edificio vía `ProjectCall` (mueve `projectId`, no `hostId`) — **nunca se clona**.
@@ -37,22 +37,22 @@ El desarrollo es un **bucle**: se parte de la **especificación mínima viable, 
 - TypeScript estricto (`tsconfig.base.json`: `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, …).
 - Todo `CampusEvent` nuevo se añade al union y tiene su case en `reduce` (puro, sin I/O, idempotente).
 - Tests junto al paquete (`packages/campus-engine/test`). `domain/` sin dependencias de render.
-- Stack cerrado v1: cliente **Godot 4** (mobile/desktop/web); core **TypeScript** (API). Ver TECH_SPEC §3.
+- Stack cerrado v1: presentación espacial **WorkAdventure** + `wa-bridge`; core **TypeScript** (API); UI config web. Godot espacial deprecated. Ver TECH_SPEC §3 y [`docs/WORKADVENTURE.md`](../../docs/WORKADVENTURE.md).
 
 ## Flujo de desarrollo (SDD / Spec Kit)
 
 Fases: `constitution → specify → clarify → plan → tasks → implement → converge`.
-Comandos del agente en `.cursor/skills/speckit-*` (`/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`, `/speckit-converge`, `/speckit-analyze`, `/speckit-checklist`).
+Comandos del agente en `.opencode/commands/speckit.*.md` (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.converge`, `/speckit.analyze`, `/speckit.checklist`).
 
-- **1 spec = 1 rama = 1 PR.** Rama `cursor/spec-<slug>-<suffix>`, abierta en `specify`, cerrada en `converge`.
+- **1 spec = 1 rama = 1 PR.** Rama `opencode/spec-<slug>`, abierta en `specify`, cerrada en `converge`.
 - Gate de cierre (`converge`): `npm run typecheck && npm test && npm run build` en verde + demo.
-- Review gate: Bugbot (`.cursor/BUGBOT.md`) + branch protection. `main` = integración estable.
+- Review gate: CI + branch protection. `main` = integración estable.
 - No mezclar specs en una rama; un commit por cambio lógico.
 
 ## Governance
 
-Esta constitución **prevalece** sobre otras prácticas. Toda PR verifica su cumplimiento; la complejidad debe justificarse. Las enmiendas se documentan aquí (con bump de versión) y se reflejan, si aplica, en `AGENTS.md`, `.cursor/rules/` y `TECH_SPEC.md`. Las herramientas de Spec Kit (`.specify/`, `.cursor/skills/`) se actualizan por separado de los artefactos de features en `specs/`.
+Esta constitución **prevalece** sobre otras prácticas. Toda PR verifica su cumplimiento; la complejidad debe justificarse. Las enmiendas se documentan aquí (con bump de versión) y se reflejan, si aplica, en `AGENTS.md` y `TECH_SPEC.md`. Las herramientas de Spec Kit (`.specify/`, `.opencode/commands/`) se actualizan por separado de los artefactos de features en `specs/`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29
-<!-- 1.1.0: +Principle VIII (Loop: minimal tested spec → layers) -->
+**Version**: 1.2.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-30
+<!-- 1.2.0: migrate from cursor-agent to opencode (commands path, branch naming, remove Bugbot) -->
 

@@ -1,21 +1,23 @@
-# campus-godot — Godot presentation client
+# campus-godot — **DEPRECATED**
 
-A **projection-only** client (presentation plane, Constitución/TECH_SPEC §4). It
-connects to the authoritative core over **WebSocket**, folds the language-neutral
-`CampusEvent` JSON contract with a small GDScript reducer (sharing no code with the
-TS engine), and renders `campus → buildings → rooms → agents`.
+> **Do not invest here.** Spatial presentation is **WorkAdventure** + [`apps/wa-bridge`](../wa-bridge).  
+> Godot duplicated the same graphical/spatial goal. See [`docs/WORKADVENTURE.md`](../../docs/WORKADVENTURE.md).  
+> This tree may be removed in a later cleanup; no new map/pathing/skin features.
 
-- Engine: **Godot 4.3** (GDScript, `gl_compatibility` renderer so it also runs on
-  software GPUs / headless CI).
-- Read-only for now; user input as **Commands** to the core comes in a later layer.
+---
 
-## Run
+Legacy notes (projection-only client; kept for archaeology):
+
+A **projection-only** client (presentation plane). It connected to the core over **WebSocket**,
+folded `CampusEvent` JSON with a GDScript reducer, and rendered `campus → buildings → rooms → agents`.
+
+- Engine: **Godot 4.3** (GDScript, `gl_compatibility`).
+- Read-only; Commands were planned for a later layer.
+
+## Run (legacy)
 
 ```bash
-# Start the core first (from repo root):
-npm run dev:server            # ws://0.0.0.0:8787
-
-# Then the client (downloads Godot 4.3 the first time):
+npm run dev:server
 CAMPUS_URL=ws://127.0.0.1:8787 bash apps/campus-godot/run.sh
 ```
 

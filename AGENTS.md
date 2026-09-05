@@ -8,8 +8,10 @@ Documento canónico de diseño: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md).
 npm workspaces:
 
 - `packages/campus-engine` — dominio puro + `CampusStore` (TypeScript, sin render).
-- `apps/playground` — cliente web de referencia (Vite) que **solo proyecta** estado.
-- `apps/campus-godot` — cliente principal (Godot, futuro).
+- `apps/playground` — cliente web de referencia (Vite) que **solo proyecta** estado (org/debug; no mapa espacial).
+- `apps/wa-bridge` — embodiment de agentes en WorkAdventure (presentación espacial canónica).
+- `apps/campus-godot` — **DEPRECATED** (solapaba el mapa espacial con WA; no nuevas features). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
+- `apps/control-panel` — config campus (GraphQL).
 
 Comandos (desde la raíz):
 
@@ -27,7 +29,7 @@ Tres planos (ver TECH_SPEC §4). **Ningún plano contiene reglas de otro.**
 
 1. **Control (core, servidor)** — única autoridad: identidad, org, binding a campus/edificio, reglas y **secuencia** del bus. Vive en `campus-engine` + API.
 2. **Ejecución (host)** — el proceso vivo del agente (incluso headless por CLI) con acceso a ficheros locales. `domain/host.ts`.
-3. **Presentación (cliente)** — Godot/web; **solo renderiza**. Cero lógica de negocio.
+3. **Presentación (cliente)** — **WorkAdventure** (espacial, vía [`apps/wa-bridge`](apps/wa-bridge)) + playground/control-panel (UI no espacial). **Solo proyectan.** Cero lógica de negocio. Godot espacial **deprecated** — ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md). Un solo embodiment de agentes = wa-bridge (no flota doble con map-script bots).
 
 Reglas duras:
 
@@ -58,10 +60,10 @@ Ingeniería:
 
 | Fase | Acción |
 |---|---|
-| `specify` | Abrir rama dedicada `cursor/spec-<slug>-<suffix>` |
+| `specify` | Abrir rama dedicada `opencode/spec-<slug>` |
 | `plan` / `tasks` / `implement` | Trabajar **solo esa spec** en su rama |
 | `converge` | Spec cerrada → `typecheck` + `test` + `build` verdes |
-| merge | PR a `main` (Bugbot + CI) → merge. `main` = integración estable |
+| merge | PR a `main` (CI) → merge. `main` = integración estable |
 
 - No acumular specs distintas en una rama.
 - Cada cambio lógico = un commit descriptivo.

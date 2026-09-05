@@ -1,0 +1,132 @@
+# WorkAdventure — docs & hallazgo
+
+## Canonical docs
+
+- Online: [https://docs.workadventu.re/](https://docs.workadventu.re/)
+- Local vendor copy: [`workadventure/docs/`](../workadventure/docs/)
+
+Indexed in codebase-memory:
+
+| Project | Path |
+|---------|------|
+| **`workadventure-docs`** | `workadventure/docs/` (map/scripting; admin SaaS **not** fully here) |
+| **`workadventure-admin-docs`** | [`docs/workadventure-admin/`](./workadventure-admin/) — [docs.workadventu.re/admin/](https://docs.workadventu.re/admin/) |
+| **`workadventure-blog-docs`** | [`docs/workadventure-blog/`](./workadventure-blog/) — [docs.workadventu.re/blog/](https://docs.workadventu.re/blog/) tutorials |
+
+Query map/scripting via `workadventure-docs`; admin via `workadventure-admin-docs`; bot/scripting tutorials via `workadventure-blog-docs`.
+
+---
+
+## campus-engine vs WorkAdventure (no duplicar el dominio)
+
+**Veredicto:** WorkAdventure **no** reemplaza [`packages/campus-engine`](../packages/campus-engine). Hay solape en *presentación espacial* — y ese solape se resuelve **deprecando Godot como cliente espacial**, no metiendo el dominio en WA.
+
+```mermaid
+flowchart TB
+  subgraph campusCore [Campus control plane]
+    Engine[campus-engine]
+    Tasks[Tasks SpecKit org]
+    Hosts[Hosts runtimes harness]
+  end
+  subgraph waWorld [WorkAdventure spatial plane]
+    Maps[Maps rooms WAM]
+    Woka[Wokas proximity Jitsi Matrix]
+    Script[Map scripting / Room API]
+  end
+  subgraph bridge [wa-bridge]
+    Join[JoinRoom sessions]
+    Motor[MotionMotor routines]
+  end
+  Engine -->|agent list identity| Join
+  Motor --> Join
+  Join --> Woka
+  Script -.->|do not use as second agent fleet| Woka
+```
+
+### Matriz de propósito
+
+| | **campus-engine** | **WorkAdventure** |
+|--|-------------------|-------------------|
+| Propósito | Autoridad: campus, edificios, rooms, agentes, workers, tasks/test-gate, Spec Kit, ProjectCall, hosts/runtimes, event bus | Mundo espacial: mapas, WOKAs, proximidad, Jitsi/LiveKit, Matrix, zones |
+| Contrato | Command → Event secuenciado; clientes proyectan | Front ↔ Pusher ↔ Back; Admin API opcional; map scripts |
+| Identidad agente | `AgentInstance` + oficio/rank/supervisor/harness | Member/visitor/anon + tags; bot = script o sesión |
+| Ejecución LLM/ficheros | Plano host (`runtime` / CLI) | No; bots del blog viven en **script de mapa** |
+| Clientes | playground / control-panel (UI no espacial) | **Cliente espacial canónico** (play WA) |
+
+### Godot — **deprecated**
+
+[`apps/campus-godot`](../apps/campus-godot) queda **deprecado**. La finalidad última del cliente espacial (mapa, avatares, proximidad) es exactamente lo que aporta WA; mantener una segunda línea Stardew/Godot duplica presentación.
+
+| Antes (TECH_SPEC v0.16) | Ahora |
+|-------------------------|--------|
+| Godot 4 = cliente principal (mapa + org + chats) | **WA + wa-bridge** = representación gráfica/espacial |
+| Godot mobile/desktop/web | WA play (browser); org/config en control-panel / playground |
+| `apps/campus-godot` activo | No nuevas features; no specs nuevas de mapa Godot |
+
+Código legado puede permanecer en el repo hasta borrarlo en una limpieza; **no invertir** en pathing/skins/campus_view Godot.
+
+### No usar WA para (sí-campus)
+
+- Organigrama, órdenes, Spec Kit, test-gate
+- Multi-edificio + `ProjectCall` (representación ≠ ejecución)
+- Harness / providers (control-panel)
+- Event log / proyección multi-cliente
+- Hosts remotos con ficheros locales
+
+### Sí usar WA para (sí-WA)
+
+- Representar agentes en un mapa multiplayer (**única** proyección espacial)
+- Proximidad social / Jitsi / zonas (con cuidado)
+- Chat humano-humano (Matrix) si se activa
+
+### Solape a evitar (presentación)
+
+1. ~~Segundo mapa Stardew en Godot~~ → **deprecado**; no competir con WA.
+2. **Flota doble de bots:** map-script GPT/Tock *y* sesiones `wa-bridge`.
+3. **Tres chats sin rol:** campus `chat.send` = negocio/órdenes; burbuja WA = color local; Matrix = humano-humano.
+
+### Regla de embodiment (única)
+
+**Un solo camino:** [`apps/wa-bridge`](../apps/wa-bridge) — JoinRoom + MotionMotor/routines. Campus decide *quién* existe; el bridge *proyecta* WOKAs.
+
+- No adoptar a la vez bots del [blog WA](./workadventure-blog/) (gpt-bot, tock-bot, realtime-api) como segunda flota de agentes del campus.
+- Tutoriales de scripting = referencia de UX/API, no arquitectura de dominio.
+- Movimiento de alta frecuencia **nunca** al event bus del core (directivas en el bridge).
+
+### Admin
+
+Control Panel campus ≠ clonar dashboard SaaS WA. Admin API (`/api/map`, `/api/room/access`, `/api/woka/list`) solo si Pusher debe preguntar a campus. Ver [workadventure-admin](./workadventure-admin/README.md).
+
+---
+
+## Admin dashboard (for Control Panel)
+
+See [`workadventure-admin/README.md`](./workadventure-admin/README.md).
+
+## Google Calendar add-on (hallazgo)
+
+- Marketplace: [WorkAdventure for Google Workspace](https://workspace.google.com/marketplace/app/workadventure/513915283499)
+- Docs: [Google Calendar](https://docs.workadventu.re/integrations/google-calendar)
+- `meetingRoomLabel` en meeting-rooms.md
+
+**Constraint:** no disponible en self-hosted WA.
+
+## Related product decisions
+
+- Agent movement: extend MotionMotor in `apps/wa-bridge` (not high-frequency core events).
+- Meeting Jitsi on starter right table: disabled in map JSON (empty tiles / no `jitsiRoom`).
+- Godot spatial client: **deprecated** (see above).
+
+## Inline map editor (dev, no OIDC)
+
+Requirement: room URL under **`/~/...`** (map-storage), plus `ENABLE_MAP_EDITOR` + `MAP_EDITOR_ALLOW_ALL_USERS=true` (set by `docker-compose-no-oidc.yaml`). Anonymous access is enough in this mode.
+
+```bash
+cd workadventure
+docker compose -f docker-compose.yaml -f docker-compose-no-oidc.yaml up -d
+bash scripts/upload-starter-to-map-storage.sh
+```
+
+- Editor room: http://play.workadventure.localhost/~/campus/starter/map.wam  
+- Bridge default `WA_ROOM_URL` points there (`apps/wa-bridge`).  
+- Inline edits persist in map-storage (`.wam`), not in `maps/starter/map.json`. For tile geometry: edit with Tiled → re-run the upload script.
