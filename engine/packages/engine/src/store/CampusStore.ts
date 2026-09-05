@@ -70,7 +70,15 @@ export class CampusStore {
   };
 
   readonly building = {
-    spawn: (input: { id: Id; name: string; leaderRoomId?: Id; leaderAgentId?: Id; leaderName?: string; appearance?: import("../domain/types").Appearance }): CommandResult =>
+    spawn: (input: {
+      id: Id;
+      name: string;
+      leaderRoomId?: Id;
+      leaderAgentId?: Id;
+      leaderName?: string;
+      appearance?: import("../domain/types").Appearance;
+      waRoomUrl?: string | null;
+    }): CommandResult =>
       this.dispatch({
         type: "building.spawn",
         building: buildBuilding({
@@ -78,6 +86,7 @@ export class CampusStore {
           name: input.name,
           campusId: this.#state.campus?.id ?? "",
           ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
+          ...(input.waRoomUrl !== undefined ? { waRoomUrl: input.waRoomUrl } : {}),
         }),
         ...(input.leaderRoomId !== undefined ? { leaderRoomId: input.leaderRoomId } : {}),
         ...(input.leaderAgentId !== undefined ? { leaderAgentId: input.leaderAgentId } : {}),
@@ -87,17 +96,29 @@ export class CampusStore {
       this.dispatch({ type: "building.updateContext", buildingId: input.buildingId, context: input.context }),
     assignLead: (input: { buildingId: Id; agentId: Id }): CommandResult =>
       this.dispatch({ type: "building.assignLead", buildingId: input.buildingId, agentId: input.agentId }),
+    setWaRoomUrl: (input: { buildingId: Id; waRoomUrl: string | null }): CommandResult =>
+      this.dispatch({ type: "building.setWaRoomUrl", buildingId: input.buildingId, waRoomUrl: input.waRoomUrl }),
     setAppearance: (input: { buildingId: Id; appearance: Partial<import("../domain/types").Appearance> }): CommandResult =>
       this.dispatch({ type: "building.setAppearance", buildingId: input.buildingId, appearance: input.appearance }),
   };
 
   readonly room = {
-    spawn: (input: { id: Id; buildingId: Id; key: string; role?: RoomRole; context?: string; appearance?: import("../domain/types").Appearance }): CommandResult =>
+    spawn: (input: {
+      id: Id;
+      buildingId: Id;
+      key: string;
+      role?: RoomRole;
+      context?: string;
+      appearance?: import("../domain/types").Appearance;
+      waAreaId?: string | null;
+    }): CommandResult =>
       this.dispatch({ type: "room.spawn", room: buildRoom(input) }),
     assignHead: (input: { roomId: Id; agentId: Id }): CommandResult =>
       this.dispatch({ type: "room.assignHead", roomId: input.roomId, agentId: input.agentId }),
     updateContext: (input: { roomId: Id; context: string }): CommandResult =>
       this.dispatch({ type: "room.updateContext", roomId: input.roomId, context: input.context }),
+    setWaAreaId: (input: { roomId: Id; waAreaId: string | null }): CommandResult =>
+      this.dispatch({ type: "room.setWaAreaId", roomId: input.roomId, waAreaId: input.waAreaId }),
     delete: (input: { roomId: Id }): CommandResult =>
       this.dispatch({ type: "room.delete", roomId: input.roomId }),
     setAppearance: (input: { roomId: Id; appearance: Partial<import("../domain/types").Appearance> }): CommandResult =>

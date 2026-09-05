@@ -56,7 +56,7 @@ export const DEFAULT_CONFIG: CampusConfig = {
   defaultModel: null,
 };
 
-/** A building (= environment: Casa, Empresa A…) belongs to a campus. */
+/** A building (= WA map / environment: Casa, Empresa A…) belongs to a campus. */
 export interface Building {
   id: Id;
   campusId: Id;
@@ -65,25 +65,41 @@ export interface Building {
   context?: string;
   /** The environment leader. Defaults to the auto-created leader agent. */
   leaderAgentId?: Id | null;
-  /** Visual appearance (skin + position) for rendering clients. */
+  /**
+   * WorkAdventure room/map URL for this building (e.g. `http://play…/~/campus/acme/map.wam`).
+   * Spatial geometry lives in WA; this is the binding from campus identity → map.
+   */
+  waRoomUrl?: string | null;
+  /**
+   * @deprecated Prefer WA map + `waRoomUrl`. Kept for event-log compat (Godot-era skins/coords).
+   */
   appearance?: Appearance;
 }
 
-/** Room role/kind. The leader office is non-deletable. */
+/** Room role/kind. The leader private space is non-deletable. */
 export type RoomRole = "leader" | "dept" | "utility" | "hallway";
 
-/** A room (= workspace/office) belongs to a building. */
+/**
+ * A room (= private space identity within a building/map).
+ * Geometry/areas are defined in the WA map editor; the core keeps `id` for agent placement FKs.
+ */
 export interface Room {
   id: Id;
   buildingId: Id;
   key: string;
   /** Department head (an agent in this room). Assigned in layer 6. */
   headAgentId?: Id;
-  /** Room role, e.g. "leader" (the leader office is non-deletable). */
+  /** Room role, e.g. "leader" (default private space; non-deletable). */
   role?: RoomRole;
   /** Room context (notes, norms). */
   context?: string;
-  /** Visual appearance (skin + position) for rendering clients (relative to building). */
+  /**
+   * Optional WA area/zone id inside the map (editor), when multiple private spaces exist.
+   */
+  waAreaId?: string | null;
+  /**
+   * @deprecated Prefer WA editor areas + `waAreaId`. Kept for event-log compat.
+   */
   appearance?: Appearance;
 }
 
@@ -331,8 +347,10 @@ export type CampusEvent =
   | { type: "building.spawned"; building: Building; leaderRoom?: Room; leaderAgent?: AgentInstance }
   | { type: "building.context.updated"; buildingId: Id; context: string }
   | { type: "building.lead.assigned"; buildingId: Id; agentId: Id }
+  | { type: "building.waRoomUrl.set"; buildingId: Id; waRoomUrl: string | null }
   | { type: "room.spawned"; room: Room }
   | { type: "room.context.updated"; roomId: Id; context: string }
+  | { type: "room.waAreaId.set"; roomId: Id; waAreaId: string | null }
   | { type: "room.deleted"; roomId: Id }
   | { type: "project.created"; project: Project }
   | { type: "project.archived"; projectId: Id }

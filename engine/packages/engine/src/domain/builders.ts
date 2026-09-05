@@ -22,6 +22,7 @@ export function buildBuilding(input: {
   campusId: Id;
   name: string;
   appearance?: Appearance;
+  waRoomUrl?: string | null;
 }): Building {
   const building: Building = {
     id: input.id,
@@ -29,6 +30,7 @@ export function buildBuilding(input: {
     name: input.name,
   };
   if (input.appearance !== undefined) building.appearance = input.appearance;
+  if (input.waRoomUrl !== undefined) building.waRoomUrl = input.waRoomUrl;
   return building;
 }
 
@@ -39,6 +41,7 @@ export function buildRoom(input: {
   role?: RoomRole;
   context?: string;
   appearance?: Appearance;
+  waAreaId?: string | null;
 }): Room {
   const room: Room = {
     id: input.id,
@@ -48,6 +51,7 @@ export function buildRoom(input: {
   if (input.role !== undefined) room.role = input.role;
   if (input.context !== undefined) room.context = input.context;
   if (input.appearance !== undefined) room.appearance = input.appearance;
+  if (input.waAreaId !== undefined) room.waAreaId = input.waAreaId;
   return room;
 }
 

@@ -11,13 +11,13 @@
 | **046** | [engine-encapsulate](./046-engine-encapsulate/) | done | Todo campus → `engine/`; `packages/engine` (`@agent-campus/engine`); drop godot/viewer |
 | **047** | [wa-spatial-contract](./047-wa-spatial-contract/) | done | mapa WA = building; room = espacio privado; [MCP feasibility](../docs/wa-mcp-feasibility.md) |
 | **048** | [wa-mcp](./048-wa-mcp/) | done | MCP `wa-mcp` / `npm run mcp:wa` |
+| **049** | [engine-flatten-spatial](./049-engine-flatten-spatial/) | done | `Building.waRoomUrl` + `Room.waAreaId`; appearance building/room deprecated |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **049** | engine-flatten-spatial | Aplanar building/room en dominio hacia el contrato 047 |
-| **050** | admin-create-map | control-panel crea mapas (buildings) vía map-storage |
+| **050** | admin-create-map | control-panel / MCP: crear mapa + bind `waRoomUrl` |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 

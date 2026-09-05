@@ -5,7 +5,7 @@
 **Dominio:** TypeScript `@agent-campus/engine` + API.  
 **UI no espacial:** `engine/apps/control-panel`.  
 **Godot / viewer:** **removed** (superseded by WA).  
-**Dirección espacial (047):** mapa WA = building; room = espacio privado del editor; ver [`WORKADVENTURE.md`](WORKADVENTURE.md) y [`wa-mcp-feasibility.md`](wa-mcp-feasibility.md).  
+**Dirección espacial (047/049):** mapa WA = building (`waRoomUrl`); room = espacio privado (`waAreaId` opcional); ver [`WORKADVENTURE.md`](WORKADVENTURE.md) y [`wa-mcp-feasibility.md`](wa-mcp-feasibility.md).  
 **Backend:** dominio TS + API + Spec Kit + Compose.  
 **CLI host:** diferido (prioridad baja).
 
