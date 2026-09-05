@@ -33,7 +33,12 @@ function seed(server: CampusServer): void {
     perBuilding ? `${play}/~/${buildingId}/starter/map.wam` : sharedMap;
 
   s.campus.load({ id: "campus-demo", name: "Demo Co" });
-  s.building.spawn({ id: "b-alpha", name: "Alpha HQ", waRoomUrl: mapFor("b-alpha") });
+  s.building.spawn({
+    id: "b-alpha",
+    name: "Alpha HQ",
+    waRoomUrl: mapFor("b-alpha"),
+    leaderName: "Aria",
+  });
   s.room.spawn({ id: "r-mkt", buildingId: "b-alpha", key: "marketing" });
   s.room.spawn({ id: "r-dev", buildingId: "b-alpha", key: "engineering" });
 
@@ -44,7 +49,12 @@ function seed(server: CampusServer): void {
   s.room.assignHead({ roomId: "r-mkt", agentId: "a-mia" });
 
   // Second building: a tower with its own crew.
-  s.building.spawn({ id: "b-beta", name: "Beta Tower", waRoomUrl: mapFor("b-beta") });
+  s.building.spawn({
+    id: "b-beta",
+    name: "Beta Tower",
+    waRoomUrl: mapFor("b-beta"),
+    leaderName: "Bruno",
+  });
   s.room.spawn({ id: "r-ops", buildingId: "b-beta", key: "operations" });
   s.room.spawn({ id: "r-fin", buildingId: "b-beta", key: "finance" });
   s.agent.instantiate({ id: "a-joy", name: "Joy", buildingId: "b-beta", roomId: "r-ops", rankKey: "lead", skillKey: "operations" });
@@ -52,7 +62,12 @@ function seed(server: CampusServer): void {
   s.room.assignHead({ roomId: "r-ops", agentId: "a-joy" });
 
   // Third building: a small studio.
-  s.building.spawn({ id: "b-gamma", name: "Gamma Studio", waRoomUrl: mapFor("b-gamma") });
+  s.building.spawn({
+    id: "b-gamma",
+    name: "Gamma Studio",
+    waRoomUrl: mapFor("b-gamma"),
+    leaderName: "Cora",
+  });
   s.room.spawn({ id: "r-lab2", buildingId: "b-gamma", key: "research" });
   s.agent.instantiate({ id: "a-luz", name: "Luz", buildingId: "b-gamma", roomId: "r-lab2", rankKey: "lead", skillKey: "research" });
   s.room.assignHead({ roomId: "r-lab2", agentId: "a-luz" });

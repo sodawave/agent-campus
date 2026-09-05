@@ -47,6 +47,12 @@ describe("building.spawn is composite (Entorno + Leader office + Leader agent)",
     expect(store.state().rooms.some((r) => r.id === "empresa-a-leader" && r.role === "leader")).toBe(true);
     expect(store.state().agents.some((a) => a.id === "empresa-a-leader-agent")).toBe(true);
   });
+
+  it("accepts a custom leaderName for the auto-created leader agent", () => {
+    const store = withCampus();
+    store.building.spawn({ id: "casa", name: "Casa", leaderName: "Aria" });
+    expect(store.state().agents.find((a) => a.id === "casa-leader-agent")?.name).toBe("Aria");
+  });
 });
 
 describe("building.updateContext", () => {
