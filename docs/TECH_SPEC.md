@@ -1,14 +1,15 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.17 — **Presentación espacial = WorkAdventure** (+ [`engine/apps/wa-bridge`](../engine/apps/wa-bridge)).  
-**Cliente espacial canónico:** WorkAdventure (play).  
-**Dominio:** TypeScript `campus-engine` + API.  
-**UI no espacial:** control-panel / playground.  
-**Godot (`~~engine removed: campus-godot~~`): DEPRECATED** — solapaba el mapa espacial con WA; ver [`docs/WORKADVENTURE.md`](WORKADVENTURE.md).  
-**Backend:** dominio TS + API Hono + MemPalace + Spec Kit + Compose.  
-**CLI host:** diferido (prioridad baja).  
+**Estado:** v0.18 — layout `engine/` + `workadventure/` submodule `@ v1.33.5`.  
+**Cliente espacial canónico:** WorkAdventure (play) + [`engine/apps/wa-bridge`](../engine/apps/wa-bridge).  
+**Dominio:** TypeScript `@agent-campus/engine` + API.  
+**UI no espacial:** `engine/apps/control-panel`.  
+**Godot / viewer:** **removed** (superseded by WA).  
+**Dirección espacial (047):** mapa WA = building; room = espacio privado del editor; ver [`WORKADVENTURE.md`](WORKADVENTURE.md) y [`wa-mcp-feasibility.md`](wa-mcp-feasibility.md).  
+**Backend:** dominio TS + API + Spec Kit + Compose.  
+**CLI host:** diferido (prioridad baja).
 
-> Nota histórica: v0.16 asumía Godot 4 Stardew-like como app principal. Esa línea queda deprecada; no nuevas features de mapa en Godot.
+> Nota histórica: v0.16–0.17 Godot espacial. Eliminado en 046.
 
 ---
 
