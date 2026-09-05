@@ -1,5 +1,8 @@
 # Spec 043 — Modo Campus: diorama isométrico clay
 
+> **Superseded** — Diorama Godot reemplazado por WorkAdventure como cliente espacial.  
+> Ver [specs/INDEX.md](../INDEX.md) y [docs/WORKADVENTURE.md](../../docs/WORKADVENTURE.md).
+
 ## Problema
 
 El visor Godot proyecta el campus como un panel plano "pixel-art" (041). No se parece a la

@@ -1,5 +1,8 @@
 # 041 — Visor Godot: recuperación de mapa + proyectos (inventario)
 
+> **Superseded** — Presentación espacial canónica = WorkAdventure + `apps/wa-bridge`.  
+> No nuevas features Godot. Ver [specs/INDEX.md](../INDEX.md) y [docs/WORKADVENTURE.md](../../docs/WORKADVENTURE.md).
+
 **Rama**: `opencode/spec-041-godot-viewer` (sobre `dev`)
 
 ## Objetivo
