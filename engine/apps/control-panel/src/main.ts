@@ -31,6 +31,7 @@ interface CampusData {
     kind: string;
     buildingId: string;
     roomId: string;
+    waAreaId: string | null;
     rankKey: string | null;
     skinKey: string | null;
     live: boolean;
@@ -46,6 +47,7 @@ interface PresenceAgent {
   social: string;
   zone: string;
   roomUrl: string;
+  waAreaId?: string | null;
 }
 
 async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -152,7 +154,7 @@ const QUERY = `{
       defaultModel { providerId model }
     }
     buildings { id name waRoomUrl }
-    agents { id name kind buildingId roomId rankKey skinKey live }
+    agents { id name kind buildingId roomId waAreaId rankKey skinKey live }
     projects { id name status }
   }
 }`;
@@ -184,8 +186,9 @@ async function loadPresence(agents: CampusData["agents"]): Promise<void> {
         ? `<span class="badge on">in WA</span> ${p.zone} @ ${Math.round(p.x)},${Math.round(p.y)} · ${p.social}`
         : `<span class="badge off">offline WA</span>`;
       const runtime = a.live ? `<span class="badge on">runtime</span>` : `<span class="badge">core</span>`;
+      const area = a.waAreaId ?? p?.waAreaId ?? null;
       return `<div class="row-item"><b>${a.name}</b> <code>${a.id}</code> ${runtime}<br/>
-        <span class="muted">${a.buildingId} / ${a.roomId}${a.skinKey ? ` · ${a.skinKey}` : ""}</span><br/>${inWa}</div>`;
+        <span class="muted">${a.buildingId} / ${a.roomId}${area ? ` · area ${area}` : ""}${a.skinKey ? ` · ${a.skinKey}` : ""}</span><br/>${inWa}</div>`;
     })
     .join("");
   el.innerHTML =

@@ -172,9 +172,12 @@ export class AgentWaBridge {
     social: string;
     zone: string;
     roomUrl: string;
+    waAreaId: string | null;
   }> {
+    const byId = new Map(this.#latestAgents.map((a) => [a.id, a]));
     return [...this.#sessions.values()].map((s) => {
       const p = s.position();
+      const agent = byId.get(s.agentId);
       return {
         id: s.agentId,
         name: s.name,
@@ -183,6 +186,7 @@ export class AgentWaBridge {
         social: s.social(),
         zone: s.zone(),
         roomUrl: s.roomUrl,
+        waAreaId: agent?.waAreaId ?? null,
       };
     });
   }

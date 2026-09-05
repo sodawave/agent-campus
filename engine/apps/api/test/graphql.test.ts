@@ -76,16 +76,26 @@ describe("GraphQL surface", () => {
     expect((q.data as any).campus.buildings.find((b: { id: string }) => b.id === "b1").waRoomUrl).toBe(url);
   });
 
-  it("exposes agent placement fields for the live panel", async () => {
+  it("exposes room waAreaId and agent placement fields for the live panel", async () => {
     const link = memLink();
+    await executeGraphql(
+      link,
+      `mutation($r: ID!, $a: String) { setRoomWaAreaId(roomId: $r, waAreaId: $a) { ok event } }`,
+      { r: "b1-leader", a: "area-alpha-leader" },
+    );
     const q = await executeGraphql(
       link,
-      `{ campus { agents { id name kind buildingId roomId rankKey skinKey live } } }`,
+      `{ campus { rooms { id waAreaId } agents { id name kind buildingId roomId waAreaId rankKey skinKey live } } }`,
     );
     expect(q.errors).toBeUndefined();
-    const agents = (q.data as { campus: { agents: Array<{ id: string; kind: string; buildingId: string }> } }).campus
-      .agents;
-    expect(agents.some((a) => a.id === "b1-leader-agent")).toBe(true);
-    expect(agents.find((a) => a.id === "b1-leader-agent")?.buildingId).toBe("b1");
+    const campus = (q.data as {
+      campus: {
+        rooms: Array<{ id: string; waAreaId: string | null }>;
+        agents: Array<{ id: string; buildingId: string; waAreaId: string | null }>;
+      };
+    }).campus;
+    expect(campus.rooms.find((r) => r.id === "b1-leader")?.waAreaId).toBe("area-alpha-leader");
+    expect(campus.agents.some((a) => a.id === "b1-leader-agent")).toBe(true);
+    expect(campus.agents.find((a) => a.id === "b1-leader-agent")?.waAreaId).toBe("area-alpha-leader");
   });
 });
