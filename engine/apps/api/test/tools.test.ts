@@ -117,6 +117,17 @@ describe("MCP tools — projects, assignment, execution, memory", () => {
     expect(await byName("building_assign_lead").run(link, { buildingId: "b1", agentId: "ic1" })).toBe("ok: building.lead.assigned");
   });
 
+  it("building_set_wa_room_url and wa_map_url_for_directory", async () => {
+    const link = memLink();
+    const url = "http://play.workadventure.localhost/~/campus/b1/map.wam";
+    expect(await byName("building_set_wa_room_url").run(link, { buildingId: "b1", waRoomUrl: url })).toBe(
+      "ok: building.waRoomUrl.set",
+    );
+    expect(link.state().buildings.find((b) => b.id === "b1")?.waRoomUrl).toBe(url);
+    const computed = JSON.parse(await byName("wa_map_url_for_directory").run(link, { directory: "acme" }));
+    expect(computed.waRoomUrl).toContain("/~/acme/starter/map.wam");
+  });
+
   it("chat_send + chat_history round-trip", async () => {
     const link = memLink();
     expect(await byName("chat_send").run(link, { id: "cm1", agentId: "ic1", from: "user", text: "hola" })).toBe("ok: chat.message.posted");

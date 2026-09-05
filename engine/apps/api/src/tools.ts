@@ -7,6 +7,7 @@
 import { z, type ZodRawShape } from "zod";
 import { messagesForAgent, type CommandResult } from "@agent-campus/engine";
 import type { CampusLink } from "./link";
+import { mapRoomUrl, provisionBuildingMap } from "./mapProvision";
 
 export interface CampusTool {
   name: string;
@@ -37,7 +38,12 @@ export const tools: CampusTool[] = [
     return JSON.stringify(
       {
         campus: s.campus?.name ?? null,
-        buildings: s.buildings.map((b) => ({ id: b.id, name: b.name, leaderAgentId: b.leaderAgentId ?? null })),
+        buildings: s.buildings.map((b) => ({
+          id: b.id,
+          name: b.name,
+          leaderAgentId: b.leaderAgentId ?? null,
+          waRoomUrl: b.waRoomUrl ?? null,
+        })),
         agents: s.agents.map((a) => ({ id: a.id, name: a.name, rank: a.rankKey ?? null, live: a.runtimeId != null })),
         workers: s.workers.length,
         tasks: s.tasks.map((t) => ({ id: t.id, title: t.title, status: t.status })),
@@ -151,6 +157,37 @@ export const tools: CampusTool[] = [
     "Assign the environment lead (an agent of that building).",
     { buildingId: z.string(), agentId: z.string() },
     async (link, a) => fmt(await link.send({ type: "building.assignLead", buildingId: a.buildingId, agentId: a.agentId })),
+  ),
+
+  tool(
+    "building_set_wa_room_url",
+    "Bind a WorkAdventure map URL to a building (map = building).",
+    { buildingId: z.string(), waRoomUrl: z.string().nullable() },
+    async (link, a) =>
+      fmt(await link.send({ type: "building.setWaRoomUrl", buildingId: a.buildingId, waRoomUrl: a.waRoomUrl })),
+  ),
+
+  tool(
+    "building_provision_map",
+    "Spawn building if needed, upload starter map to map-storage, and bind waRoomUrl.",
+    {
+      id: z.string(),
+      name: z.string(),
+      directory: z.string().optional(),
+    },
+    async (link, a) =>
+      provisionBuildingMap(link, {
+        id: a.id,
+        name: a.name,
+        ...(a.directory !== undefined ? { directory: a.directory } : {}),
+      }),
+  ),
+
+  tool(
+    "wa_map_url_for_directory",
+    "Compute the /~/ room URL for a map-storage directory (no I/O).",
+    { directory: z.string() },
+    async (_link, a) => JSON.stringify({ waRoomUrl: mapRoomUrl(a.directory) }),
   ),
 
   tool(

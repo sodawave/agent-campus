@@ -23,7 +23,7 @@ interface Config {
 interface CampusData {
   name: string | null;
   config: Config;
-  buildings: { id: string; name: string }[];
+  buildings: { id: string; name: string; waRoomUrl: string | null }[];
   agents: { id: string; name: string }[];
   projects: { id: string; name: string; status: string }[];
 }
@@ -85,6 +85,21 @@ app.innerHTML = `
         <div id="d-msg"></div>
       </form>
     </div>
+    <div class="panel">
+      <h2>Maps (WorkAdventure)</h2>
+      <p class="muted">Building = WA map. Provision uploads the starter map to map-storage and binds <code>waRoomUrl</code>.</p>
+      <form id="map-form">
+        <label for="m-id">Building id</label>
+        <input id="m-id" placeholder="acme" required />
+        <label for="m-name">Name</label>
+        <input id="m-name" placeholder="Acme HQ" required />
+        <label for="m-dir">Map-storage directory (optional)</label>
+        <input id="m-dir" placeholder="defaults to building id" />
+        <button type="submit">Provision map</button>
+        <div id="m-msg"></div>
+      </form>
+      <div id="maps-list" style="margin-top:12px"></div>
+    </div>
   </div>
 `;
 
@@ -111,7 +126,7 @@ const QUERY = `{
       providers { id name models }
       defaultModel { providerId model }
     }
-    buildings { id name }
+    buildings { id name waRoomUrl }
     agents { id name }
     projects { id name status }
   }
@@ -131,6 +146,16 @@ async function load(): Promise<void> {
       <div class="row-item">Agents: ${c.agents.length}</div>
       <div class="row-item">Projects: ${c.projects.map((p) => `${p.name} (${p.status})`).join(", ") || "-"}</div>
     `;
+    const mapsList = document.getElementById("maps-list")!;
+    mapsList.innerHTML =
+      c.buildings.length === 0
+        ? `<div class="row-item muted">no buildings</div>`
+        : c.buildings
+            .map(
+              (b) =>
+                `<div class="row-item"><b>${b.name}</b> <code>${b.id}</code><br/><span class="muted">${b.waRoomUrl ?? "(no WA map)"}</span></div>`,
+            )
+            .join("");
     const def = c.config.defaultModel ? `${c.config.defaultModel.providerId} / ${c.config.defaultModel.model}` : "(none)";
     providersEl.innerHTML =
       `<div class="row-item muted">Default model: ${def}</div>` +
@@ -209,6 +234,33 @@ document.getElementById("default-form")!.addEventListener("submit", async (e) =>
   } catch (err) {
     dMsg.className = "err";
     dMsg.textContent = `✗ ${err instanceof Error ? err.message : String(err)}`;
+  }
+});
+
+document.getElementById("map-form")!.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const mMsg = document.getElementById("m-msg")!;
+  const mId = document.getElementById("m-id") as HTMLInputElement;
+  const mName = document.getElementById("m-name") as HTMLInputElement;
+  const mDir = document.getElementById("m-dir") as HTMLInputElement;
+  mMsg.textContent = "";
+  try {
+    const data = await gql<{ provisionBuildingMap: { ok: boolean; payload: string } }>(
+      `mutation($id: ID!, $name: String!, $directory: String) {
+        provisionBuildingMap(id: $id, name: $name, directory: $directory) { ok payload }
+      }`,
+      {
+        id: mId.value.trim(),
+        name: mName.value.trim(),
+        directory: mDir.value.trim() || null,
+      },
+    );
+    mMsg.className = data.provisionBuildingMap.ok ? "ok" : "err";
+    mMsg.textContent = data.provisionBuildingMap.payload.slice(0, 400);
+    await load();
+  } catch (err) {
+    mMsg.className = "err";
+    mMsg.textContent = `✗ ${err instanceof Error ? err.message : String(err)}`;
   }
 });
 

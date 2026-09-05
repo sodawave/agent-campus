@@ -7,6 +7,7 @@
 import { buildSchema, graphql, type ExecutionResult } from "graphql";
 import type { CommandResult } from "@agent-campus/engine";
 import type { CampusLink } from "./link";
+import { provisionBuildingMap } from "./mapProvision";
 
 export const schema = buildSchema(`
   type Provider { id: ID!, name: String!, models: [String!]! }
@@ -17,7 +18,7 @@ export const schema = buildSchema(`
     providers: [Provider!]!
     defaultModel: ModelRef
   }
-  type Building { id: ID!, name: String!, leaderAgentId: ID }
+  type Building { id: ID!, name: String!, leaderAgentId: ID, waRoomUrl: String }
   type Agent { id: ID!, name: String!, rankKey: String, live: Boolean! }
   type Project { id: ID!, name: String!, buildingId: ID!, status: String! }
   type Campus {
@@ -29,12 +30,15 @@ export const schema = buildSchema(`
     projects: [Project!]!
   }
   type CommandResult { ok: Boolean!, reason: String, event: String }
+  type ProvisionResult { ok: Boolean!, payload: String! }
 
   type Query { campus: Campus! }
 
   type Mutation {
     setConfig(language: String, timezone: String): CommandResult!
-    spawnBuilding(id: ID!, name: String!): CommandResult!
+    spawnBuilding(id: ID!, name: String!, waRoomUrl: String): CommandResult!
+    setBuildingWaRoomUrl(buildingId: ID!, waRoomUrl: String): CommandResult!
+    provisionBuildingMap(id: ID!, name: String!, directory: String): ProvisionResult!
     createProject(id: ID!, buildingId: ID!, name: String!): CommandResult!
     addProvider(id: ID!, name: String!, models: [String!]!): CommandResult!
     removeProvider(providerId: ID!): CommandResult!
@@ -55,7 +59,12 @@ export function createRoot(link: CampusLink) {
         id: s.campus?.id ?? null,
         name: s.campus?.name ?? null,
         config: s.config,
-        buildings: s.buildings.map((b) => ({ id: b.id, name: b.name, leaderAgentId: b.leaderAgentId ?? null })),
+        buildings: s.buildings.map((b) => ({
+          id: b.id,
+          name: b.name,
+          leaderAgentId: b.leaderAgentId ?? null,
+          waRoomUrl: b.waRoomUrl ?? null,
+        })),
         agents: s.agents.map((a) => ({ id: a.id, name: a.name, rankKey: a.rankKey ?? null, live: a.runtimeId != null })),
         projects: s.projects.map((p) => ({ id: p.id, name: p.name, buildingId: p.buildingId, status: p.status })),
       };
@@ -68,9 +77,36 @@ export function createRoot(link: CampusLink) {
           ...(args.timezone !== undefined ? { timezone: args.timezone } : {}),
         }),
       ),
-    spawnBuilding: async (args: { id: string; name: string }) => {
+    spawnBuilding: async (args: { id: string; name: string; waRoomUrl?: string | null }) => {
       const campusId = link.state().campus?.id ?? "";
-      return toResult(await link.send({ type: "building.spawn", building: { id: args.id, campusId, name: args.name } }));
+      return toResult(
+        await link.send({
+          type: "building.spawn",
+          building: {
+            id: args.id,
+            campusId,
+            name: args.name,
+            ...(args.waRoomUrl != null && args.waRoomUrl !== "" ? { waRoomUrl: args.waRoomUrl } : {}),
+          },
+        }),
+      );
+    },
+    setBuildingWaRoomUrl: async (args: { buildingId: string; waRoomUrl: string | null }) =>
+      toResult(
+        await link.send({
+          type: "building.setWaRoomUrl",
+          buildingId: args.buildingId,
+          waRoomUrl: args.waRoomUrl,
+        }),
+      ),
+    provisionBuildingMap: async (args: { id: string; name: string; directory?: string | null }) => {
+      const payload = await provisionBuildingMap(link, {
+        id: args.id,
+        name: args.name,
+        ...(args.directory ? { directory: args.directory } : {}),
+      });
+      const ok = payload.startsWith("{") ? (JSON.parse(payload) as { ok?: boolean }).ok === true : payload.startsWith("ok:");
+      return { ok: !!ok, payload };
     },
     createProject: async (args: { id: string; buildingId: string; name: string }) =>
       toResult(

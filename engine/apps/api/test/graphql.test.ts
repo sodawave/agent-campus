@@ -62,4 +62,17 @@ describe("GraphQL surface", () => {
     expect(cfg.providers).toEqual([{ id: "openai", models: ["gpt-x", "gpt-mini"] }]);
     expect(cfg.defaultModel).toEqual({ providerId: "openai", model: "gpt-x" });
   });
+
+  it("setBuildingWaRoomUrl binds a map URL", async () => {
+    const link = memLink();
+    const url = "http://play.workadventure.localhost/~/campus/b1/map.wam";
+    const m = await executeGraphql(
+      link,
+      `mutation($b: ID!, $u: String) { setBuildingWaRoomUrl(buildingId: $b, waRoomUrl: $u) { ok event } }`,
+      { b: "b1", u: url },
+    );
+    expect((m.data as any).setBuildingWaRoomUrl).toEqual({ ok: true, event: "building.waRoomUrl.set" });
+    const q = await executeGraphql(link, `{ campus { buildings { id waRoomUrl } } }`);
+    expect((q.data as any).campus.buildings.find((b: { id: string }) => b.id === "b1").waRoomUrl).toBe(url);
+  });
 });
