@@ -8,6 +8,7 @@
     "dev:server": "npm run dev:server --prefix engine",
     "dev:panel": "npm run dev:panel --prefix engine",
     "dev:wa-bridge": "npm run dev:wa-bridge --prefix engine",
+    "mcp:wa": "npm run mcp:wa --prefix engine",
     "graphql": "npm run graphql --prefix engine",
     "cli": "npm run cli --prefix engine --",
     "build": "npm run build --prefix engine",

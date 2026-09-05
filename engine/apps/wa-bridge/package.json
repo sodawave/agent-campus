@@ -3,16 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Instantiates campus agents in WorkAdventure via the human JoinRoom path.",
+  "description": "Instantiates campus agents in WorkAdventure via the human JoinRoom path; also serves wa-mcp.",
+  "bin": {
+    "wa-mcp": "src/mcp/main.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
+    "mcp": "tsx src/mcp/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@agent-campus/engine": "*",
-    "ws": "^8.18.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
