@@ -70,13 +70,16 @@ Ingeniería:
 - Antes de abrir PR: `npm run typecheck && npm test && npm run build` en verde.
 - `main` siempre desplegable/estable.
 
-Metodología SDD con **Spec Kit** (github/spec-kit; integraciones `cursor-agent` + `opencode`):
+Metodología SDD con **Spec Kit** ([github/spec-kit](https://github.com/github/spec-kit); integraciones `cursor-agent` + `opencode`):
 
 - Principios de gobierno: [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+- **Índice de specs:** [`specs/INDEX.md`](specs/INDEX.md) (backlog 044–047; Godot 041–043 superseded).
+- Checkpoint previo al encapsulado: tag `checkpoint/pre-engine-encapsulate`.
 - Comandos según entorno:
   - Cursor: `.cursor/skills/speckit-*` → `/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`, `/speckit-converge` (+ `/speckit-analyze`, `/speckit-checklist`).
   - opencode: `.opencode/commands/speckit.*.md` → `/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.converge` (+ `/speckit.analyze`, `/speckit.checklist`, `/speckit.constitution`).
 - Artefactos de feature en `specs/<NNN-slug>/` (spec.md, plan.md, tasks.md).
+- Dual install: `specify integration install cursor-agent --force` (opencode no es multi-install-safe; el status CLI puede marcar warning — se mantienen ambas a propósito).
 
 ## Convenciones de código
 

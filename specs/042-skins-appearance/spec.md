@@ -1,5 +1,8 @@
 # 042 — Catálogo de skins + appearance
 
+> **Superseded (espacial Godot)** — El contrato appearance/skins en core puede permanecer;  
+> proyección espacial pasa a WA. Ver [specs/INDEX.md](../INDEX.md) y [docs/WORKADVENTURE.md](../../docs/WORKADVENTURE.md).
+
 **Rama**: `opencode/spec-042-skins-appearance` (sobre `dev`)
 
 ## Objetivo
