@@ -1,6 +1,7 @@
 import { startCampusListener } from "./campusListener";
 import { loadConfig } from "./config";
 import { AgentWaBridge } from "./bridge";
+import { startPresenceHttp } from "./presenceHttp";
 import { WorkRoutineRunner } from "./workRoutineRunner";
 
 const cfg = loadConfig();
@@ -24,9 +25,11 @@ const work = cfg.routinesEnabled
 work?.start();
 
 bridge = new AgentWaBridge(cfg, work, listener.client);
+const presence = await startPresenceHttp(bridge, cfg.presencePort);
 
 const shutdown = () => {
   console.info("[wa-bridge] shutting down");
+  void presence.close();
   listener.close();
   bridge.close();
   process.exit(0);

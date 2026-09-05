@@ -8,6 +8,7 @@ import "./style.css";
  */
 
 const GRAPHQL_URL = `http://${location.hostname}:8788/graphql`;
+const PRESENCE_URL = `http://${location.hostname}:8790/presence`;
 
 interface Provider {
   id: string;
@@ -24,8 +25,27 @@ interface CampusData {
   name: string | null;
   config: Config;
   buildings: { id: string; name: string; waRoomUrl: string | null }[];
-  agents: { id: string; name: string }[];
+  agents: {
+    id: string;
+    name: string;
+    kind: string;
+    buildingId: string;
+    roomId: string;
+    rankKey: string | null;
+    skinKey: string | null;
+    live: boolean;
+  }[];
   projects: { id: string; name: string; status: string }[];
+}
+
+interface PresenceAgent {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  social: string;
+  zone: string;
+  roomUrl: string;
 }
 
 async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -62,6 +82,11 @@ app.innerHTML = `
     <div class="panel">
       <h2>Campus overview</h2>
       <div id="overview"></div>
+    </div>
+    <div class="panel">
+      <h2>Live presence (WA)</h2>
+      <p class="muted">Poll GraphQL + wa-bridge <code>/presence</code> every 2s.</p>
+      <div id="presence"></div>
     </div>
     <div class="panel">
       <h2>AI providers &amp; models</h2>
@@ -127,10 +152,46 @@ const QUERY = `{
       defaultModel { providerId model }
     }
     buildings { id name waRoomUrl }
-    agents { id name }
+    agents { id name kind buildingId roomId rankKey skinKey live }
     projects { id name status }
   }
 }`;
+
+const presenceEl = () => document.getElementById("presence")!;
+
+async function loadPresence(agents: CampusData["agents"]): Promise<void> {
+  const el = presenceEl();
+  let wa: PresenceAgent[] = [];
+  let waErr: string | null = null;
+  try {
+    const res = await fetch(PRESENCE_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = (await res.json()) as { agents?: PresenceAgent[] };
+    wa = json.agents ?? [];
+  } catch (err) {
+    waErr = err instanceof Error ? err.message : String(err);
+  }
+  const byId = new Map(wa.map((a) => [a.id, a]));
+  const named = agents.filter((a) => a.kind === "named");
+  if (named.length === 0) {
+    el.innerHTML = `<div class="row-item muted">no agents</div>`;
+    return;
+  }
+  const rows = named
+    .map((a) => {
+      const p = byId.get(a.id);
+      const inWa = p
+        ? `<span class="badge on">in WA</span> ${p.zone} @ ${Math.round(p.x)},${Math.round(p.y)} · ${p.social}`
+        : `<span class="badge off">offline WA</span>`;
+      const runtime = a.live ? `<span class="badge on">runtime</span>` : `<span class="badge">core</span>`;
+      return `<div class="row-item"><b>${a.name}</b> <code>${a.id}</code> ${runtime}<br/>
+        <span class="muted">${a.buildingId} / ${a.roomId}${a.skinKey ? ` · ${a.skinKey}` : ""}</span><br/>${inWa}</div>`;
+    })
+    .join("");
+  el.innerHTML =
+    (waErr ? `<div class="row-item err">presence: ${waErr}</div>` : `<div class="row-item muted">WA joined: ${wa.length}</div>`) +
+    rows;
+}
 
 async function load(): Promise<void> {
   try {
@@ -164,6 +225,7 @@ async function load(): Promise<void> {
         : c.config.providers
             .map((p) => `<div class="row-item"><b>${p.name}</b> <span class="muted">(${p.id})</span>: ${p.models.join(", ") || "-"}</div>`)
             .join(""));
+    await loadPresence(c.agents);
   } catch (err) {
     dot.className = "dot closed";
     sub.textContent = `error: ${err instanceof Error ? err.message : String(err)}`;
@@ -265,3 +327,6 @@ document.getElementById("map-form")!.addEventListener("submit", async (e) => {
 });
 
 void load();
+setInterval(() => {
+  void load();
+}, 2000);

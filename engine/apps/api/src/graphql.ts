@@ -19,7 +19,16 @@ export const schema = buildSchema(`
     defaultModel: ModelRef
   }
   type Building { id: ID!, name: String!, leaderAgentId: ID, waRoomUrl: String }
-  type Agent { id: ID!, name: String!, rankKey: String, live: Boolean! }
+  type Agent {
+    id: ID!
+    name: String!
+    kind: String!
+    buildingId: ID!
+    roomId: ID!
+    rankKey: String
+    skinKey: String
+    live: Boolean!
+  }
   type Project { id: ID!, name: String!, buildingId: ID!, status: String! }
   type Campus {
     id: ID
@@ -65,7 +74,16 @@ export function createRoot(link: CampusLink) {
           leaderAgentId: b.leaderAgentId ?? null,
           waRoomUrl: b.waRoomUrl ?? null,
         })),
-        agents: s.agents.map((a) => ({ id: a.id, name: a.name, rankKey: a.rankKey ?? null, live: a.runtimeId != null })),
+        agents: s.agents.map((a) => ({
+          id: a.id,
+          name: a.name,
+          kind: a.kind,
+          buildingId: a.buildingId,
+          roomId: a.roomId,
+          rankKey: a.rankKey ?? null,
+          skinKey: a.appearance?.skinKey ?? null,
+          live: a.runtimeId != null,
+        })),
         projects: s.projects.map((p) => ({ id: p.id, name: p.name, buildingId: p.buildingId, status: p.status })),
       };
     },
