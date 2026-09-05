@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { CampusClient } from "@agent-campus/engine";
 import { agentsToJoin } from "./agentDiff";
 import { createProximityState, proximityTick } from "./proximity";
+import { resolveWaRoomUrl } from "./roomUrl";
 import type { AgentRef, WaBridgeConfig } from "./types";
 import { joinWaSession, type WaSession } from "./waSession";
 import type { WorkRoutineRunner } from "./workRoutineRunner";
@@ -32,6 +33,23 @@ export class AgentWaBridge {
     if (this.#closed) return;
     this.#latestAgents = agents;
     this.#work?.setAgents(agents);
+
+    const byId = new Map(agents.map((a) => [a.id, a]));
+    for (const [id, session] of this.#sessions) {
+      const agent = byId.get(id);
+      if (!agent || agent.kind !== "named") {
+        session.close();
+        this.#sessions.delete(id);
+        continue;
+      }
+      const want = resolveWaRoomUrl(agent, this.#cfg.waRoomUrl);
+      if (want !== session.roomUrl) {
+        console.info(`[wa-bridge] room URL changed for ${id}; re-joining`);
+        session.close();
+        this.#sessions.delete(id);
+      }
+    }
+
     const joined = new Set(this.#sessions.keys());
     for (const agent of agentsToJoin(agents, joined)) {
       this.#ensureJoined(agent);

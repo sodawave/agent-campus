@@ -11,6 +11,7 @@ function stubSession(id: string, name: string): WaSession {
   return {
     agentId: id,
     name,
+    roomUrl: "http://play.test/map",
     desk: { x: 10, y: 20 },
     position: () => ({ ...pos }),
     zone: () => "desk",

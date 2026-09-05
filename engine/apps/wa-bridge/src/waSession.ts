@@ -5,10 +5,12 @@ import { isForbiddenForRoutines, pickWanderTarget, toWanderZone, zoneAt, type Ma
 import type { SocialPhase } from "./proximity";
 import type { AgentRef, WaBridgeConfig } from "./types";
 import { encodeJoinRoomFrame, encodeSayFrame, encodeUserMovesFrame } from "./waProto";
+import { resolveWaRoomUrl } from "./roomUrl";
 
 export interface WaSession {
   readonly agentId: string;
   readonly name: string;
+  readonly roomUrl: string;
   readonly desk: { x: number; y: number };
   position(): { x: number; y: number };
   zone(): MapZoneId;
@@ -67,7 +69,8 @@ export async function joinWaSession(
   options: JoinWaSessionOptions = {},
 ): Promise<WaSession> {
   const { authToken } = await anonymLogin(cfg.waPlayUrl);
-  const wsUrl = buildWsUrl(cfg, cfg.waRoomUrl);
+  const roomUrl = resolveWaRoomUrl(agent, cfg.waRoomUrl);
+  const wsUrl = buildWsUrl(cfg, roomUrl);
   const desk = deskPosition(agent, cfg.joinPosition);
 
   const ws = await new Promise<WebSocket>((resolve, reject) => {
@@ -179,11 +182,12 @@ export async function joinWaSession(
     console.error(`[wa-bridge] session error for ${agent.id}:`, err.message);
   });
 
-  console.info(`[wa-bridge] joined WA as "${agent.name}" (${agent.id}) @ ${desk.x},${desk.y}`);
+  console.info(`[wa-bridge] joined WA as "${agent.name}" (${agent.id}) @ ${desk.x},${desk.y} room=${roomUrl}`);
 
   return {
     agentId: agent.id,
     name: agent.name,
+    roomUrl,
     desk,
     position: () => ({ ...pos }),
     zone: () => toWanderZone(zoneAt(pos.x, pos.y)),

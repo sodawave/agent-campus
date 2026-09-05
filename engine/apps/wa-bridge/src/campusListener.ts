@@ -16,6 +16,7 @@ function wsConnection(ws: WebSocket): Connection {
 }
 
 function toAgentRefs(state: State): AgentRef[] {
+  const urls = new Map(state.buildings.map((b) => [b.id, b.waRoomUrl ?? null] as const));
   return state.agents.map((a) => ({
     id: a.id,
     name: a.name,
@@ -24,6 +25,7 @@ function toAgentRefs(state: State): AgentRef[] {
     roomId: a.roomId,
     ...(a.skillKey !== undefined ? { skillKey: a.skillKey } : {}),
     ...(a.appearance !== undefined ? { appearance: a.appearance } : {}),
+    waRoomUrl: urls.get(a.buildingId) ?? null,
   }));
 }
 
