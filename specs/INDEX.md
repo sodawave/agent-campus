@@ -10,12 +10,12 @@
 | **045** | [wa-submodule](./045-wa-submodule/) | done | WA `@ v1.33.5` submodule; no editar vendor |
 | **046** | [engine-encapsulate](./046-engine-encapsulate/) | done | Todo campus → `engine/`; `packages/engine` (`@agent-campus/engine`); drop godot/viewer |
 | **047** | [wa-spatial-contract](./047-wa-spatial-contract/) | done | mapa WA = building; room = espacio privado; [MCP feasibility](../docs/wa-mcp-feasibility.md) |
+| **048** | [wa-mcp](./048-wa-mcp/) | done | MCP `wa-mcp` / `npm run mcp:wa` |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **048** | wa-mcp | Implementar MCP fino sobre wa-bridge + map-storage |
 | **049** | engine-flatten-spatial | Aplanar building/room en dominio hacia el contrato 047 |
 | **050** | admin-create-map | control-panel crea mapas (buildings) vía map-storage |
 

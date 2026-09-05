@@ -12,7 +12,7 @@ Dos ambientes encapsulados:
   - `engine/apps/server` — proceso core + event bus
   - `engine/apps/api` — MCP campus + GraphQL
   - `engine/apps/control-panel` — admin UI
-  - `engine/apps/wa-bridge` — embodiment espacial → WorkAdventure
+  - `engine/apps/wa-bridge` — embodiment espacial → WorkAdventure (+ MCP `wa-mcp`)
   - `engine/apps/cli` — host / ejecución
 - **`workadventure/`** — submodule vendor `@ v1.33.5`. **Prohibido editar.** Updates = bump de tag. Mapas vía editor / [`scripts/wa/`](scripts/wa/). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
 
@@ -29,6 +29,7 @@ npm run build
 npm run dev:server
 npm run dev:panel
 npm run dev:wa-bridge
+npm run mcp:wa      # WorkAdventure MCP (stdio)
 ```
 
 ## Arquitectura — invariantes (no negociables)

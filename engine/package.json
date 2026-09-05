@@ -12,6 +12,7 @@
     "dev:server": "npm run dev --workspace @agent-campus/server",
     "dev:panel": "npm run dev --workspace @agent-campus/control-panel",
     "dev:wa-bridge": "npm run dev --workspace @agent-campus/wa-bridge",
+    "mcp:wa": "npm run mcp --workspace @agent-campus/wa-bridge",
     "graphql": "npm run graphql --workspace @agent-campus/api",
     "cli": "npm run campus --workspace @agent-campus/cli --",
     "build": "npm run build --workspaces --if-present",

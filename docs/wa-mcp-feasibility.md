@@ -1,32 +1,32 @@
 # WorkAdventure MCP — feasibility
 
-**Status:** analysis only (spec 047). No implementation in this lot.
+**Status:** implemented in spec **048** (`npm run mcp:wa` / `@agent-campus/wa-bridge` mcp entry).
 
 ## Verdict
 
-A **campus-owned MCP server** that wraps existing surfaces is viable. There is **no** official WorkAdventure MCP upstream.
+A **campus-owned MCP server** wraps existing surfaces. There is **no** official WorkAdventure MCP upstream.
 
-Recommended core: thin tools over [`engine/apps/wa-bridge`](../engine/apps/wa-bridge) (JoinRoom / move / say / hold) + optional map-storage HTTP (`scripts/wa/`). Do **not** fork or edit the `workadventure/` submodule.
+Core tools live in [`engine/apps/wa-bridge/src/mcp/`](../engine/apps/wa-bridge/src/mcp/) (JoinRoom / move / say / leave / list + map-storage upload via `scripts/wa/`). Do **not** fork or edit the `workadventure/` submodule.
 
 ## Surface matrix
 
 | WA surface | MCP tools? | Notes |
 |---|---|---|
-| Pusher WS + protobuf via wa-bridge | **Yes — primary** | Agent embodiment already here |
-| map-storage upload / list | Yes — ops | Replaces hand-editing maps |
-| Admin API (`/api/map`, `/api/room/access`, `/api/woka/list`) | Partial | **WA calls campus**; campus implements Admin API — not a driver of agents |
-| Scripting API (`WA.*` in map) | No as fleet | In-browser; do not dual-fleet with wa-bridge |
-| Upstream WA MCP | None | Confirmed absent |
+| Pusher WS + protobuf via wa-bridge | **Yes — primary** | `wa_agent_*` tools |
+| map-storage upload | Yes — `wa_map_upload` | Shells to `scripts/wa/upload-starter-to-map-storage.sh` |
+| Admin API | Partial / later | WA calls campus |
+| Scripting API | No as fleet | — |
+| Upstream WA MCP | None | — |
 
-## Suggested future tools (048+)
+## Tools (048)
 
-- `wa.agent.join` / `wa.agent.leave`
-- `wa.agent.move` / `wa.agent.say`
-- `wa.map.upload` / `wa.room.url`
-- Read-only: `wa.agents.list` (from bridge state)
+- `wa_agent_join` / `wa_agent_leave`
+- `wa_agent_move` / `wa_agent_say`
+- `wa_agents_list` / `wa_room_url`
+- `wa_map_upload`
 
 ## Constraints
 
 - Submodule read-only ([WORKADVENTURE.md](./WORKADVENTURE.md)).
 - Domain authority remains `@agent-campus/engine`; MCP is presentation/ops only.
-- AGPL + Commons Clause on WA — MCP that drives self-hosted play is fine for private campus; do not resell WA as SaaS.
+- AGPL + Commons Clause on WA — private campus use OK; do not resell WA as SaaS.
