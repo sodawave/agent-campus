@@ -6,6 +6,7 @@ import type { SocialPhase } from "./proximity";
 import type { AgentRef, WaBridgeConfig } from "./types";
 import { encodeJoinRoomFrame, encodeSayFrame, encodeUserMovesFrame } from "./waProto";
 import { resolveWaRoomUrl } from "./roomUrl";
+import { texturesForAgent } from "./characterTextures";
 
 export interface WaSession {
   readonly agentId: string;
@@ -43,14 +44,14 @@ async function anonymLogin(playUrl: string): Promise<AnonymLoginResponse> {
   return (await res.json()) as AnonymLoginResponse;
 }
 
-function buildWsUrl(cfg: WaBridgeConfig, roomUrl: string): string {
+function buildWsUrl(cfg: WaBridgeConfig, roomUrl: string, characterTextureIds: string[]): string {
   const base = new URL(cfg.waPlayUrl);
   base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
   base.pathname = "/ws/room";
   base.search = "";
   const params = base.searchParams;
   params.set("roomId", roomUrl);
-  for (const id of cfg.characterTextureIds) {
+  for (const id of characterTextureIds) {
     params.append("characterTextureIds", id);
   }
   params.set("version", "dev");
@@ -70,7 +71,8 @@ export async function joinWaSession(
 ): Promise<WaSession> {
   const { authToken } = await anonymLogin(cfg.waPlayUrl);
   const roomUrl = resolveWaRoomUrl(agent, cfg.waRoomUrl);
-  const wsUrl = buildWsUrl(cfg, roomUrl);
+  const textures = texturesForAgent(agent, cfg.characterTextureIds);
+  const wsUrl = buildWsUrl(cfg, roomUrl, textures);
   const desk = deskPosition(agent, cfg.joinPosition);
 
   const ws = await new Promise<WebSocket>((resolve, reject) => {
@@ -182,7 +184,9 @@ export async function joinWaSession(
     console.error(`[wa-bridge] session error for ${agent.id}:`, err.message);
   });
 
-  console.info(`[wa-bridge] joined WA as "${agent.name}" (${agent.id}) @ ${desk.x},${desk.y} room=${roomUrl}`);
+  console.info(
+    `[wa-bridge] joined WA as "${agent.name}" (${agent.id}) @ ${desk.x},${desk.y} room=${roomUrl} textures=${textures.join(",")}`,
+  );
 
   return {
     agentId: agent.id,

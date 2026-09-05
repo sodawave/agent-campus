@@ -97,6 +97,25 @@ function seed(server: CampusServer): void {
   s.skin.register({ id: "s-room-office", kind: "room", key: "office", name: "Office Room", palette: { floor: "#eadfcb", wall: "#aec6d8", header: "#e2eef4", accent: "#7e9cb4" } });
   s.skin.register({ id: "s-room-lab", kind: "room", key: "lab", name: "Lab Room", palette: { floor: "#ede0d6", wall: "#d8a8bc", header: "#f5e7ec", accent: "#a86e82" } });
   s.skin.register({ id: "s-agent-staff", kind: "agent", key: "staff", name: "Staff", palette: { floor: "#efe5ce", wall: "#c9c99b", header: "#f2edc9", accent: "#8f9b6c" } });
+  // WA WOKA ids (bridge uses appearance.skinKey when it matches maleN/femaleN).
+  for (const key of [
+    "female1",
+    "female2",
+    "female3",
+    "female4",
+    "male1",
+    "male2",
+    "male3",
+    "male4",
+  ] as const) {
+    s.skin.register({
+      id: `s-woka-${key}`,
+      kind: "agent",
+      key,
+      name: key,
+      palette: { floor: "#efe5ce", wall: "#c9c99b", header: "#f2edc9", accent: "#8f9b6c" },
+    });
+  }
 
   // Apply appearance to seed entities (coords in world tiles for the campus diorama).
   s.building.setAppearance({ buildingId: "b-alpha", appearance: { skinKey: "hq-office", x: 2, y: 2, facing: "down" } });
@@ -107,11 +126,14 @@ function seed(server: CampusServer): void {
   s.room.setAppearance({ roomId: "r-ops", appearance: { skinKey: "office", x: 0, y: 0 } });
   s.room.setAppearance({ roomId: "r-fin", appearance: { skinKey: "lab", x: 2, y: 0 } });
   s.room.setAppearance({ roomId: "r-lab2", appearance: { skinKey: "lab", x: 1, y: 1 } });
-  s.agent.setAppearance({ agentId: "a-mia", appearance: { skinKey: "staff", x: 1, y: 1 } });
-  s.agent.setAppearance({ agentId: "a-ivan", appearance: { skinKey: "staff", x: 2, y: 2 } });
-  s.agent.setAppearance({ agentId: "a-joy", appearance: { skinKey: "staff", x: 1, y: 1 } });
-  s.agent.setAppearance({ agentId: "a-kev", appearance: { skinKey: "staff", x: 2, y: 2 } });
-  s.agent.setAppearance({ agentId: "a-luz", appearance: { skinKey: "staff", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "a-mia", appearance: { skinKey: "female1", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "a-ivan", appearance: { skinKey: "male1", x: 2, y: 2 } });
+  s.agent.setAppearance({ agentId: "a-joy", appearance: { skinKey: "female2", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "a-kev", appearance: { skinKey: "male2", x: 2, y: 2 } });
+  s.agent.setAppearance({ agentId: "a-luz", appearance: { skinKey: "female3", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "b-alpha-leader-agent", appearance: { skinKey: "female4", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "b-beta-leader-agent", appearance: { skinKey: "male3", x: 1, y: 1 } });
+  s.agent.setAppearance({ agentId: "b-gamma-leader-agent", appearance: { skinKey: "male4", x: 1, y: 1 } });
 
   // A project in the building inventory + an agent assigned to it.
   s.project.create({ id: "p-onboarding", buildingId: "b-alpha", name: "Onboarding" });
