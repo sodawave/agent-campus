@@ -15,12 +15,13 @@
 | **050** | [admin-create-map](./050-admin-create-map/) | done | GraphQL/MCP/control-panel: provision map + bind `waRoomUrl` |
 | **051** | [wa-bridge-building-url](./051-wa-bridge-building-url/) | done | wa-bridge join por `Building.waRoomUrl` (fallback env) |
 | **052** | [visual-demo](./052-visual-demo/) | done | Seed + script review; mapa compartido para flota visible |
+| **053** | [unique-leader-names](./053-unique-leader-names/) | done | Seed: leaders Aria/Bruno/Cora (no más "Leader"×3) |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **053** | — | (definir; p.ej. leaders con nombres únicos, panel live) |
+| **054** | — | (definir; p.ej. textures WOKA por agente, panel live) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 
