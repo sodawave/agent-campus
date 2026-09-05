@@ -17,12 +17,13 @@
 | **052** | [visual-demo](./052-visual-demo/) | done | Seed + script review; mapa compartido para flota visible |
 | **053** | [unique-leader-names](./053-unique-leader-names/) | done | Seed: leaders Aria/Bruno/Cora (no más "Leader"×3) |
 | **054** | [woka-textures](./054-woka-textures/) | done | Bridge: WOKA distinto por agente (`skinKey` / hash) |
+| **055** | [panel-live-presence](./055-panel-live-presence/) | done | Panel: poll GraphQL + wa-bridge `/presence` |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **055** | — | (definir; p.ej. panel live / presence) |
+| **056** | — | (definir) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 

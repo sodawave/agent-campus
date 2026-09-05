@@ -30,6 +30,7 @@ describe("AgentWaBridge.sync", () => {
       waPlayUrl: "http://unused",
       waRoomUrl: "http://unused/map",
       characterTextureIds: ["male1"],
+      presencePort: 0,
       joinPosition: { x: 1, y: 1 },
       reconnectBaseMs: 10,
       reconnectMaxMs: 50,

@@ -75,4 +75,17 @@ describe("GraphQL surface", () => {
     const q = await executeGraphql(link, `{ campus { buildings { id waRoomUrl } } }`);
     expect((q.data as any).campus.buildings.find((b: { id: string }) => b.id === "b1").waRoomUrl).toBe(url);
   });
+
+  it("exposes agent placement fields for the live panel", async () => {
+    const link = memLink();
+    const q = await executeGraphql(
+      link,
+      `{ campus { agents { id name kind buildingId roomId rankKey skinKey live } } }`,
+    );
+    expect(q.errors).toBeUndefined();
+    const agents = (q.data as { campus: { agents: Array<{ id: string; kind: string; buildingId: string }> } }).campus
+      .agents;
+    expect(agents.some((a) => a.id === "b1-leader-agent")).toBe(true);
+    expect(agents.find((a) => a.id === "b1-leader-agent")?.buildingId).toBe("b1");
+  });
 });

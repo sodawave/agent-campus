@@ -38,8 +38,6 @@ export function texturesForAgent(
 ): string[] {
   const key = agent.appearance?.skinKey;
   if (key && isWokaTextureId(key)) return [key];
-  const palette = DEFAULT_WOKA_TEXTURE_IDS;
-  if (palette.length === 0) return fallback.length > 0 ? fallback : ["male1"];
-  const pick = palette[hashId(agent.id) % palette.length];
-  return pick ? [pick] : fallback;
+  const pick = DEFAULT_WOKA_TEXTURE_IDS[hashId(agent.id) % DEFAULT_WOKA_TEXTURE_IDS.length];
+  return pick ? [pick] : fallback.length > 0 ? fallback : ["male1"];
 }

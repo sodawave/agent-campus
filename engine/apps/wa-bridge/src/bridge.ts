@@ -163,6 +163,29 @@ export class AgentWaBridge {
   joinedIds(): string[] {
     return [...this.#sessions.keys()];
   }
+
+  presence(): Array<{
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    social: string;
+    zone: string;
+    roomUrl: string;
+  }> {
+    return [...this.#sessions.values()].map((s) => {
+      const p = s.position();
+      return {
+        id: s.agentId,
+        name: s.name,
+        x: p.x,
+        y: p.y,
+        social: s.social(),
+        zone: s.zone(),
+        roomUrl: s.roomUrl,
+      };
+    });
+  }
 }
 
 function sleep(ms: number): Promise<void> {

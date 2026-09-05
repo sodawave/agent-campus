@@ -31,6 +31,7 @@ const baseCfg: WaBridgeConfig = {
   waPlayUrl: "http://play.test",
   waRoomUrl: "http://play.test/~/campus/starter/map.wam",
   characterTextureIds: ["male1"],
+  presencePort: 0,
   joinPosition: { x: 320, y: 320 },
   reconnectBaseMs: 100,
   reconnectMaxMs: 500,

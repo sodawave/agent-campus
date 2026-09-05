@@ -19,3 +19,15 @@ button:hover { background: #2ea043; }
 .muted { color: #8b949e; }
 .ok { color: #3fb950; font-size: 12px; margin-top: 8px; }
 .err { color: #f85149; font-size: 12px; margin-top: 8px; }
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.badge.on { border-color: #238636; color: #3fb950; }
+.badge.off { border-color: #6e7681; color: #8b949e; }

@@ -22,5 +22,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): WaBridgeConfig
     routineIdleMs: Number(env.WA_ROUTINE_IDLE_MS ?? 20_000),
     routineWorkMs: Number(env.WA_ROUTINE_WORK_MS ?? 90_000),
     queueHoldMs: Number(env.WA_QUEUE_HOLD_MS ?? 20_000),
+    presencePort: Number(env.WA_PRESENCE_PORT ?? 8790),
   };
 }

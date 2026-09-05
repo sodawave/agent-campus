@@ -31,4 +31,6 @@ export interface WaBridgeConfig {
   routineWorkMs: number;
   /** How long QUEUED freezes wander before resume (ms). */
   queueHoldMs: number;
+  /** HTTP port for GET /presence (0 = disabled). */
+  presencePort: number;
 }
