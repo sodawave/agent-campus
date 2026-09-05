@@ -1,22 +1,23 @@
 # Agent Campus
 
-Gamified campus for AI agents — **WorkAdventure** for spatial presentation; **campus-engine** for domain authority.
+Gamified campus for AI agents — **WorkAdventure** for spatial presentation; **`engine/`** for domain authority.
 
 ## Status
 
-**v0.17** — Spatial client = WorkAdventure + [`apps/wa-bridge`](apps/wa-bridge). Godot spatial line **deprecated** (see [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md)).
+**v0.18** — Layout: `engine/` ambient + `workadventure/` submodule `@ v1.33.5`. Godot/viewer removed.
 
 | Layer | Choice |
 |-------|--------|
-| Spatial presentation | **WorkAdventure** + `apps/wa-bridge` (agents as WOKAs) |
-| Domain / API | TypeScript `campus-engine` + `apps/server` |
-| Config UI | `apps/control-panel` (+ playground for debug) |
-| Memory | [MemPalace](https://github.com/MemPalace/mempalace) |
-| Specs | [Spec Kit](https://github.com/github/spec-kit) — index [`specs/INDEX.md`](specs/INDEX.md) |
-| Deploy | [`deploy/compose`](deploy/compose/) |
-| CLI hosts | Low priority |
-| ~~Godot~~ | **Deprecated** — `apps/campus-godot` (no new spatial work) |
+| Spatial presentation | **WorkAdventure** + `engine/apps/wa-bridge` |
+| Domain / API | `@agent-campus/engine` + `engine/apps/server` / `api` |
+| Config UI | `engine/apps/control-panel` |
+| Specs | [Spec Kit](https://github.com/github/spec-kit) — [`specs/INDEX.md`](specs/INDEX.md) |
+| Vendor WA | submodule — **do not edit**; see [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md) |
 
-Canonical write-up: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md) · WA matrix: [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md)
+```bash
+git submodule update --init
+cd engine && npm install
+cd .. && npm run typecheck && npm test && npm run build
+```
 
-https://github.com/sodawave/agent-campus
+Canonical: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md) · Agents: [`AGENTS.md`](AGENTS.md)

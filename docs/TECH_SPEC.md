@@ -1,10 +1,10 @@
 # Agent Campus — Spec técnica (engine)
 
-**Estado:** v0.17 — **Presentación espacial = WorkAdventure** (+ [`apps/wa-bridge`](../apps/wa-bridge)).  
+**Estado:** v0.17 — **Presentación espacial = WorkAdventure** (+ [`engine/apps/wa-bridge`](../engine/apps/wa-bridge)).  
 **Cliente espacial canónico:** WorkAdventure (play).  
 **Dominio:** TypeScript `campus-engine` + API.  
 **UI no espacial:** control-panel / playground.  
-**Godot (`apps/campus-godot`): DEPRECATED** — solapaba el mapa espacial con WA; ver [`docs/WORKADVENTURE.md`](WORKADVENTURE.md).  
+**Godot (`~~engine removed: campus-godot~~`): DEPRECATED** — solapaba el mapa espacial con WA; ver [`docs/WORKADVENTURE.md`](WORKADVENTURE.md).  
 **Backend:** dominio TS + API Hono + MemPalace + Spec Kit + Compose.  
 **CLI host:** diferido (prioridad baja).  
 
@@ -59,7 +59,7 @@ flowchart LR
 | Plataforma     | `ClientPlatform = "cli_host"`          | Junto a web/ios/android                       |
 
 
-Comandos (contrato): ver `CAMPUS_CLI_COMMANDS` en `[domain/host.ts](../packages/campus-engine/src/domain/host.ts)`.
+Comandos (contrato): ver `CAMPUS_CLI_COMMANDS` en `[domain/host.ts](../engine/packages/engine/src/domain/host.ts)`.
 
 Eventos: `host.joined` / `host.left` / `host.heartbeat` / `runtime.started` / `runtime.stopped`.
 
@@ -77,8 +77,8 @@ Reglas:
 
 | Plataforma | Cómo |
 | ---------- | ---- |
-| **Espacial (mapa, WOKAs)** | **WorkAdventure** + `apps/wa-bridge` — canónico |
-| **Config / overview** | `apps/control-panel`, `apps/playground` |
+| **Espacial (mapa, WOKAs)** | **WorkAdventure** + `engine/apps/wa-bridge` — canónico |
+| **Config / overview** | `engine/apps/control-panel`, `apps/playground` |
 | **~~Godot mobile/desktop/web~~** | **DEPRECATED** — no invertir |
 
 Las pantallas de **mapa / gamificación espacial** viven en WA. Org/tasks/config: web (control-panel) + eventos del core. Detalle: [`WORKADVENTURE.md`](WORKADVENTURE.md).
@@ -127,7 +127,7 @@ Cada **proyecto/edificio** puede activar Spec-Driven Development:
 
 
 Eventos: `speckit.phase.changed`, `speckit.artifact.upserted`.  
-Helpers: `[domain/speckit.ts](../packages/campus-engine/src/domain/speckit.ts)`.
+Helpers: `[domain/speckit.ts](../engine/packages/engine/src/domain/speckit.ts)`.
 
 ### Comunicación entre agentes + despliegue
 
@@ -143,7 +143,7 @@ Tomamos del [Buzz compose](https://github.com/block/buzz/tree/main/deploy/compos
 | Opción futura Nostr/Buzz       | `CAMPUS_COMMS_BACKEND=buzz` + `CAMPUS_BUZZ_RELAY_URL` |
 
 
-Puerto: `[domain/comms.ts](../packages/campus-engine/src/domain/comms.ts)` — `AgentCommsPort.publish/subscribe` por `campus|project|workspace|agent|thread`.
+Puerto: `[domain/comms.ts](../engine/packages/engine/src/domain/comms.ts)` — `AgentCommsPort.publish/subscribe` por `campus|project|workspace|agent|thread`.
 
 No vendemos Buzz entero en v0; reutilizamos el **patrón de ops** y dejamos el relay Buzz como backend opcional de comms.
 
@@ -250,7 +250,7 @@ Sin `activeCallId` **no** hay roaming libre entre edificios ni entre salas.
 | Fin             | `agent.returned_home`                                      |
 
 
-Helpers: `issueProjectCall`, `acceptProjectCall`, `returnHomeFromCall`, `canLeaveHomeOffice` en `[context.ts](../packages/campus-engine/src/domain/context.ts)`.
+Helpers: `issueProjectCall`, `acceptProjectCall`, `returnHomeFromCall`, `canLeaveHomeOffice` en `[context.ts](../engine/packages/engine/src/domain/context.ts)`.
 
 ### Departamento natural (homing)
 
@@ -284,7 +284,7 @@ flowchart LR
 | Sala                              | Opcional `role: "library"` + `Library.roomId` en el mapa       |
 
 
-Helpers: `[domain/library.ts](../packages/campus-engine/src/domain/library.ts)`. Sample: `[sample-library.json](../packages/campus-engine/src/catalog/sample-library.json)`.
+Helpers: `[domain/library.ts](../engine/packages/engine/src/domain/library.ts)`. Sample: `[sample-library.json](../engine/packages/engine/src/catalog/sample-library.json)`.
 
 ### Departamento natural (homing)
 
@@ -304,7 +304,7 @@ Helpers: `[domain/library.ts](../packages/campus-engine/src/domain/library.ts)`.
 | Jefe de dpto         | `Workspace.headAgentId`                |
 
 
-Helpers: `[domain/org.ts](../packages/campus-engine/src/domain/org.ts)`.
+Helpers: `[domain/org.ts](../engine/packages/engine/src/domain/org.ts)`.
 
 ### Reglas v0
 
@@ -338,7 +338,7 @@ Helpers: `[domain/org.ts](../packages/campus-engine/src/domain/org.ts)`.
 - Destruir → evento `worker.exited` → figura anónima **sale** del campus.
 - Solo el spawner puede destruir a sus workers (`canDestroyWorker`).
 
-Helpers: `[domain/workers.ts](../packages/campus-engine/src/domain/workers.ts)`.
+Helpers: `[domain/workers.ts](../engine/packages/engine/src/domain/workers.ts)`.
 
 ---
 
@@ -349,7 +349,7 @@ Helpers: `[domain/workers.ts](../packages/campus-engine/src/domain/workers.ts)`.
 
 | Capa                         | Tecnología                                   | Motivo                                                 |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------ |
-| **Espacial (mapa + WOKAs)** | **WorkAdventure** + `apps/wa-bridge`        | Presentación espacial canónica; sin segundo motor mapa |
+| **Espacial (mapa + WOKAs)** | **WorkAdventure** + `engine/apps/wa-bridge`        | Presentación espacial canónica; sin segundo motor mapa |
 | Domain / API                 | **TypeScript** + **Hono** + Postgres + Redis | Reglas, bus, persistencia                              |
 | Memoria                      | **MemPalace**                                | Agente + proyecto                                      |
 | Specs                        | **Spec Kit**                                 | SDD por building                                       |
@@ -357,7 +357,7 @@ Helpers: `[domain/workers.ts](../packages/campus-engine/src/domain/workers.ts)`.
 | Config / admin UI            | control-panel / playground                   | Sin clonar dashboard SaaS WA                           |
 | Deploy                       | `deploy/compose`                             | api, pg, redis, minio, caddy                           |
 | CLI host                     | diferido                                     | Prioridad baja                                         |
-| ~~Godot 4~~                  | **DEPRECATED** (`apps/campus-godot`)         | Solapaba espacial con WA                               |
+| ~~Godot 4~~                  | **DEPRECATED** (`~~engine removed: campus-godot~~`)         | Solapaba espacial con WA                               |
 
 
 ### Por qué WorkAdventure (y no Godot) como espacial
@@ -398,9 +398,9 @@ El sistema se separa en **tres planos**. Ningún plano contiene reglas de otro.
 
 | Plano                         | Dónde vive                                                                                        | Qué posee                                                                                                | En el repo                                                                                                      |
 | ----------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Control** (autoridad)       | **Core** en servidor (VPS o server local expuesto vía VPN)                                        | Identidad, org, binding a campus/edificio, memoria (punteros), reglas y **secuencia** del bus de eventos | `[campus-engine](../packages/campus-engine/src)` + API                                                          |
-| **Ejecución** (cómputo)       | **Host** = cualquier máquina (el servidor, un portátil, un box GPU… incluso **headless por CLI**) | El **proceso vivo** del agente + acceso a **archivos/carpetas locales** y tools de esa máquina           | `[domain/host.ts](../packages/campus-engine/src/domain/host.ts)` (`AgentHost`, `AgentRuntime`, `CampusCliPort`) |
-| **Presentación** (proyección) | **Cliente** espacial = WorkAdventure; UI web = control-panel / playground | Solo **renderiza** / proyecta; no decide negocio | `apps/wa-bridge` + WA play; `apps/control-panel`, `apps/playground`; ~~`apps/campus-godot` deprecated~~ |
+| **Control** (autoridad)       | **Core** en servidor (VPS o server local expuesto vía VPN)                                        | Identidad, org, binding a campus/edificio, memoria (punteros), reglas y **secuencia** del bus de eventos | `[campus-engine](../engine/packages/engine/src)` + API                                                          |
+| **Ejecución** (cómputo)       | **Host** = cualquier máquina (el servidor, un portátil, un box GPU… incluso **headless por CLI**) | El **proceso vivo** del agente + acceso a **archivos/carpetas locales** y tools de esa máquina           | `[domain/host.ts](../engine/packages/engine/src/domain/host.ts)` (`AgentHost`, `AgentRuntime`, `CampusCliPort`) |
+| **Presentación** (proyección) | **Cliente** espacial = WorkAdventure; UI web = control-panel / playground | Solo **renderiza** / proyecta; no decide negocio | `engine/apps/wa-bridge` + WA play; `engine/apps/control-panel`, `apps/playground`; ~~`~~engine removed: campus-godot~~` deprecated~~ |
 
 
 ```mermaid
@@ -472,7 +472,7 @@ El runtime (p. ej. un agente CLI) emite **dos tipos** de acciones:
 
 En ambos casos, a los clientes **siempre** les llega un `CampusEvent` secuenciado por el core; el cliente nunca distingue si el origen fue un agente CLI, otro humano o el propio servidor.
 
-**Proyección robusta:** el cliente aplica `reduce(state, event)` (`[CampusStore](../packages/campus-engine/src/store/CampusStore.ts)`), que es **idempotente** (reintentos/duplicados no rompen estado). Un cliente que entra tarde **reproduce** el event log (`getEventLog()`) —o recibe snapshot + cola— y llega al mismo estado.
+**Proyección robusta:** el cliente aplica `reduce(state, event)` (`[CampusStore](../engine/packages/engine/src/store/CampusStore.ts)`), que es **idempotente** (reintentos/duplicados no rompen estado). Un cliente que entra tarde **reproduce** el event log (`getEventLog()`) —o recibe snapshot + cola— y llega al mismo estado.
 
 ### 4.4 Campus multi-edificio y préstamos
 
@@ -507,9 +507,9 @@ store.worker.spawn(...) / despawn(...)
 
 ## 5. Modelo de datos
 
-Fuente canónica: `[packages/campus-engine/src/domain/types.ts](../packages/campus-engine/src/domain/types.ts)`.  
-Home/contexto: `[context.ts](../packages/campus-engine/src/domain/context.ts)`.  
-Org rules: `[org.ts](../packages/campus-engine/src/domain/org.ts)`.  
+Fuente canónica: `[engine/packages/engine/src/domain/types.ts](../engine/packages/engine/src/domain/types.ts)`.  
+Home/contexto: `[context.ts](../engine/packages/engine/src/domain/context.ts)`.  
+Org rules: `[org.ts](../engine/packages/engine/src/domain/org.ts)`.  
 Catálogo / proyecto: `sample-catalog.json`, `sample-project.json`.
 
 ### 5.1 Contexto, harness, organigrama, biblioteca e instancias
@@ -629,7 +629,7 @@ El layout de la captura de referencia se modela así:
 ## 6. Escenas del cliente (plano de presentación)
 
 > **Plano de presentación** (§4): solo proyecta estado; no decide negocio.  
-> **Espacial canónico = WorkAdventure** (+ `apps/wa-bridge`).  
+> **Espacial canónico = WorkAdventure** (+ `engine/apps/wa-bridge`).  
 > `apps/playground` / control-panel = UI no espacial.  
 > **Godot espacial deprecated** — las escenas BootScene / CampusScene / HudScene siguientes son **legado histórico** (no roadmap). Ver [`WORKADVENTURE.md`](WORKADVENTURE.md).
 
@@ -825,12 +825,12 @@ Asset: `[assets/refs/aesthetic-campus-isometric-clay.png](../assets/refs/aesthet
   docs/TECH_SPEC.md
   docs/WORKADVENTURE.md       # WA vs campus-engine; Godot deprecated
   deploy/compose/
-  packages/campus-engine/     # domain TS (API + clients)
+  engine/packages/engine/     # domain TS (API + clients)
   packages/campus-cli/        # low priority
-  apps/wa-bridge/             # embodiment espacial → WorkAdventure
-  apps/control-panel/         # config UI
+  engine/apps/wa-bridge/             # embodiment espacial → WorkAdventure
+  engine/apps/control-panel/         # config UI
   apps/playground/            # proyección web de debug
-  apps/campus-godot/          # DEPRECATED — no nuevas features espaciales
+  ~~engine removed: campus-godot~~/          # DEPRECATED — no nuevas features espaciales
 ```
 
 ---
@@ -945,7 +945,7 @@ Flujo alineado con Spec Kit (SDD): **una spec = una rama = un PR**.
 2. MotionMotor extensible en wa-bridge (directivas move/say/hold).
 3. Org/tasks UI: profundizar control-panel / playground (no mapa paralelo).
 4. Admin API opcional si Pusher debe preguntar a campus.
-5. Limpieza: borrar o archivar `apps/campus-godot` cuando toque.
+5. Limpieza: borrar o archivar `~~engine removed: campus-godot~~` cuando toque.
 
 ---
 

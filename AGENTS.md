@@ -5,34 +5,39 @@ Documento canónico de diseño: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md).
 
 ## Monorepo
 
-npm workspaces:
+Dos ambientes encapsulados:
 
-- `packages/campus-engine` — dominio puro + `CampusStore` (TypeScript, sin render).
-- `apps/playground` — cliente web de referencia (Vite) que **solo proyecta** estado (org/debug; no mapa espacial).
-- `apps/wa-bridge` — embodiment de agentes en WorkAdventure (presentación espacial canónica).
-- `apps/campus-godot` — **DEPRECATED** (solapaba el mapa espacial con WA; no nuevas features). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
-- `apps/control-panel` — config campus (GraphQL).
+- **`engine/`** — ambient campus (npm workspaces internos):
+  - `engine/packages/engine` — dominio puro + `CampusStore` (`@agent-campus/engine`)
+  - `engine/apps/server` — proceso core + event bus
+  - `engine/apps/api` — MCP campus + GraphQL
+  - `engine/apps/control-panel` — admin UI
+  - `engine/apps/wa-bridge` — embodiment espacial → WorkAdventure
+  - `engine/apps/cli` — host / ejecución
+- **`workadventure/`** — submodule vendor `@ v1.33.5`. **Prohibido editar.** Updates = bump de tag. Mapas vía editor / [`scripts/wa/`](scripts/wa/). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
 
-**Vendor:** [`workadventure/`](workadventure/) = **git submodule** `@ v1.33.5`. **Prohibido editar** bajo `workadventure/`. Updates = bump de tag. Mapas vía editor / [`scripts/wa/`](scripts/wa/). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
+Raíz = orquestación (scripts delegan a `engine/`) + Spec Kit (`specs/`, `.specify/`).
 
 Comandos (desde la raíz):
 
 ```bash
 git submodule update --init
-npm install
-npm run dev         # playground en :5173
-npm run typecheck   # engine + playground
-npm test            # Vitest (dominio/store)
-npm run build       # engine (tsc) + playground (vite build)
+cd engine && npm install && cd ..
+npm run typecheck   # → engine/
+npm test
+npm run build
+npm run dev:server
+npm run dev:panel
+npm run dev:wa-bridge
 ```
 
 ## Arquitectura — invariantes (no negociables)
 
 Tres planos (ver TECH_SPEC §4). **Ningún plano contiene reglas de otro.**
 
-1. **Control (core, servidor)** — única autoridad: identidad, org, binding a campus/edificio, reglas y **secuencia** del bus. Vive en `campus-engine` + API.
+1. **Control (core, servidor)** — única autoridad: identidad, org, binding a campus/edificio, reglas y **secuencia** del bus. Vive en `@agent-campus/engine` + API.
 2. **Ejecución (host)** — el proceso vivo del agente (incluso headless por CLI) con acceso a ficheros locales. `domain/host.ts`.
-3. **Presentación (cliente)** — **WorkAdventure** (espacial, vía [`apps/wa-bridge`](apps/wa-bridge)) + playground/control-panel (UI no espacial). **Solo proyectan.** Cero lógica de negocio. Godot espacial **deprecated** — ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md). Un solo embodiment de agentes = wa-bridge (no flota doble con map-script bots).
+3. **Presentación (cliente)** — **WorkAdventure** (espacial, vía [`engine/apps/wa-bridge`](engine/apps/wa-bridge)) + control-panel (UI no espacial). **Solo proyectan.** Cero lógica de negocio. Godot espacial **eliminado**. Un solo embodiment de agentes = wa-bridge (no flota doble con map-script bots).
 
 Reglas duras:
 
@@ -70,7 +75,7 @@ Ingeniería:
 
 - No acumular specs distintas en una rama.
 - Cada cambio lógico = un commit descriptivo.
-- Antes de abrir PR: `npm run typecheck && npm test && npm run build` en verde.
+- Antes de abrir PR: `npm run typecheck && npm test && npm run build` en verde (desde `engine/` o raíz).
 - `main` siempre desplegable/estable.
 
 Metodología SDD con **Spec Kit** ([github/spec-kit](https://github.com/github/spec-kit); integraciones `cursor-agent` + `opencode`):
@@ -89,4 +94,4 @@ Metodología SDD con **Spec Kit** ([github/spec-kit](https://github.com/github/s
 - TypeScript estricto (ver `tsconfig.base.json`): `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, etc.
 - `domain/` no importa render ni store; el store no importa cliente.
 - Eventos nuevos → añadir al union `CampusEvent` y su case en `reduce`.
-- Tests junto al paquete (`packages/campus-engine/test`).
+- Tests junto al paquete (`engine/packages/engine/test`).

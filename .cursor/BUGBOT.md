@@ -4,7 +4,7 @@ Revisa cada PR contra estas reglas. Marca como bloqueante lo que viole invariant
 
 ## Bloqueante
 
-- **Sin lógica de negocio en clientes** (`apps/*`). Los clientes solo proyectan estado y emiten Commands; las reglas viven en `packages/campus-engine`.
+- **Sin lógica de negocio en clientes** (`apps/*`). Los clientes solo proyectan estado y emiten Commands; las reglas viven en `engine/packages/engine`.
 - **`domain/` no importa render ni store**; el store no importa código de cliente. Mantener los tres planos separados (control / ejecución / presentación).
 - **Reducer puro e idempotente**: `reduce(state, event)` no hace I/O, no muta argumentos, y reaplicar un evento no cambia el resultado.
 - **Eventos**: todo `CampusEvent` nuevo debe tener su case en `reduce` y ser JSON-serializable (contrato neutral de lenguaje).

@@ -19,7 +19,7 @@ Query map/scripting via `workadventure-docs`; admin via `workadventure-admin-doc
 
 ## campus-engine vs WorkAdventure (no duplicar el dominio)
 
-**Veredicto:** WorkAdventure **no** reemplaza [`packages/campus-engine`](../packages/campus-engine). Hay solape en *presentación espacial* — y ese solape se resuelve **deprecando Godot como cliente espacial**, no metiendo el dominio en WA.
+**Veredicto:** WorkAdventure **no** reemplaza [`engine/packages/engine`](../engine/packages/engine). Hay solape en *presentación espacial* — y ese solape se resuelve **deprecando Godot como cliente espacial**, no metiendo el dominio en WA.
 
 ```mermaid
 flowchart TB
@@ -55,13 +55,13 @@ flowchart TB
 
 ### Godot — **deprecated**
 
-[`apps/campus-godot`](../apps/campus-godot) queda **deprecado**. La finalidad última del cliente espacial (mapa, avatares, proximidad) es exactamente lo que aporta WA; mantener una segunda línea Stardew/Godot duplica presentación.
+[`~~engine removed: campus-godot~~`](../~~engine removed: campus-godot~~) queda **deprecado**. La finalidad última del cliente espacial (mapa, avatares, proximidad) es exactamente lo que aporta WA; mantener una segunda línea Stardew/Godot duplica presentación.
 
 | Antes (TECH_SPEC v0.16) | Ahora |
 |-------------------------|--------|
 | Godot 4 = cliente principal (mapa + org + chats) | **WA + wa-bridge** = representación gráfica/espacial |
 | Godot mobile/desktop/web | WA play (browser); org/config en control-panel / playground |
-| `apps/campus-godot` activo | No nuevas features; no specs nuevas de mapa Godot |
+| `~~engine removed: campus-godot~~` activo | No nuevas features; no specs nuevas de mapa Godot |
 
 Código legado puede permanecer en el repo hasta borrarlo en una limpieza; **no invertir** en pathing/skins/campus_view Godot.
 
@@ -87,7 +87,7 @@ Código legado puede permanecer en el repo hasta borrarlo en una limpieza; **no 
 
 ### Regla de embodiment (única)
 
-**Un solo camino:** [`apps/wa-bridge`](../apps/wa-bridge) — JoinRoom + MotionMotor/routines. Campus decide *quién* existe; el bridge *proyecta* WOKAs.
+**Un solo camino:** [`engine/apps/wa-bridge`](../engine/apps/wa-bridge) — JoinRoom + MotionMotor/routines. Campus decide *quién* existe; el bridge *proyecta* WOKAs.
 
 - No adoptar a la vez bots del [blog WA](./workadventure-blog/) (gpt-bot, tock-bot, realtime-api) como segunda flota de agentes del campus.
 - Tutoriales de scripting = referencia de UX/API, no arquitectura de dominio.
@@ -127,7 +127,7 @@ See [`workadventure-admin/README.md`](./workadventure-admin/README.md).
 
 ## Related product decisions
 
-- Agent movement: extend MotionMotor in `apps/wa-bridge` (not high-frequency core events).
+- Agent movement: extend MotionMotor in `engine/apps/wa-bridge` (not high-frequency core events).
 - Prefer map-storage / editor over hand-editing starter `map.json` in the submodule.
 - Godot spatial client: **deprecated** (see above).
 
@@ -144,5 +144,5 @@ bash scripts/wa/upload-starter-to-map-storage.sh
 ```
 
 - Editor room: http://play.workadventure.localhost/~/campus/starter/map.wam  
-- Bridge default `WA_ROOM_URL` points there (`apps/wa-bridge`).  
+- Bridge default `WA_ROOM_URL` points there (`engine/apps/wa-bridge`).  
 - Inline edits persist in map-storage (`.wam`), not in submodule `maps/starter/map.json`. For tile geometry: edit with Tiled **outside** the submodule or via editor → re-run the upload script.
