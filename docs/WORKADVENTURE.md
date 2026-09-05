@@ -120,9 +120,11 @@ Control Panel campus ≠ clonar dashboard SaaS WA. Admin API (`/api/map`, `/api/
 
 ```bash
 git submodule update --init
-cd workadventure
-docker compose -f docker-compose.yaml -f docker-compose-no-oidc.yaml up -d
+# wipe + recreate WA containers (optional local OIDC mock for Login):
+bash scripts/wa/wa-reset.sh
 ```
+
+**Login button:** `docker-compose-no-oidc.yaml` stops the OIDC mock but leaves `OPENID_*` set, so Login → HTTP 500. `wa-reset.sh` scales `oidc-server-mock=1` by default (local mock only — not a real IdP). Or skip Login and enter `/~/…` anonymously.
 
 ---
 
@@ -150,9 +152,7 @@ Requirement: room URL under **`/~/...`** (map-storage), plus `ENABLE_MAP_EDITOR`
 
 ```bash
 git submodule update --init
-cd workadventure
-docker compose -f docker-compose.yaml -f docker-compose-no-oidc.yaml up -d
-cd ..
+bash scripts/wa/wa-reset.sh
 bash scripts/wa/upload-starter-to-map-storage.sh
 ```
 
