@@ -16,6 +16,8 @@ export interface AgentRef {
   appearance?: AgentAppearance;
   /** WorkAdventure map URL from Building.waRoomUrl (optional). */
   waRoomUrl?: string | null;
+  /** WA private-space / area id from Room.waAreaId (optional). */
+  waAreaId?: string | null;
 }
 
 export interface WaBridgeConfig {

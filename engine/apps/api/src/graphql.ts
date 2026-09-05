@@ -19,12 +19,14 @@ export const schema = buildSchema(`
     defaultModel: ModelRef
   }
   type Building { id: ID!, name: String!, leaderAgentId: ID, waRoomUrl: String }
+  type Room { id: ID!, buildingId: ID!, key: String!, waAreaId: String }
   type Agent {
     id: ID!
     name: String!
     kind: String!
     buildingId: ID!
     roomId: ID!
+    waAreaId: String
     rankKey: String
     skinKey: String
     live: Boolean!
@@ -35,6 +37,7 @@ export const schema = buildSchema(`
     name: String
     config: Config!
     buildings: [Building!]!
+    rooms: [Room!]!
     agents: [Agent!]!
     projects: [Project!]!
   }
@@ -47,6 +50,7 @@ export const schema = buildSchema(`
     setConfig(language: String, timezone: String): CommandResult!
     spawnBuilding(id: ID!, name: String!, waRoomUrl: String): CommandResult!
     setBuildingWaRoomUrl(buildingId: ID!, waRoomUrl: String): CommandResult!
+    setRoomWaAreaId(roomId: ID!, waAreaId: String): CommandResult!
     provisionBuildingMap(id: ID!, name: String!, directory: String): ProvisionResult!
     createProject(id: ID!, buildingId: ID!, name: String!): CommandResult!
     addProvider(id: ID!, name: String!, models: [String!]!): CommandResult!
@@ -64,6 +68,7 @@ export function createRoot(link: CampusLink) {
   return {
     campus: () => {
       const s = link.state();
+      const areaByRoom = new Map(s.rooms.map((r) => [r.id, r.waAreaId ?? null] as const));
       return {
         id: s.campus?.id ?? null,
         name: s.campus?.name ?? null,
@@ -74,12 +79,19 @@ export function createRoot(link: CampusLink) {
           leaderAgentId: b.leaderAgentId ?? null,
           waRoomUrl: b.waRoomUrl ?? null,
         })),
+        rooms: s.rooms.map((r) => ({
+          id: r.id,
+          buildingId: r.buildingId,
+          key: r.key,
+          waAreaId: r.waAreaId ?? null,
+        })),
         agents: s.agents.map((a) => ({
           id: a.id,
           name: a.name,
           kind: a.kind,
           buildingId: a.buildingId,
           roomId: a.roomId,
+          waAreaId: areaByRoom.get(a.roomId) ?? null,
           rankKey: a.rankKey ?? null,
           skinKey: a.appearance?.skinKey ?? null,
           live: a.runtimeId != null,
@@ -115,6 +127,14 @@ export function createRoot(link: CampusLink) {
           type: "building.setWaRoomUrl",
           buildingId: args.buildingId,
           waRoomUrl: args.waRoomUrl,
+        }),
+      ),
+    setRoomWaAreaId: async (args: { roomId: string; waAreaId: string | null }) =>
+      toResult(
+        await link.send({
+          type: "room.setWaAreaId",
+          roomId: args.roomId,
+          waAreaId: args.waAreaId,
         }),
       ),
     provisionBuildingMap: async (args: { id: string; name: string; directory?: string | null }) => {

@@ -35,6 +35,13 @@ describe("deskPosition", () => {
     expect(Math.abs(p.y - fallback.y)).toBeLessThanOrEqual(96);
   });
 
+  it("prefers waAreaId desk over roomId when both are set", () => {
+    const a = agent({ id: "a-mia", name: "Mia", roomId: "r-unknown", waAreaId: "area-mkt" });
+    const p = deskPosition(a, fallback);
+    expect(p.x).toBeGreaterThan(280);
+    expect(p.y).toBeGreaterThan(340);
+  });
+
   it("hashOffset is stable and bounded", () => {
     const o = hashOffset("a-mia", 64);
     expect(o.dx).toBeGreaterThanOrEqual(0);

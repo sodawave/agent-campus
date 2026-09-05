@@ -19,12 +19,13 @@
 | **054** | [woka-textures](./054-woka-textures/) | done | Bridge: WOKA distinto por agente (`skinKey` / hash) |
 | **055** | [panel-live-presence](./055-panel-live-presence/) | done | Panel: poll GraphQL + wa-bridge `/presence` |
 | **056** | [demo-stack](./056-demo-stack/) | done | `stack:up` / `stack:down` (wipe campus procs+logs) |
+| **057** | [room-wa-area-id](./057-room-wa-area-id/) | done | Seed + bridge desks por `Room.waAreaId` |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **057** | — | (definir; p.ej. Room.waAreaId en seed/bridge) |
+| **058** | — | (definir; p.ej. mapas per-building) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 

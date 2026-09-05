@@ -39,8 +39,9 @@ function seed(server: CampusServer): void {
     waRoomUrl: mapFor("b-alpha"),
     leaderName: "Aria",
   });
-  s.room.spawn({ id: "r-mkt", buildingId: "b-alpha", key: "marketing" });
-  s.room.spawn({ id: "r-dev", buildingId: "b-alpha", key: "engineering" });
+  s.room.spawn({ id: "r-mkt", buildingId: "b-alpha", key: "marketing", waAreaId: "area-mkt" });
+  s.room.spawn({ id: "r-dev", buildingId: "b-alpha", key: "engineering", waAreaId: "area-dev" });
+  s.room.setWaAreaId({ roomId: "b-alpha-leader", waAreaId: "area-alpha-leader" });
 
   // Named agents with roles + org line.
   s.agent.instantiate({ id: "a-mia", name: "Mia", buildingId: "b-alpha", roomId: "r-mkt", rankKey: "lead", skillKey: "marketing" });
@@ -55,8 +56,9 @@ function seed(server: CampusServer): void {
     waRoomUrl: mapFor("b-beta"),
     leaderName: "Bruno",
   });
-  s.room.spawn({ id: "r-ops", buildingId: "b-beta", key: "operations" });
-  s.room.spawn({ id: "r-fin", buildingId: "b-beta", key: "finance" });
+  s.room.spawn({ id: "r-ops", buildingId: "b-beta", key: "operations", waAreaId: "area-ops" });
+  s.room.spawn({ id: "r-fin", buildingId: "b-beta", key: "finance", waAreaId: "area-fin" });
+  s.room.setWaAreaId({ roomId: "b-beta-leader", waAreaId: "area-beta-leader" });
   s.agent.instantiate({ id: "a-joy", name: "Joy", buildingId: "b-beta", roomId: "r-ops", rankKey: "lead", skillKey: "operations" });
   s.agent.instantiate({ id: "a-kev", name: "Kevin", buildingId: "b-beta", roomId: "r-fin", rankKey: "ic", skillKey: "finance" });
   s.room.assignHead({ roomId: "r-ops", agentId: "a-joy" });
@@ -68,7 +70,8 @@ function seed(server: CampusServer): void {
     waRoomUrl: mapFor("b-gamma"),
     leaderName: "Cora",
   });
-  s.room.spawn({ id: "r-lab2", buildingId: "b-gamma", key: "research" });
+  s.room.spawn({ id: "r-lab2", buildingId: "b-gamma", key: "research", waAreaId: "area-lab" });
+  s.room.setWaAreaId({ roomId: "b-gamma-leader", waAreaId: "area-gamma-leader" });
   s.agent.instantiate({ id: "a-luz", name: "Luz", buildingId: "b-gamma", roomId: "r-lab2", rankKey: "lead", skillKey: "research" });
   s.room.assignHead({ roomId: "r-lab2", agentId: "a-luz" });
 

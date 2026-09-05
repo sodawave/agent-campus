@@ -22,7 +22,7 @@ Query map/scripting via `workadventure-docs`; admin via `workadventure-admin-doc
 | Campus concept | WorkAdventure | Core field |
 |---|---|---|
 | **Building** | **Map** (WAM / room URL) | `Building.waRoomUrl` |
-| **Room** | **Private area** in the map editor | `Room` id (+ optional `waAreaId`) |
+| **Room** | **Private area** in the map editor | `Room` id + `waAreaId` (seed uses `area-*`; bridge desks keyed by area) |
 | **Agent embodiment** | WOKA via `engine/apps/wa-bridge` / `wa-mcp` | — |
 | **Ops / tools** | MCP over bridge + map-storage | [`wa-mcp-feasibility.md`](./wa-mcp-feasibility.md) |
 
