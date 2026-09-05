@@ -12,12 +12,13 @@
 | **047** | [wa-spatial-contract](./047-wa-spatial-contract/) | done | mapa WA = building; room = espacio privado; [MCP feasibility](../docs/wa-mcp-feasibility.md) |
 | **048** | [wa-mcp](./048-wa-mcp/) | done | MCP `wa-mcp` / `npm run mcp:wa` |
 | **049** | [engine-flatten-spatial](./049-engine-flatten-spatial/) | done | `Building.waRoomUrl` + `Room.waAreaId`; appearance building/room deprecated |
+| **050** | [admin-create-map](./050-admin-create-map/) | done | GraphQL/MCP/control-panel: provision map + bind `waRoomUrl` |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **050** | admin-create-map | control-panel / MCP: crear mapa + bind `waRoomUrl` |
+| **051** | wa-bridge-building-url | wa-bridge lee `waRoomUrl` por building al join |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 
