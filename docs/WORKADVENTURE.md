@@ -159,3 +159,16 @@ bash scripts/wa/upload-starter-to-map-storage.sh
 - Editor room: http://play.workadventure.localhost/~/campus/starter/map.wam  
 - Bridge default `WA_ROOM_URL` points there (`engine/apps/wa-bridge`).  
 - Inline edits persist in map-storage (`.wam`), not in submodule `maps/starter/map.json`. For tile geometry: edit with Tiled **outside** the submodule or via editor → re-run the upload script.
+
+## Visual demo (shared map)
+
+```bash
+bash scripts/wa/demo-visual.sh
+# then, from engine/:
+npm run start --workspace @agent-campus/server
+WA_ROOM_URL='http://play.workadventure.localhost/~/campus/starter/map.wam' \
+  npm run start --workspace @agent-campus/wa-bridge
+```
+
+Open: http://play.workadventure.localhost/~/campus/starter/map.wam (anonymous).  
+Seed defaults to **shared** map (`WA_SEED_MAP_MODE=shared`) so the whole named fleet appears in one room. Use `per-building` after uploading `~/b-alpha` etc.

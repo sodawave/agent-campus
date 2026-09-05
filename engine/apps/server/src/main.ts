@@ -24,8 +24,16 @@ function wsConnection(ws: WebSocket): Connection {
 
 function seed(server: CampusServer): void {
   const s = server.store;
+  const play = (process.env.WA_PLAY_URL ?? "http://play.workadventure.localhost").replace(/\/$/, "");
+  // Shared starter map so one browser tab shows the full demo fleet.
+  // Per-building maps: set WA_SEED_MAP_MODE=per-building (uploads under ~/b-*/).
+  const perBuilding = (process.env.WA_SEED_MAP_MODE ?? "shared").trim() === "per-building";
+  const sharedMap = `${play}/~/campus/starter/map.wam`;
+  const mapFor = (buildingId: string) =>
+    perBuilding ? `${play}/~/${buildingId}/starter/map.wam` : sharedMap;
+
   s.campus.load({ id: "campus-demo", name: "Demo Co" });
-  s.building.spawn({ id: "b-alpha", name: "Alpha HQ" });
+  s.building.spawn({ id: "b-alpha", name: "Alpha HQ", waRoomUrl: mapFor("b-alpha") });
   s.room.spawn({ id: "r-mkt", buildingId: "b-alpha", key: "marketing" });
   s.room.spawn({ id: "r-dev", buildingId: "b-alpha", key: "engineering" });
 
@@ -36,7 +44,7 @@ function seed(server: CampusServer): void {
   s.room.assignHead({ roomId: "r-mkt", agentId: "a-mia" });
 
   // Second building: a tower with its own crew.
-  s.building.spawn({ id: "b-beta", name: "Beta Tower" });
+  s.building.spawn({ id: "b-beta", name: "Beta Tower", waRoomUrl: mapFor("b-beta") });
   s.room.spawn({ id: "r-ops", buildingId: "b-beta", key: "operations" });
   s.room.spawn({ id: "r-fin", buildingId: "b-beta", key: "finance" });
   s.agent.instantiate({ id: "a-joy", name: "Joy", buildingId: "b-beta", roomId: "r-ops", rankKey: "lead", skillKey: "operations" });
@@ -44,7 +52,7 @@ function seed(server: CampusServer): void {
   s.room.assignHead({ roomId: "r-ops", agentId: "a-joy" });
 
   // Third building: a small studio.
-  s.building.spawn({ id: "b-gamma", name: "Gamma Studio" });
+  s.building.spawn({ id: "b-gamma", name: "Gamma Studio", waRoomUrl: mapFor("b-gamma") });
   s.room.spawn({ id: "r-lab2", buildingId: "b-gamma", key: "research" });
   s.agent.instantiate({ id: "a-luz", name: "Luz", buildingId: "b-gamma", roomId: "r-lab2", rankKey: "lead", skillKey: "research" });
   s.room.assignHead({ roomId: "r-lab2", agentId: "a-luz" });

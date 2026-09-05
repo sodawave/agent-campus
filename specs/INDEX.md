@@ -14,12 +14,13 @@
 | **049** | [engine-flatten-spatial](./049-engine-flatten-spatial/) | done | `Building.waRoomUrl` + `Room.waAreaId`; appearance building/room deprecated |
 | **050** | [admin-create-map](./050-admin-create-map/) | done | GraphQL/MCP/control-panel: provision map + bind `waRoomUrl` |
 | **051** | [wa-bridge-building-url](./051-wa-bridge-building-url/) | done | wa-bridge join por `Building.waRoomUrl` (fallback env) |
+| **052** | [visual-demo](./052-visual-demo/) | done | Seed + script review; mapa compartido para flota visible |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **052** | — | (definir) |
+| **053** | — | (definir; p.ej. leaders con nombres únicos, panel live) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 
