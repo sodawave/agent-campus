@@ -17,6 +17,19 @@ Query map/scripting via `workadventure-docs`; admin via `workadventure-admin-doc
 
 ---
 
+## Spatial contract (direction — spec 047)
+
+| Campus concept | WorkAdventure | Notes |
+|---|---|---|
+| **Building** | **Map** (WAM / room URL) | Admin campus will create maps; engine keeps org identity, not tile geometry |
+| **Room** | **Private area / space** in the map editor | Defined in WA editor / map-storage, not as a second spatial engine |
+| **Agent embodiment** | WOKA via `engine/apps/wa-bridge` | Only fleet; no map-script bots |
+| **Ops / tools** | Future MCP over bridge + map-storage | See [`wa-mcp-feasibility.md`](./wa-mcp-feasibility.md) |
+
+Domain flattening (slim `building`/`room` in `@agent-campus/engine`) = **later specs** after this contract.
+
+---
+
 ## campus-engine vs WorkAdventure (no duplicar el dominio)
 
 **Veredicto:** WorkAdventure **no** reemplaza [`engine/packages/engine`](../engine/packages/engine). Hay solape en *presentación espacial* — y ese solape se resuelve **deprecando Godot como cliente espacial**, no metiendo el dominio en WA.
