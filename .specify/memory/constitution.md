@@ -6,7 +6,7 @@ Detalle de diseño: [`docs/TECH_SPEC.md`](../../docs/TECH_SPEC.md). Guía operat
 ## Core Principles
 
 ### I. Core autoritativo (única fuente de verdad)
-El **core** (plano de control, en servidor) es la única autoridad: identidad, org, binding a campus/edificio, reglas y **secuencia** del bus de eventos. Nada es canónico hasta que el core lo acepta y le asigna orden. Las reglas de negocio viven solo en `packages/campus-engine`.
+El **core** (plano de control, en servidor) es la única autoridad: identidad, org, binding a campus/edificio, reglas y **secuencia** del bus de eventos. Nada es canónico hasta que el core lo acepta y le asigna orden. Las reglas de negocio viven solo en `engine/packages/engine`.
 
 ### II. Tres planos, sin fugas
 El sistema se separa en **Control** (core/servidor), **Ejecución** (host/CLI: proceso vivo con ficheros locales) y **Presentación** (WorkAdventure espacial vía `wa-bridge` + UI web; Godot espacial **deprecated**). **Ningún plano contiene reglas de otro.** `domain/` no importa render ni store; el store no importa cliente.
@@ -36,7 +36,7 @@ El desarrollo es un **bucle**: se parte de la **especificación mínima viable, 
 
 - TypeScript estricto (`tsconfig.base.json`: `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, …).
 - Todo `CampusEvent` nuevo se añade al union y tiene su case en `reduce` (puro, sin I/O, idempotente).
-- Tests junto al paquete (`packages/campus-engine/test`). `domain/` sin dependencias de render.
+- Tests junto al paquete (`engine/packages/engine/test`). `domain/` sin dependencias de render.
 - Stack cerrado v1: presentación espacial **WorkAdventure** + `wa-bridge`; core **TypeScript** (API); UI config web. Godot espacial deprecated. Ver TECH_SPEC §3 y [`docs/WORKADVENTURE.md`](../../docs/WORKADVENTURE.md).
 
 ## Flujo de desarrollo (SDD / Spec Kit)

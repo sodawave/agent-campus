@@ -8,7 +8,7 @@
 |------|------|--------|-------|
 | **044** | [speckit-restore](./044-speckit-restore/) | done | Skills Cursor + este índice |
 | **045** | [wa-submodule](./045-wa-submodule/) | done | WA `@ v1.33.5` submodule; no editar vendor |
-| **046** | engine-encapsulate | planned | Todo campus → `engine/`; `packages/engine` (`@agent-campus/engine`); drop godot/viewer |
+| **046** | [engine-encapsulate](./046-engine-encapsulate/) | done | Todo campus → `engine/`; `packages/engine` (`@agent-campus/engine`); drop godot/viewer |
 | **047** | wa-spatial-contract | planned | mapa WA = building; room = espacio privado; MCP feasibility doc |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.

@@ -2,28 +2,20 @@
   "name": "agent-campus",
   "version": "0.9.0",
   "private": true,
-  "description": "Gamified campus for AI agent harnesses — core engine (control plane).",
+  "description": "Agent Campus monorepo — engine/ ambient + workadventure/ vendor",
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
   "scripts": {
-    "dev:server": "npm run dev --workspace @agent-campus/server",
-    "dev:viewer": "npm run dev --workspace @agent-campus/viewer",
-    "dev:panel": "npm run dev --workspace @agent-campus/control-panel",
-    "dev:wa-bridge": "npm run dev --workspace @agent-campus/wa-bridge",
-    "graphql": "npm run graphql --workspace @agent-campus/api",
-    "cli": "npm run campus --workspace @agent-campus/cli --",
-    "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "test:watch": "npm run test:watch --workspace packages/campus-engine",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "dev:server": "npm run dev:server --prefix engine",
+    "dev:panel": "npm run dev:panel --prefix engine",
+    "dev:wa-bridge": "npm run dev:wa-bridge --prefix engine",
+    "graphql": "npm run graphql --prefix engine",
+    "cli": "npm run cli --prefix engine --",
+    "build": "npm run build --prefix engine",
+    "test": "npm run test --prefix engine",
+    "test:watch": "npm run test:watch --prefix engine",
+    "typecheck": "npm run typecheck --prefix engine"
   },
   "engines": {
     "node": ">=20"
-  },
-  "devDependencies": {
-    "typescript": "^5.6.3"
   }
 }

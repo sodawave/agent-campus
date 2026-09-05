@@ -1,6 +1,0 @@
-{
-  "name": "@agent-campus/campus-godot",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Godot presentation client for Agent Campus (projection only; connects to the core over WebSocket)."
-}
