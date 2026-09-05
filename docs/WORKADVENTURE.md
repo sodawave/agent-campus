@@ -99,6 +99,20 @@ Control Panel campus ≠ clonar dashboard SaaS WA. Admin API (`/api/map`, `/api/
 
 ---
 
+## Vendor — submodule (read-only)
+
+`workadventure/` is a **git submodule** pinned to release tag **`v1.33.5`**.
+
+**Hard rule: do not edit files under `workadventure/`.** No map patches, no compose forks, no core changes in-tree. Updates = bump the submodule to a newer upstream tag. Map ops use the **map editor** / **map-storage HTTP API** via scripts in this monorepo (`scripts/wa/`), never by committing into the submodule.
+
+```bash
+git submodule update --init
+cd workadventure
+docker compose -f docker-compose.yaml -f docker-compose-no-oidc.yaml up -d
+```
+
+---
+
 ## Admin dashboard (for Control Panel)
 
 See [`workadventure-admin/README.md`](./workadventure-admin/README.md).
@@ -114,7 +128,7 @@ See [`workadventure-admin/README.md`](./workadventure-admin/README.md).
 ## Related product decisions
 
 - Agent movement: extend MotionMotor in `apps/wa-bridge` (not high-frequency core events).
-- Meeting Jitsi on starter right table: disabled in map JSON (empty tiles / no `jitsiRoom`).
+- Prefer map-storage / editor over hand-editing starter `map.json` in the submodule.
 - Godot spatial client: **deprecated** (see above).
 
 ## Inline map editor (dev, no OIDC)
@@ -122,11 +136,13 @@ See [`workadventure-admin/README.md`](./workadventure-admin/README.md).
 Requirement: room URL under **`/~/...`** (map-storage), plus `ENABLE_MAP_EDITOR` + `MAP_EDITOR_ALLOW_ALL_USERS=true` (set by `docker-compose-no-oidc.yaml`). Anonymous access is enough in this mode.
 
 ```bash
+git submodule update --init
 cd workadventure
 docker compose -f docker-compose.yaml -f docker-compose-no-oidc.yaml up -d
-bash scripts/upload-starter-to-map-storage.sh
+cd ..
+bash scripts/wa/upload-starter-to-map-storage.sh
 ```
 
 - Editor room: http://play.workadventure.localhost/~/campus/starter/map.wam  
 - Bridge default `WA_ROOM_URL` points there (`apps/wa-bridge`).  
-- Inline edits persist in map-storage (`.wam`), not in `maps/starter/map.json`. For tile geometry: edit with Tiled → re-run the upload script.
+- Inline edits persist in map-storage (`.wam`), not in submodule `maps/starter/map.json`. For tile geometry: edit with Tiled **outside** the submodule or via editor → re-run the upload script.

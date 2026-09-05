@@ -13,9 +13,12 @@ npm workspaces:
 - `apps/campus-godot` — **DEPRECATED** (solapaba el mapa espacial con WA; no nuevas features). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
 - `apps/control-panel` — config campus (GraphQL).
 
+**Vendor:** [`workadventure/`](workadventure/) = **git submodule** `@ v1.33.5`. **Prohibido editar** bajo `workadventure/`. Updates = bump de tag. Mapas vía editor / [`scripts/wa/`](scripts/wa/). Ver [`docs/WORKADVENTURE.md`](docs/WORKADVENTURE.md).
+
 Comandos (desde la raíz):
 
 ```bash
+git submodule update --init
 npm install
 npm run dev         # playground en :5173
 npm run typecheck   # engine + playground
