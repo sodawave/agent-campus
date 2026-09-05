@@ -14,6 +14,8 @@ export interface AgentRef {
   roomId: string;
   skillKey?: string;
   appearance?: AgentAppearance;
+  /** WorkAdventure map URL from Building.waRoomUrl (optional). */
+  waRoomUrl?: string | null;
 }
 
 export interface WaBridgeConfig {

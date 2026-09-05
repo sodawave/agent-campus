@@ -13,12 +13,13 @@
 | **048** | [wa-mcp](./048-wa-mcp/) | done | MCP `wa-mcp` / `npm run mcp:wa` |
 | **049** | [engine-flatten-spatial](./049-engine-flatten-spatial/) | done | `Building.waRoomUrl` + `Room.waAreaId`; appearance building/room deprecated |
 | **050** | [admin-create-map](./050-admin-create-map/) | done | GraphQL/MCP/control-panel: provision map + bind `waRoomUrl` |
+| **051** | [wa-bridge-building-url](./051-wa-bridge-building-url/) | done | wa-bridge join por `Building.waRoomUrl` (fallback env) |
 
 ### Siguiente (sugerido)
 
 | Spec | Slug | Notas |
 |------|------|-------|
-| **051** | wa-bridge-building-url | wa-bridge lee `waRoomUrl` por building al join |
+| **052** | — | (definir) |
 
 Checkpoint git previo: tag `checkpoint/pre-engine-encapsulate`.
 

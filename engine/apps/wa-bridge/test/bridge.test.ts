@@ -6,11 +6,13 @@ import * as waSession from "../src/waSession";
 describe("AgentWaBridge.sync", () => {
   it("joins each named agent once and skips workers", async () => {
     const joined: string[] = [];
-    vi.spyOn(waSession, "joinWaSession").mockImplementation(async (agent) => {
-      joined.push(agent.id);
+    vi.spyOn(waSession, "joinWaSession").mockImplementation(async (agent, cfg) => {
+      const roomUrl = agent.waRoomUrl?.trim() || cfg.waRoomUrl;
+      joined.push(`${agent.id}@${roomUrl}`);
       return {
         agentId: agent.id,
         name: agent.name,
+        roomUrl,
         desk: { x: 0, y: 0 },
         position: () => ({ x: 0, y: 0 }),
         zone: () => "desk" as const,
@@ -45,7 +47,7 @@ describe("AgentWaBridge.sync", () => {
     ]);
 
     await waitFor(() => joined.length === 2, 2000);
-    expect(joined.sort()).toEqual(["a-ivan", "a-mia"]);
+    expect(joined.sort()).toEqual(["a-ivan@http://unused/map", "a-mia@http://unused/map"]);
 
     // second sync must not re-join
     bridge.sync([
@@ -54,6 +56,24 @@ describe("AgentWaBridge.sync", () => {
     ]);
     await sleep(50);
     expect(joined).toHaveLength(2);
+
+    // URL change forces re-join
+    bridge.sync([
+      {
+        id: "a-mia",
+        name: "Mia",
+        kind: "named",
+        buildingId: "b1",
+        roomId: "r1",
+        waRoomUrl: "http://play/~/b1/map.wam",
+      },
+      { id: "a-ivan", name: "Ivan", kind: "named", buildingId: "b1", roomId: "r1" },
+    ]);
+    await waitFor(() => joined.includes("a-mia@http://play/~/b1/map.wam"), 2000);
+    expect(joined.filter((j) => j.startsWith("a-mia@"))).toEqual([
+      "a-mia@http://unused/map",
+      "a-mia@http://play/~/b1/map.wam",
+    ]);
 
     bridge.close();
     vi.restoreAllMocks();
