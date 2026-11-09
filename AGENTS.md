@@ -7,19 +7,28 @@ Documento canónico de diseño: [`docs/TECH_SPEC.md`](docs/TECH_SPEC.md).
 
 npm workspaces:
 
-- `packages/campus-engine` — dominio puro + `CampusStore` (TypeScript, sin render).
-- `apps/playground` — cliente web de referencia (Vite) que **solo proyecta** estado.
-- `apps/campus-godot` — cliente principal (Godot, futuro).
+- `packages/campus-engine` — dominio puro + `CampusStore` (TypeScript, sin render). Única autoridad (control plane).
+- `apps/server` — servicio core headless: servidor WS que expone el core (`ws://0.0.0.0:8787`, env `PORT`).
+- `apps/api` — servidor MCP (stdio) + superficie GraphQL (HTTP `:8788`) sobre el core.
+- `apps/cli` — host CLI `campus`: cliente WS (status, host join, runtime start/stop, watch).
+- `apps/viewer` — cliente web de referencia (Vite, `:5173`) que **solo proyecta** estado por WS.
+- `apps/control-panel` — UI web (Vite, `:5174`) sobre GraphQL: ver estado + editar config.
 
 Comandos (desde la raíz):
 
 ```bash
 npm install
-npm run dev         # playground en :5173
-npm run typecheck   # engine + playground
-npm test            # Vitest (dominio/store)
-npm run build       # engine (tsc) + playground (vite build)
+npm run dev:server   # core WS server (tsx watch, :8787)
+npm run dev:viewer   # viewer (Vite, :5173)
+npm run dev:panel    # control panel (Vite, :5174)
+npx tsx apps/api/src/graphql-main.ts   # GraphQL HTTP server (:8788)
+npm run cli -- ...   # campus CLI (cliente WS)
+npm run typecheck    # build engine (dist) + tsc en todos los workspaces
+npm test             # Vitest (engine + api)
+npm run build        # engine (tsc) + viewer/panel (vite build)
 ```
+
+Nota: el engine se consume desde `dist/` (`main`/`types` → `./dist`), por eso `typecheck` lo compila primero.
 
 ## Arquitectura — invariantes (no negociables)
 
