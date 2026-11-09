@@ -21,7 +21,7 @@ npm install
 npm run dev:server   # core WS server (tsx watch, :8787)
 npm run dev:viewer   # viewer (Vite, :5173)
 npm run dev:panel    # control panel (Vite, :5174)
-npx tsx apps/api/src/graphql-main.ts   # GraphQL HTTP server (:8788)
+npm run graphql      # GraphQL HTTP server (:8788; requiere core corriendo)
 npm run cli -- ...   # campus CLI (cliente WS)
 npm run typecheck    # build engine (dist) + tsc en todos los workspaces
 npm test             # Vitest (engine + api)
