@@ -8,6 +8,7 @@
   },
   "scripts": {
     "mcp": "tsx src/main.ts",
+    "graphql": "tsx src/graphql-main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
