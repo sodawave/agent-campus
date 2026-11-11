@@ -9,7 +9,7 @@ import type { CommandResult } from "@agent-campus/campus-engine";
 import type { CampusLink } from "./link";
 
 export const schema = buildSchema(`
-  type Provider { id: ID!, name: String!, models: [String!]! }
+  type Provider { id: ID!, name: String!, models: [String!]!, hasToken: Boolean! }
   type ModelRef { providerId: ID!, model: String! }
   type Config {
     language: String!
@@ -39,6 +39,7 @@ export const schema = buildSchema(`
     addProvider(id: ID!, name: String!, models: [String!]!): CommandResult!
     removeProvider(providerId: ID!): CommandResult!
     setDefaultModel(providerId: ID!, model: String!): CommandResult!
+    setProviderToken(providerId: ID!, token: String!): CommandResult!
   }
 `);
 
@@ -46,15 +47,29 @@ function toResult(r: CommandResult): { ok: boolean; reason?: string; event?: str
   return r.ok ? { ok: true, event: r.event.type } : { ok: false, reason: r.reason };
 }
 
-/** Root resolvers closing over a CampusLink. */
-export function createRoot(link: CampusLink) {
+/**
+ * Server-side secret store for provider tokens (keyed by providerId). Tokens are
+ * secrets: they are kept here (server memory), never in the campus state / log.
+ */
+export type SecretStore = Map<string, string>;
+
+/** Root resolvers closing over a CampusLink and a token secret store. */
+export function createRoot(link: CampusLink, secrets: SecretStore = new Map()) {
   return {
     campus: () => {
       const s = link.state();
       return {
         id: s.campus?.id ?? null,
         name: s.campus?.name ?? null,
-        config: s.config,
+        config: {
+          ...s.config,
+          providers: s.config.providers.map((p) => ({
+            id: p.id,
+            name: p.name,
+            models: p.models,
+            hasToken: p.hasToken ?? false,
+          })),
+        },
         buildings: s.buildings.map((b) => ({ id: b.id, name: b.name, leaderAgentId: b.leaderAgentId ?? null })),
         agents: s.agents.map((a) => ({ id: a.id, name: a.name, rankKey: a.rankKey ?? null, live: a.runtimeId != null })),
         projects: s.projects.map((p) => ({ id: p.id, name: p.name, buildingId: p.buildingId, status: p.status })),
@@ -82,6 +97,18 @@ export function createRoot(link: CampusLink) {
       toResult(await link.send({ type: "campus.removeProvider", providerId: args.providerId })),
     setDefaultModel: async (args: { providerId: string; model: string }) =>
       toResult(await link.send({ type: "campus.setDefaultModel", providerId: args.providerId, model: args.model })),
+    setProviderToken: async (args: { providerId: string; token: string }) => {
+      const hasToken = args.token.length > 0;
+      // Keep the raw token in the server secret store (never in the campus state).
+      if (hasToken) secrets.set(args.providerId, args.token);
+      else secrets.delete(args.providerId);
+      const r = await link.send({ type: "campus.setProviderToken", providerId: args.providerId, hasToken });
+      // Roll back the secret store if the core rejected the change.
+      if (!r.ok) {
+        if (hasToken) secrets.delete(args.providerId);
+      }
+      return toResult(r);
+    },
   };
 }
 
@@ -89,6 +116,7 @@ export function executeGraphql(
   link: CampusLink,
   source: string,
   variableValues?: Record<string, unknown>,
+  secrets?: SecretStore,
 ): Promise<ExecutionResult> {
-  return graphql({ schema, source, rootValue: createRoot(link), variableValues });
+  return graphql({ schema, source, rootValue: createRoot(link, secrets), variableValues });
 }

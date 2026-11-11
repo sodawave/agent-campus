@@ -62,4 +62,33 @@ describe("GraphQL surface", () => {
     expect(cfg.providers).toEqual([{ id: "openai", models: ["gpt-x", "gpt-mini"] }]);
     expect(cfg.defaultModel).toEqual({ providerId: "openai", model: "gpt-x" });
   });
+
+  it("stores a provider token as a secret (hasToken flag; value never in state)", async () => {
+    const link = memLink();
+    const secrets = new Map<string, string>();
+    await executeGraphql(link, `mutation($m: [String!]!) { addProvider(id: "openai", name: "OpenAI", models: $m) { ok } }`, { m: ["gpt-x"] }, secrets);
+    // Before: no token.
+    const q0 = await executeGraphql(link, `{ campus { config { providers { id hasToken } } } }`, undefined, secrets);
+    expect((q0.data as any).campus.config.providers).toEqual([{ id: "openai", hasToken: false }]);
+    // Set a token: it lands in the server secret store, not in the campus state.
+    const set = await executeGraphql(link, `mutation { setProviderToken(providerId: "openai", token: "sk-secret") { ok event } }`, undefined, secrets);
+    expect((set.data as any).setProviderToken.ok).toBe(true);
+    expect(secrets.get("openai")).toBe("sk-secret");
+    const q1 = await executeGraphql(link, `{ campus { config { providers { id hasToken } } } }`, undefined, secrets);
+    expect((q1.data as any).campus.config.providers).toEqual([{ id: "openai", hasToken: true }]);
+    // The raw token is never present in the projected state / event log.
+    expect(JSON.stringify(link.state())).not.toContain("sk-secret");
+    // Clearing the token flips the flag off and removes it from the store.
+    const clear = await executeGraphql(link, `mutation { setProviderToken(providerId: "openai", token: "") { ok } }`, undefined, secrets);
+    expect((clear.data as any).setProviderToken.ok).toBe(true);
+    expect(secrets.has("openai")).toBe(false);
+    const q2 = await executeGraphql(link, `{ campus { config { providers { id hasToken } } } }`, undefined, secrets);
+    expect((q2.data as any).campus.config.providers).toEqual([{ id: "openai", hasToken: false }]);
+  });
+
+  it("setProviderToken rejects an unknown provider", async () => {
+    const link = memLink();
+    const m = await executeGraphql(link, `mutation { setProviderToken(providerId: "ghost", token: "x") { ok reason } }`);
+    expect((m.data as any).setProviderToken).toEqual({ ok: false, reason: "provider_not_found" });
+  });
 });

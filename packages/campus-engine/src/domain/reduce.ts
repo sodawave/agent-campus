@@ -45,6 +45,15 @@ export function reduce(state: State, event: CampusEvent): State {
       return { ...state, config: { ...state.config, providers, defaultModel } };
     }
 
+    case "campus.provider.tokenSet": {
+      const { providerId, hasToken } = event;
+      if (!state.config.providers.some((p) => p.id === providerId)) return state;
+      const providers = state.config.providers.map((p) =>
+        p.id === providerId ? { ...p, hasToken } : p,
+      );
+      return { ...state, config: { ...state.config, providers } };
+    }
+
     case "campus.defaultModel.set": {
       return { ...state, config: { ...state.config, defaultModel: event.model } };
     }

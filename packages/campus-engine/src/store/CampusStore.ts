@@ -65,6 +65,9 @@ export class CampusStore {
       this.dispatch({ type: "campus.addProvider", provider: { id: input.id, name: input.name, models: [...input.models] } }),
     removeProvider: (input: { providerId: Id }): CommandResult =>
       this.dispatch({ type: "campus.removeProvider", providerId: input.providerId }),
+    /** Flag whether a provider has a token configured (the secret lives outside the state). */
+    setProviderToken: (input: { providerId: Id; hasToken: boolean }): CommandResult =>
+      this.dispatch({ type: "campus.setProviderToken", providerId: input.providerId, hasToken: input.hasToken }),
     setDefaultModel: (input: { providerId: Id; model: string }): CommandResult =>
       this.dispatch({ type: "campus.setDefaultModel", providerId: input.providerId, model: input.model }),
   };
