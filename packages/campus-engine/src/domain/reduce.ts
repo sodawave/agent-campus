@@ -182,6 +182,15 @@ export function reduce(state: State, event: CampusEvent): State {
       };
     }
 
+    case "agent.ranked": {
+      const { agentId, rankKey } = event;
+      if (!state.agents.some((a) => a.id === agentId)) return state;
+      return {
+        ...state,
+        agents: state.agents.map((a) => (a.id === agentId ? { ...a, rankKey } : a)),
+      };
+    }
+
     case "agent.supervisor.assigned": {
       const { agentId, supervisorId } = event;
       if (!state.agents.some((a) => a.id === agentId)) return state;

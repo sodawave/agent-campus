@@ -25,7 +25,7 @@ import type {
   TaskVerdict,
 } from "./types";
 import { WORKER_SPAWNER_RANK_KEY, LEADER_RANK_KEY, LEADER_ROOM_ROLE } from "./types";
-import { canDebate } from "./org";
+import { canDebate, canRank } from "./org";
 import { isLeaderRoom } from "./building";
 import { nextSpecKitPhase } from "./speckit";
 import { liveRuntimeForAgent } from "./host";
@@ -57,6 +57,7 @@ export type CampusCommand =
   | { type: "chat.send"; message: ChatMessage }
   | { type: "agent.instantiate"; agent: AgentInstance }
   | { type: "agent.setHarness"; agentId: Id; providerId: Id; model: string; temperature?: number; effort?: number; maxTokens?: number }
+  | { type: "agent.rank"; agentId: Id; rankKey: string; byId: Id }
   | { type: "agent.assignSupervisor"; agentId: Id; supervisorId: Id | null }
   | { type: "room.assignHead"; roomId: Id; agentId: Id }
   | { type: "worker.spawn"; actorId: Id; worker: AgentInstance }
@@ -316,6 +317,14 @@ export function execute(state: State, command: CampusCommand): CommandResult {
         ...(command.maxTokens !== undefined ? { maxTokens: command.maxTokens } : {}),
       };
       return accept({ type: "agent.harness.set", agentId, harness });
+    }
+
+    case "agent.rank": {
+      const { agentId, rankKey, byId } = command;
+      const agent = state.agents.find((a) => a.id === agentId);
+      if (!agent) return reject("agent_not_found");
+      if (!canRank(state, agent, byId)) return reject("not_supervisor");
+      return accept({ type: "agent.ranked", agentId, rankKey });
     }
 
     case "agent.assignSupervisor": {
